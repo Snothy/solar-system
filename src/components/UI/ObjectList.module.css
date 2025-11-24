@@ -1,0 +1,55 @@
+.sectionTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-dim);
+  margin: 20px 0 10px 0;
+  font-weight: 700;
+}
+
+.objectList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.objectItem {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 4px;
+}
+
+.objectItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.objectItem.selected {
+  background: rgba(0, 210, 255, 0.15);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+}
+
+.objIcon {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.objInfo {
+  flex: 1;
+}
+
+.objName {
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+}
+
+.objDetail {
+  font-size: 11px;
+  color: var(--text-dim);
+}

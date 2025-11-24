@@ -1,0 +1,43 @@
+.selectionPanel {
+  border-top: 1px solid var(--border-glass);
+  padding-top: 15px;
+  margin-top: 10px;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.selectedName {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: var(--text-main);
+}
+
+.buttonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.buttonGrid button {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.buttonGrid button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent);
+}

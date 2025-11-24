@@ -1,0 +1,94 @@
+.sectionTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-dim);
+  margin: 20px 0 10px 0;
+  font-weight: 700;
+}
+
+.sectionTitle:first-child {
+  margin-top: 0;
+}
+
+.controlGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.value {
+  color: var(--accent);
+}
+
+.slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--accent);
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  appearance: none;
+  margin-bottom: 8px;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.btnGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.btnGrid button {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnGrid button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent);
+}
+
+.primaryBtn {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--accent);
+  color: #0b0f19;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 10px;
+}
+
+.primaryBtn:hover {
+  background: var(--accent-hover);
+}
+
+.primaryBtn.active {
+  background: var(--accent);
+  color: #0b0f19;
+}

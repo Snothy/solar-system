@@ -1,0 +1,40 @@
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 320px;
+  height: 100vh;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-glass);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 10;
+  transition: transform 0.3s ease;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  background: linear-gradient(90deg, #fff, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.5px;
+}
+
+.scrollContent {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+}

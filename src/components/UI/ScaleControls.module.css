@@ -1,0 +1,76 @@
+.controlGroup {
+  margin-bottom: 20px;
+}
+
+.toggleWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.toggleLabel {
+  font-size: 13px;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  -webkit-appearance: none;
+  background: #333;
+  outline: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .3s;
+}
+
+.toggleSwitch:checked {
+  background: var(--accent);
+}
+
+.toggleSwitch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: .3s;
+}
+
+.toggleSwitch:checked::after {
+  transform: translateX(16px);
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.value {
+  color: var(--accent);
+}
+
+.slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--accent);
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+}
