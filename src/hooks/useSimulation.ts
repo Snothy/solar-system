@@ -312,29 +312,50 @@ export function useSimulation() {
 
   // Update body properties
   const updateBody = (name: string, updates: Partial<PhysicsBody>) => {
+    let updatedBody: PhysicsBody | null = null;
+
     setBodies(prevBodies => 
       prevBodies.map(b => {
         if (b.name === name) {
-          return { ...b, ...updates };
+          updatedBody = { ...b, ...updates };
+          return updatedBody;
         }
         return b;
       })
     );
 
-    // Also update visual bodies if necessary (e.g. radius change)
-    if (updates.radius !== undefined) {
-      setVisualBodies(prevVisualBodies => 
-        prevVisualBodies.map(vb => {
-          if (vb.body.name === name) {
-            return {
-              ...vb,
-              baseRadius: updates.radius! * SCALE,
-              body: { ...vb.body, ...updates } // Keep reference in sync
-            };
-          }
-          return vb;
-        })
-      );
+    // We need to update visual bodies to reference the NEW body object
+    // otherwise they will keep rendering the old (now disconnected) body
+    setVisualBodies(prevVisualBodies => 
+      prevVisualBodies.map(vb => {
+        if (vb.body.name === name) {
+          // If we have an updated body, use it. Otherwise, we need to find it (but we should have it from above)
+          // Since setBodies is async/batched, we can't rely on 'bodies' state here yet.
+          // But we captured 'updatedBody' in the closure above.
+          // However, React state updates are pure functions, so side-effects like capturing 'updatedBody' 
+          // might be tricky if called multiple times, but for this event handler it's fine.
+          // Better approach: calculate the new body here too or just apply updates to the existing ref 
+          // (but we want immutability).
+          
+          // Actually, the cleanest way is to apply the same updates to the body inside VisualBody
+          const newBody = updatedBody || { ...vb.body, ...updates };
+          
+          return {
+            ...vb,
+            baseRadius: (updates.radius !== undefined) ? updates.radius * SCALE : vb.baseRadius,
+            body: newBody
+          };
+        }
+        return vb;
+      })
+    );
+
+    // Also update selected/focused objects if they match
+    if (selectedObject && selectedObject.name === name) {
+      setSelectedObject(prev => prev ? { ...prev, ...updates } : null);
+    }
+    if (focusedObject && focusedObject.name === name) {
+      setFocusedObject(prev => prev ? { ...prev, ...updates } : null);
     }
   };
 

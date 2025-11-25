@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Scene } from './components/Scene/Scene';
 import { Sidebar } from './components/UI/Sidebar';
 import { ScaleControls } from './components/UI/ScaleControls';
@@ -7,6 +7,7 @@ import { ObjectList } from './components/UI/ObjectList';
 import { SelectionPanel } from './components/UI/SelectionPanel';
 import { StatusBar } from './components/UI/StatusBar';
 import { PropertyEditor } from './components/UI/PropertyEditor';
+import { Minimap } from './components/UI/Minimap';
 import { useSimulation } from './hooks/useSimulation';
 import './index.css';
 
@@ -62,6 +63,8 @@ export function App() {
     setIsPaused(!isPaused);
   };
 
+  const [showMinimap, setShowMinimap] = useState(true);
+
   return (
     <>
 
@@ -78,7 +81,10 @@ export function App() {
         orbitVisibility={orbitVisibility}
       />
 
-      <Sidebar>
+      <Sidebar
+        showMinimap={showMinimap}
+        onToggleMinimap={setShowMinimap}
+      >
         <ScaleControls
           visualScale={visualScale}
           useVisualScale={useVisualScale}
@@ -137,6 +143,17 @@ export function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {showMinimap && (
+        <Minimap 
+          visualBodies={visualBodies} 
+          focusedObject={focusedObject} 
+          onFocus={(body) => {
+            setSelectedObject(body);
+            setFocusedObject(body);
+          }}
+        />
       )}
     </>
   );
