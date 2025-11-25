@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle, CelestialBodyData } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
-import { START_DATE, SCALE, DEFAULT_VISUAL_SCALE, TRAIL_LENGTH } from '../utils/constants';
+import { START_DATE, SCALE,  TRAIL_LENGTH } from '../utils/constants';
 import { velocityVerletStep, checkCollisions } from '../utils/physics';
 
 export function useSimulation() {
@@ -12,8 +12,8 @@ export function useSimulation() {
   const [simTime, setSimTime] = useState(START_DATE.getTime());
   const [timeStep, setTimeStep] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
-  const [visualScale, setVisualScale] = useState(DEFAULT_VISUAL_SCALE);
-  const [useVisualScale, setUseVisualScale] = useState(true);
+  const [visualScale, setVisualScale] = useState(100);
+  const [useVisualScale, setUseVisualScale] = useState(false);
   const [selectedObject, setSelectedObject] = useState<PhysicsBody | null>(null);
   const [focusedObject, setFocusedObject] = useState<PhysicsBody | null>(null);
 

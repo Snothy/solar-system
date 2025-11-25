@@ -76,7 +76,10 @@ export function Scene({
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
         shadows
-        camera={{ position: [0, 4000, 6000], fov: 50, near: 1e-6, far: 1000000 }}
+        camera={{ position: [0, 4000, 6000], fov: 50, near: 1e-6, far: 1000000, layers: undefined }} // Layers handled by ref
+        onCreated={({ camera }) => {
+          camera.layers.enable(1); // Enable Layer 1 so we can see focused objects
+        }}
         gl={{ 
           logarithmicDepthBuffer: true,
           outputColorSpace: THREE.SRGBColorSpace 
@@ -84,7 +87,11 @@ export function Scene({
       >
         <color attach="background" args={['#000005']} />
         
-        <Lights />
+        <Lights 
+          visualBodies={visualBodies}
+          focusedObject={focusedObject}
+          visualScale={visualScale}
+        />
         
         <OrbitControls 
           ref={controlsRef}
@@ -112,6 +119,25 @@ export function Scene({
           const data = SOLAR_SYSTEM_DATA.find(d => d.name === vb.body.name);
           if (!data) return null;
           
+          // Determine if this body should be in the "High Quality" layer (Layer 1)
+          // It should be in Layer 1 if:
+          // 1. It is the focused object
+          // 2. It is a child (moon) of the focused object
+          // 3. It is the parent of the focused object
+          // 4. It is a star (always needs to be visible to cast shadows/emit light)
+          let layer = 0;
+          if (data.type === 'star') {
+            layer = 1; // Stars exist in both effectively, but we put them in 1 to interact with SpotLight
+          } else if (focusedObject) {
+            const isFocused = vb.body.name === focusedObject.name;
+            const isChildOfFocused = vb.body.parentName === focusedObject.name;
+            const isParentOfFocused = focusedObject.parentName === vb.body.name;
+            
+            if (isFocused || isChildOfFocused || isParentOfFocused) {
+              layer = 1;
+            }
+          }
+
           return (
             <group key={vb.body.name}>
               <Suspense fallback={null}>
@@ -121,6 +147,7 @@ export function Scene({
                   visualScale={visualScale}
                   useVisualScale={useVisualScale}
                   onClick={() => onObjectSelect(index)}
+                  layer={layer}
                 />
               </Suspense>
               

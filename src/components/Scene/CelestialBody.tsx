@@ -10,6 +10,7 @@ interface CelestialBodyProps {
   visualScale: number;
   useVisualScale: boolean;
   onClick: () => void;
+  layer: number;
 }
 
 export function CelestialBody({ 
@@ -17,7 +18,8 @@ export function CelestialBody({
   visualBody, 
   visualScale, 
   useVisualScale,
-  onClick 
+  onClick,
+  layer
 }: CelestialBodyProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   
@@ -100,6 +102,16 @@ export function CelestialBody({
     return data.axialTilt ? THREE.MathUtils.degToRad(data.axialTilt) : 0;
   }, [data.axialTilt]);
   
+  // Apply layer
+  useMemo(() => {
+    if (meshRef.current) {
+      meshRef.current.layers.set(layer);
+      meshRef.current.traverse((child) => {
+        child.layers.set(layer);
+      });
+    }
+  }, [layer]);
+
   return (
     <mesh 
       ref={meshRef}
@@ -112,6 +124,8 @@ export function CelestialBody({
     >
       <sphereGeometry args={[1, 64, 64]} />
       {material}
+      
+
       
       {/* Rings for Saturn - using color only since texture URL is dead */}
       {data.hasRings && (
