@@ -65,14 +65,7 @@ export function App() {
 
   return (
     <>
-      {isLoading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black text-white">
-          <div className="text-center">
-            <div className="text-2xl font-bold mb-2 text-blue-400">Initializing Solar System...</div>
-            <div className="text-sm text-gray-400">Fetching real-time data from NASA JPL Horizons</div>
-          </div>
-        </div>
-      )}
+
       <Scene
         visualBodies={visualBodies}
         particles={particles}
@@ -132,6 +125,20 @@ export function App() {
             setFocusedObject(null);
           }}
         />
+      )}
+
+      {isLoading && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-500">
+          <div className="flex flex-col items-center p-8 rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl">
+            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-6"></div>
+            <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
+              Initializing OrbitEngine
+            </div>
+            <div className="text-sm text-gray-400 font-mono">
+              Fetching ephemeris data from JPL Horizons...
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

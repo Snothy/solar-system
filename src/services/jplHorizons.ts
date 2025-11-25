@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 
-const CORS_PROXY = 'https://corsproxy.io/?';
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://thingproxy.freeboard.io/fetch/'
+];
+
 const BASE_URL = 'https://ssd.jpl.nasa.gov/api/horizons.api';
 
 interface JPLData {
@@ -12,6 +17,27 @@ interface JPLData {
   meanTemperature?: number;
   axialTilt?: number;
   surfaceGravity?: number;
+}
+
+async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
+  let lastError: any;
+
+  for (let i = 0; i < retries; i++) {
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) return response;
+        console.warn(`Proxy ${proxy} failed with status ${response.status}`);
+      } catch (e) {
+        console.warn(`Proxy ${proxy} failed:`, e);
+        lastError = e;
+      }
+    }
+    // Wait before retrying (exponential backoff)
+    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+  }
+  throw lastError || new Error('All proxies failed');
 }
 
 export async function fetchBodyData(id: string, date: Date = new Date()): Promise<JPLData> {
@@ -32,11 +58,10 @@ export async function fetchBodyData(id: string, date: Date = new Date()): Promis
     OUT_UNITS: "'KM-S'"
   });
 
-  // Construct full URL with proxy
-  const url = `${CORS_PROXY}${encodeURIComponent(`${BASE_URL}?${params.toString()}`)}`;
+  const targetUrl = `${BASE_URL}?${params.toString()}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetchWithRetry(targetUrl);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

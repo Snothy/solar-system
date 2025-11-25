@@ -85,7 +85,23 @@ export function useSimulation() {
               surfaceGravity: jplData.surfaceGravity || data.surfaceGravity || 0
             };
           } catch (e) {
-            console.error(`Failed to fetch JPL data for ${data.name}`, e);
+            console.warn(`Failed to fetch JPL data for ${data.name}, using fallback`, e);
+            const { FALLBACK_DATA } = await import('../data/fallbackData');
+            const fallback = FALLBACK_DATA[data.name];
+            
+            if (fallback) {
+              return {
+                ...data,
+                pos: fallback.pos,
+                vel: fallback.vel,
+                mass: data.mass || 0,
+                radius: data.radius || 1000,
+                rotationPeriod: data.rotationPeriod || 0,
+                meanTemperature: data.meanTemperature || 0,
+                axialTilt: data.axialTilt || 0,
+                surfaceGravity: data.surfaceGravity || 0
+              };
+            }
             return null;
           }
         };
@@ -246,7 +262,8 @@ export function useSimulation() {
 
             const dir = new THREE.Vector3().subVectors(visualPos, parentPos);
             const dist = dir.length();
-            const minDistance = parentRadius + childRadius * 2.0;
+            // Use 1.2x parent radius to ensure moon is clearly above surface/atmosphere
+            const minDistance = parentRadius * 1.2 + childRadius;
 
             if (dist < minDistance) {
               dir.normalize();
