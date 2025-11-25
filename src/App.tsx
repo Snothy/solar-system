@@ -33,7 +33,8 @@ export function App() {
     setFocusedObject,
     removeParticle,
     updatePhysics,
-    updateBody
+    updateBody,
+    isLoading
   } = useSimulation();
 
   const handleObjectSelect = (index: number) => {
@@ -61,6 +62,14 @@ export function App() {
 
   return (
     <>
+      {isLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black text-white">
+          <div className="text-center">
+            <div className="text-2xl font-bold mb-2 text-blue-400">Initializing Solar System...</div>
+            <div className="text-sm text-gray-400">Fetching real-time data from NASA JPL Horizons</div>
+          </div>
+        </div>
+      )}
       <Scene
         visualBodies={visualBodies}
         particles={particles}

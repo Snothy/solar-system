@@ -12,23 +12,23 @@ export interface OrbitalElements {
 
 export interface CelestialBodyData {
   name: string;
-  mass: number;
-  radius: number;
+  mass?: number;
+  radius?: number;
   color: number;
+  emissive?: number; // For stars
   texture?: string;
-  emissive?: number;
-  type?: 'star' | 'planet';
-  elements?: OrbitalElements | null;
-  rotationPeriod?: number;  // hours
-  axialTilt?: number;       // degrees
-  hasRings?: boolean;
   ringColor?: number;
-  ringTexture?: string;
-  parent?: string;          // For moons
-  rel_a?: number;           // Relative semi-major axis (meters) for moons
+  hasRings?: boolean;
+  type?: 'star' | 'planet' | 'moon';
+  elements?: OrbitalElements | null;
+  parent?: string;
+  rel_a?: number;           // Relative semi-major axis (m) for moons
   rel_v?: number;           // Relative orbital velocity (m/s) for moons
+  rotationPeriod?: number;  // Hours
+  axialTilt?: number;       // Degrees
   meanTemperature?: number; // Kelvin
   surfaceGravity?: number;  // m/s^2
+  jplId?: string;
 }
 
 export interface PhysicsBody {
@@ -71,4 +71,5 @@ export interface SimulationState {
   selectedObject: PhysicsBody | null;
   focusedObject: PhysicsBody | null;
   updateBody: (name: string, updates: Partial<PhysicsBody>) => void;
+  isLoading: boolean;
 }

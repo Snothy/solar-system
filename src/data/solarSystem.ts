@@ -9,11 +9,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     emissive: 0xffaa00,
     texture: "/Sun.jpeg",
     type: "star",
-    elements: null,
     rotationPeriod: 609.12,
     axialTilt: 7.25,
     meanTemperature: 5778, // Surface temperature K
-    surfaceGravity: 274
+    surfaceGravity: 274,
+    jplId: "10"
   },
   {
     name: "Mercury",
@@ -21,11 +21,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 2439.7e3,
     color: 0xaaaaaa,
     texture: "/Mercury.jpeg",
-    elements: { a: 0.387098, e: 0.205630, i: 7.005, O: 48.331, w: 29.124, M: 174.796, n: 4.092317 },
     rotationPeriod: 1407.6,
     axialTilt: 0.03,
     meanTemperature: 440, // K
-    surfaceGravity: 3.7
+    surfaceGravity: 3.7,
+    jplId: "199"
   },
   {
     name: "Venus",
@@ -33,11 +33,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 6051.8e3,
     color: 0xe3bb76,
     texture: "/Venus.jpeg",
-    elements: { a: 0.723332, e: 0.006772, i: 3.394, O: 76.680, w: 54.884, M: 50.115, n: 1.602136 },
     rotationPeriod: -5832.5,
     axialTilt: 177.3,
     meanTemperature: 737, // K
-    surfaceGravity: 8.87
+    surfaceGravity: 8.87,
+    jplId: "299"
   },
   {
     name: "Earth",
@@ -45,11 +45,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 6371e3,
     color: 0x2233ff,
     texture: "/Earth.jpeg",
-    elements: { a: 1.000000, e: 0.016708, i: 0.000, O: 174.873, w: 288.064, M: 357.517, n: 0.985600 },
     rotationPeriod: 23.9345,
     axialTilt: 23.44,
     meanTemperature: 288, // K
-    surfaceGravity: 9.8
+    surfaceGravity: 9.8,
+    jplId: "399"
   },
   {
     name: "Moon",
@@ -63,7 +63,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     rotationPeriod: 655.7,
     axialTilt: 6.68,
     meanTemperature: 220, // K
-    surfaceGravity: 1.62
+    surfaceGravity: 1.62,
+    jplId: "301"
   },
   {
     name: "Mars",
@@ -71,11 +72,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 3389.5e3,
     color: 0xff4500,
     texture: "/Mars.jpeg",
-    elements: { a: 1.523679, e: 0.093405, i: 1.850, O: 49.558, w: 286.502, M: 19.412, n: 0.524021 },
     rotationPeriod: 24.6229,
     axialTilt: 25.19,
     meanTemperature: 210, // K
-    surfaceGravity: 3.72
+    surfaceGravity: 3.72,
+    jplId: "499"
   },
   {
     name: "Jupiter",
@@ -83,11 +84,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 69911e3,
     color: 0xd8ca9d,
     texture: "/Jupiter.jpeg",
-    elements: { a: 5.20260, e: 0.048498, i: 1.303, O: 100.464, w: 273.867, M: 20.020, n: 0.083085 },
     rotationPeriod: 9.925,
     axialTilt: 3.13,
     meanTemperature: 165, // K
-    surfaceGravity: 24.79
+    surfaceGravity: 24.79,
+    jplId: "599"
   },
   {
     name: "Saturn",
@@ -97,11 +98,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     ringColor: 0xa89f91,
     hasRings: true,
     texture: "/Saturn.png",
-    elements: { a: 9.554909, e: 0.055546, i: 2.485, O: 113.665, w: 339.392, M: 317.020, n: 0.033444 },
     rotationPeriod: 10.656,
     axialTilt: 26.73,
     meanTemperature: 134, // K
-    surfaceGravity: 10.44
+    surfaceGravity: 10.44,
+    jplId: "699"
   },
   {
     name: "Uranus",
@@ -109,11 +110,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 25362e3,
     color: 0xadd8e6,
     texture: "/Uranus.jpg",
-    elements: { a: 19.218446, e: 0.046381, i: 0.773, O: 74.006, w: 96.998857, M: 142.590, n: 0.011728 },
     rotationPeriod: -17.24,
     axialTilt: 97.77,
     meanTemperature: 76, // K
-    surfaceGravity: 8.69
+    surfaceGravity: 8.69,
+    jplId: "799"
   },
   {
     name: "Neptune",
@@ -121,10 +122,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     radius: 24622e3,
     color: 0x00008b,
     texture: "/Neptune.jpg",
-    elements: { a: 30.110387, e: 0.009456, i: 1.767, O: 131.784, w: 273.187, M: 260.247, n: 0.005981 },
     rotationPeriod: 16.11,
     axialTilt: 28.32,
     meanTemperature: 55, // K
-    surfaceGravity: 11.15
+    surfaceGravity: 11.15,
+    jplId: "899"
   }
 ];

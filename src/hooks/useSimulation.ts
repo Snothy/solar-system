@@ -1,9 +1,8 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import type { PhysicsBody, VisualBody, Particle } from '../types';
+import type { PhysicsBody, VisualBody, Particle, CelestialBodyData } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
-import { J2000, MS_PER_DAY, START_DATE, SCALE, DEFAULT_VISUAL_SCALE, TRAIL_LENGTH } from '../utils/constants';
-import { getKeplerianStateVector } from '../utils/keplerian';
+import { START_DATE, SCALE, DEFAULT_VISUAL_SCALE, TRAIL_LENGTH } from '../utils/constants';
 import { velocityVerletStep, checkCollisions } from '../utils/physics';
 
 export function useSimulation() {
@@ -22,80 +21,164 @@ export function useSimulation() {
   const initialized = useRef(false);
 
   // Initialize bodies
-  useMemo(() => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize bodies
+  useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
 
-    const daysSinceJ2000 = (START_DATE.getTime() - J2000) / MS_PER_DAY;
-    const newBodies: PhysicsBody[] = [];
-    const newVisualBodies: VisualBody[] = [];
+    const initSimulation = async () => {
+      const newBodies: PhysicsBody[] = [];
+      const newVisualBodies: VisualBody[] = [];
 
-    SOLAR_SYSTEM_DATA.forEach(data => {
-      let pos: THREE.Vector3, vel: THREE.Vector3;
+      type PhysicsBodyProperties = {
+        pos: THREE.Vector3;
+        vel: THREE.Vector3;
+        mass: number;
+        radius: number;
+        rotationPeriod: number;
+        meanTemperature: number;
+        axialTilt: number;
+        surfaceGravity: number;
+      };
 
-      if (data.name === "Sun") {
-        pos = new THREE.Vector3(0, 0, 0);
-        vel = new THREE.Vector3(0, 0, 0);
-      } else if (data.parent) {
-        const parent = newBodies.find(b => b.name === data.parent);
-        if (parent) {
-          pos = parent.pos.clone().add(new THREE.Vector3(data.rel_a!, 0, 0));
-          vel = parent.vel.clone().add(new THREE.Vector3(0, 0, data.rel_v!));
-        } else {
-          pos = new THREE.Vector3(149.6e9, 0, 0);
-          vel = new THREE.Vector3(0, 0, 0);
+      // Fetch real data for all bodies sequentially to avoid rate limiting
+      try {
+        const realData: (CelestialBodyData & PhysicsBodyProperties)[] = [];
+        
+        // Add Sun first (no fetch needed)
+        const sunData = SOLAR_SYSTEM_DATA.find(d => d.name === "Sun");
+        if (sunData) {
+          realData.push({
+            ...sunData,
+            pos: new THREE.Vector3(),
+            vel: new THREE.Vector3(),
+            mass: 1.989e30, // Fallback/Default for Sun if we don't fetch it (though we could)
+            radius: 696340e3,
+            rotationPeriod: 609.12,
+            meanTemperature: 5778,
+            axialTilt: 7.25,
+            surfaceGravity: 274
+          });
         }
-      } else {
-        const pv = getKeplerianStateVector(data.elements!, daysSinceJ2000);
-        pos = pv.pos;
-        vel = pv.vel;
+
+        // Fetch others with concurrency limit
+        const CONCURRENCY_LIMIT = 3;
+        const bodiesToFetch = SOLAR_SYSTEM_DATA.filter(d => d.name !== "Sun" && d.jplId);
+        
+        // Helper to process a single body
+        const fetchBody = async (data: typeof SOLAR_SYSTEM_DATA[0]) => {
+          try {
+            const { fetchBodyData } = await import('../services/jplHorizons');
+            const jplData = await fetchBodyData(data.jplId!);
+            
+            return { 
+              ...data, 
+              pos: jplData.pos, 
+              vel: jplData.vel,
+              mass: jplData.mass || data.mass || 0,
+              radius: jplData.radius || data.radius || 1000,
+              rotationPeriod: jplData.rotationPeriod || data.rotationPeriod || 0,
+              meanTemperature: jplData.meanTemperature || data.meanTemperature || 0,
+              axialTilt: jplData.axialTilt || data.axialTilt || 0,
+              surfaceGravity: jplData.surfaceGravity || data.surfaceGravity || 0
+            };
+          } catch (e) {
+            console.error(`Failed to fetch JPL data for ${data.name}`, e);
+            return null;
+          }
+        };
+
+        // Process in chunks/batches or use a queue
+        // Simple batching approach
+        for (let i = 0; i < bodiesToFetch.length; i += CONCURRENCY_LIMIT) {
+          const batch = bodiesToFetch.slice(i, i + CONCURRENCY_LIMIT);
+          const results = await Promise.all(batch.map(fetchBody));
+          
+          results.forEach(res => {
+            if (res) realData.push(res);
+          });
+          
+          // Small delay between batches
+          if (i + CONCURRENCY_LIMIT < bodiesToFetch.length) {
+             await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+        
+        if (realData.length === 0) {
+          console.error("No data fetched from JPL. Simulation cannot start.");
+          setIsLoading(false);
+          return; 
+        }
+
+        // Debug: Check Earth and Moon relative positions
+        const earth = realData.find(d => d.name === "Earth");
+        const moon = realData.find(d => d.name === "Moon");
+        if (earth && moon) {
+          const dist = moon.pos.distanceTo(earth.pos);
+          const velRel = moon.vel.clone().sub(earth.vel).length();
+          console.log(`[JPL Check] Earth-Moon Distance: ${(dist/1000).toFixed(1)} km (Expected ~384,400)`);
+          console.log(`[JPL Check] Moon Relative Velocity: ${velRel.toFixed(1)} m/s (Expected ~1022)`);
+          console.log(`[JPL Check] Earth Properties: Tilt=${earth.axialTilt?.toFixed(2)}°, Temp=${earth.meanTemperature}K, Gravity=${earth.surfaceGravity?.toFixed(2)}m/s²`);
+        }
+        
+        // Build bodies
+        realData.forEach(data => {
+          const body: PhysicsBody = {
+            name: data.name,
+            mass: data.mass!,
+            radius: data.radius!,
+            pos: data.pos,
+            vel: data.vel,
+            force: new THREE.Vector3(),
+            parentName: data.parent
+          };
+          newBodies.push(body);
+
+          // Create visual representation
+          const trailGeo = new THREE.BufferGeometry();
+          const trailPositions = new Float32Array(TRAIL_LENGTH * 3);
+          trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+          const trailMat = new THREE.LineBasicMaterial({
+            color: data.color,
+            transparent: true,
+            opacity: 0.35,
+            blending: THREE.AdditiveBlending
+          });
+          const trail = new THREE.Line(trailGeo, trailMat);
+
+          // Calculate rotation speed
+          let rotationSpeed = 0;
+          if (data.rotationPeriod) {
+            const periodSeconds = data.rotationPeriod * 3600;
+            rotationSpeed = (2 * Math.PI) / periodSeconds;
+          }
+
+          const visualBody: VisualBody = {
+            body: body,
+            mesh: new THREE.Mesh(),
+            trail: trail,
+            trailIdx: 0,
+            trailCount: 0,
+            baseRadius: data.radius! * SCALE,
+            type: data.type,
+            rotationSpeed: rotationSpeed
+          };
+          newVisualBodies.push(visualBody);
+        });
+
+        setBodies(newBodies);
+        setVisualBodies(newVisualBodies);
+        setIsLoading(false);
+
+      } catch (error) {
+        console.error("Error initializing simulation:", error);
+        setIsLoading(false);
       }
+    };
 
-      const body: PhysicsBody = {
-        name: data.name,
-        mass: data.mass,
-        radius: data.radius,
-        pos: pos,
-        vel: vel,
-        force: new THREE.Vector3(),
-        parentName: data.parent
-      };
-      newBodies.push(body);
-
-      // Create visual representation
-      const trailGeo = new THREE.BufferGeometry();
-      const trailPositions = new Float32Array(TRAIL_LENGTH * 3);
-      trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-      const trailMat = new THREE.LineBasicMaterial({
-        color: data.color,
-        transparent: true,
-        opacity: 0.35,
-        blending: THREE.AdditiveBlending
-      });
-      const trail = new THREE.Line(trailGeo, trailMat);
-
-      // Calculate rotation speed
-      let rotationSpeed = 0;
-      if (data.rotationPeriod) {
-        const periodSeconds = data.rotationPeriod * 3600;
-        rotationSpeed = (2 * Math.PI) / periodSeconds;
-      }
-
-      const visualBody: VisualBody = {
-        body: body,
-        mesh: new THREE.Mesh(), // Will be replaced by CelestialBody component
-        trail: trail,
-        trailIdx: 0,
-        trailCount: 0,
-        baseRadius: data.radius * SCALE,
-        type: data.type,
-        rotationSpeed: rotationSpeed
-      };
-      newVisualBodies.push(visualBody);
-    });
-
-    setBodies(newBodies);
-    setVisualBodies(newVisualBodies);
+    initSimulation();
   }, []);
 
   const removeParticle = (index: number) => {
@@ -163,7 +246,7 @@ export function useSimulation() {
 
             const dir = new THREE.Vector3().subVectors(visualPos, parentPos);
             const dist = dir.length();
-            const minDistance = parentRadius + childRadius * 2.0 + 5;
+            const minDistance = parentRadius + childRadius * 2.0;
 
             if (dist < minDistance) {
               dir.normalize();
@@ -255,6 +338,7 @@ export function useSimulation() {
     removeParticle,
     focusedObjectPrevPos,
     updatePhysics,
-    updateBody
+    updateBody,
+    isLoading
   };
 }
