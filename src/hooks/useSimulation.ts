@@ -318,6 +318,35 @@ export function useSimulation() {
     }
   };
 
+  const [orbitVisibility, setOrbitVisibility] = useState<Record<string, boolean>>({});
+
+  const toggleOrbitVisibility = (name: string, includeChildren: boolean = false) => {
+    setOrbitVisibility(prev => {
+      const next = { ...prev };
+      // If undefined, it means visible (default true). So toggle means set to false.
+      // If defined as true, set to false. If false, set to true.
+      // Actually, let's treat undefined as true.
+      const current = prev[name] !== false;
+      next[name] = !current;
+
+      if (includeChildren) {
+        const children = SOLAR_SYSTEM_DATA.filter(d => d.parent === name);
+        children.forEach(child => {
+          next[child.name] = !current; // Set to same state as parent
+        });
+      }
+      return next;
+    });
+  };
+
+  const setAllOrbitVisibility = (visible: boolean) => {
+    const next: Record<string, boolean> = {};
+    SOLAR_SYSTEM_DATA.forEach(d => {
+      next[d.name] = visible;
+    });
+    setOrbitVisibility(next);
+  };
+
   return {
     bodies,
     visualBodies,
@@ -329,6 +358,8 @@ export function useSimulation() {
     useVisualScale,
     selectedObject,
     focusedObject,
+    focusedObjectPrevPos,
+    orbitVisibility,
     setTimeStep,
     setIsPaused,
     setVisualScale,
@@ -336,9 +367,10 @@ export function useSimulation() {
     setSelectedObject,
     setFocusedObject,
     removeParticle,
-    focusedObjectPrevPos,
     updatePhysics,
     updateBody,
+    toggleOrbitVisibility,
+    setAllOrbitVisibility,
     isLoading
   };
 }

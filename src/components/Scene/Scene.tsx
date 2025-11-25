@@ -17,10 +17,11 @@ interface SceneProps {
   useVisualScale: boolean;
   onObjectSelect: (index: number) => void;
   onParticleComplete: (index: number) => void;
-  controlsRef: React.RefObject<any>;
+  controlsRef: React.MutableRefObject<any>;
   updatePhysics: () => void;
   focusedObject: PhysicsBody | null;
-  focusedObjectPrevPos: React.RefObject<THREE.Vector3>;
+  focusedObjectPrevPos: React.MutableRefObject<THREE.Vector3>;
+  orbitVisibility: Record<string, boolean>;
 }
 
 // Component that calls updatePhysics on every frame
@@ -41,7 +42,7 @@ function CameraFollower({
   controlsRef
 }: {
   focusedObject: PhysicsBody | null;
-  focusedObjectPrevPos: React.RefObject<THREE.Vector3>;
+  focusedObjectPrevPos: React.MutableRefObject<THREE.Vector3>;
   visualBodies: VisualBody[];
   visualScale: number;
   useVisualScale: boolean;
@@ -73,7 +74,8 @@ export function Scene({
   controlsRef,
   updatePhysics,
   focusedObject,
-  focusedObjectPrevPos
+  focusedObjectPrevPos,
+  orbitVisibility
 }: SceneProps) {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
@@ -127,10 +129,10 @@ export function Scene({
                 />
               </Suspense>
               
-              <OrbitalTrail
-                positions={vb.trail.geometry.attributes.position.array as Float32Array}
-                count={vb.trailCount}
-                color={data.color}
+              <OrbitalTrail 
+                key={`trail-${vb.body.name}`} 
+                trail={vb.trail} 
+                visible={orbitVisibility[vb.body.name] !== false} // Default to true if undefined
               />
             </group>
           );

@@ -7,12 +7,35 @@ interface ObjectListProps {
   bodies: PhysicsBody[];
   selectedObject: PhysicsBody | null;
   onSelect: (body: PhysicsBody) => void;
+  orbitVisibility: Record<string, boolean>;
+  onToggleOrbit: (name: string, includeChildren?: boolean) => void;
+  onToggleAllOrbits: (visible: boolean) => void;
 }
 
-export function ObjectList({ bodies, selectedObject, onSelect }: ObjectListProps) {
+export function ObjectList({ 
+  bodies, 
+  selectedObject, 
+  onSelect, 
+  orbitVisibility, 
+  onToggleOrbit,
+  onToggleAllOrbits 
+}: ObjectListProps) {
+  
+  // Check if all are visible (heuristic: if any is explicitly false, then not all visible)
+  const allVisible = !Object.values(orbitVisibility).some(v => v === false);
+
   return (
     <>
-      <div className={styles.sectionTitle}>Celestial Objects</div>
+      <div className={styles.sectionTitle}>
+        <span>Celestial Objects</span>
+        <button 
+          className={styles.headerToggle}
+          onClick={() => onToggleAllOrbits(!allVisible)}
+          title={allVisible ? "Hide All Orbits" : "Show All Orbits"}
+        >
+          {allVisible ? "Hide Orbits" : "Show Orbits"}
+        </button>
+      </div>
       <ul className={styles.objectList}>
         {SOLAR_SYSTEM_DATA.filter(d => !d.parent).map((data) => {
           const body = bodies.find(b => b.name === data.name);
@@ -28,21 +51,36 @@ export function ObjectList({ bodies, selectedObject, onSelect }: ObjectListProps
             <div key={data.name}>
               <li
                 className={`${styles.objectItem} ${isSelected ? styles.selected : ''}`}
-                onClick={() => onSelect(body)}
               >
                 <div 
-                  className={styles.objIcon} 
-                  style={{ 
-                    backgroundColor: hexColor,
-                    boxShadow: `0 0 8px ${hexColor}80`
-                  }}
-                />
-                <div className={styles.objInfo}>
-                  <span className={styles.objName}>{data.name}</span>
-                  <span className={styles.objDetail}>
-                    {data.type === 'star' ? 'Star' : 'Planet'}
-                  </span>
+                  className="flex-1 flex items-center cursor-pointer"
+                  onClick={() => onSelect(body)}
+                >
+                  <div 
+                    className={styles.objIcon} 
+                    style={{ 
+                      backgroundColor: hexColor,
+                      boxShadow: `0 0 8px ${hexColor}80`
+                    }}
+                  />
+                  <div className={styles.objInfo}>
+                    <span className={styles.objName}>{data.name}</span>
+                    <span className={styles.objDetail}>
+                      {data.type === 'star' ? 'Star' : 'Planet'}
+                    </span>
+                  </div>
                 </div>
+                
+                <button 
+                  className={styles.toggleBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleOrbit(data.name, true);
+                  }}
+                  title="Toggle Orbit (and moons)"
+                >
+                  {orbitVisibility[data.name] !== false ? '👁️' : '✕'}
+                </button>
               </li>
               
               {/* Render Moons */}
@@ -58,21 +96,36 @@ export function ObjectList({ bodies, selectedObject, onSelect }: ObjectListProps
                     key={childData.name}
                     className={`${styles.objectItem} ${isChildSelected ? styles.selected : ''}`}
                     style={{ paddingLeft: '2rem', borderLeft: '2px solid rgba(255,255,255,0.05)' }}
-                    onClick={() => onSelect(childBody)}
                   >
                     <div 
-                      className={styles.objIcon} 
-                      style={{ 
-                        backgroundColor: childHexColor,
-                        boxShadow: `0 0 5px ${childHexColor}60`,
-                        width: '8px',
-                        height: '8px'
-                      }}
-                    />
-                    <div className={styles.objInfo}>
-                      <span className={styles.objName} style={{ fontSize: '0.9rem' }}>{childData.name}</span>
-                      <span className={styles.objDetail} style={{ fontSize: '0.7rem' }}>Moon</span>
+                      className="flex-1 flex items-center cursor-pointer"
+                      onClick={() => onSelect(childBody)}
+                    >
+                      <div 
+                        className={styles.objIcon} 
+                        style={{ 
+                          backgroundColor: childHexColor,
+                          boxShadow: `0 0 5px ${childHexColor}60`,
+                          width: '8px',
+                          height: '8px'
+                        }}
+                      />
+                      <div className={styles.objInfo}>
+                        <span className={styles.objName} style={{ fontSize: '0.9rem' }}>{childData.name}</span>
+                        <span className={styles.objDetail} style={{ fontSize: '0.7rem' }}>Moon</span>
+                      </div>
                     </div>
+
+                    <button 
+                      className={styles.toggleBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleOrbit(childData.name);
+                      }}
+                      title="Toggle Orbit"
+                    >
+                      {orbitVisibility[childData.name] !== false ? '👁️' : '✕'}
+                    </button>
                   </li>
                 );
               })}

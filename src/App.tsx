@@ -34,6 +34,9 @@ export function App() {
     removeParticle,
     updatePhysics,
     updateBody,
+    orbitVisibility,
+    toggleOrbitVisibility,
+    setAllOrbitVisibility,
     isLoading
   } = useSimulation();
 
@@ -81,6 +84,7 @@ export function App() {
         updatePhysics={updatePhysics}
         focusedObject={focusedObject}
         focusedObjectPrevPos={focusedObjectPrevPos}
+        orbitVisibility={orbitVisibility}
       />
 
       <Sidebar>
@@ -105,6 +109,9 @@ export function App() {
             setSelectedObject(body);
             handleFocusCamera();
           }}
+          orbitVisibility={orbitVisibility}
+          onToggleOrbit={toggleOrbitVisibility}
+          onToggleAllOrbits={setAllOrbitVisibility}
         />
 
         <SelectionPanel

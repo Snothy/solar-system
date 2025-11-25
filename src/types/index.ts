@@ -71,5 +71,8 @@ export interface SimulationState {
   selectedObject: PhysicsBody | null;
   focusedObject: PhysicsBody | null;
   updateBody: (name: string, updates: Partial<PhysicsBody>) => void;
+  orbitVisibility: Record<string, boolean>;
+  toggleOrbitVisibility: (name: string, includeChildren?: boolean) => void;
+  setAllOrbitVisibility: (visible: boolean) => void;
   isLoading: boolean;
 }

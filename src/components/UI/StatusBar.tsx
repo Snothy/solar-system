@@ -17,7 +17,7 @@ export function StatusBar({ currentDate, timeStep }: StatusBarProps) {
 
   return (
     <div className={styles.statusBar}>
-      <div className={styles.dateDisplay}>{currentDate.toDateString()}</div>
+      <div className={styles.dateDisplay}>{currentDate.toLocaleString()}</div>
       <div className={styles.speedDisplay}>{formatSpeed(timeStep)}</div>
     </div>
   );

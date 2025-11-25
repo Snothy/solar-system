@@ -46,7 +46,7 @@ export function TimeControls({
           type="range"
           className={styles.slider}
           min="0"
-          max="100"
+          max="400"
           step="1"
           value={Math.sqrt(timeStep)}
           onChange={handleSliderChange}

@@ -1,55 +1,106 @@
 .sectionTitle {
-  font-size: 11px;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.5px;
   color: var(--text-dim);
-  margin: 20px 0 10px 0;
-  font-weight: 700;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .objectList {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .objectItem {
   display: flex;
   align-items: center;
-  padding: 10px;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
-  margin-bottom: 4px;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
 }
 
 .objectItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(2px);
 }
 
 .objectItem.selected {
   background: rgba(0, 210, 255, 0.15);
-  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-color: rgba(0, 210, 255, 0.3);
 }
 
 .objIcon {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .objInfo {
+  display: flex;
+  flex-direction: column;
   flex: 1;
 }
 
 .objName {
-  font-size: 14px;
+  font-size: 0.95rem;
   font-weight: 500;
-  display: block;
+  color: var(--text-main);
+  line-height: 1.2;
 }
 
 .objDetail {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.6;
+}
+
+.toggleBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  opacity: 1;
+}
+
+.headerToggle {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.headerToggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
 }

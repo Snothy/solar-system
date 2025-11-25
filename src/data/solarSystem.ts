@@ -79,6 +79,32 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "499"
   },
   {
+    name: "Phobos",
+    mass: 1.0659e16,
+    radius: 11.26e3,
+    color: 0x888888,
+    texture: "/Phobos.png",
+    parent: "Mars",
+    rotationPeriod: 7.65,
+    axialTilt: 0,
+    meanTemperature: 233,
+    surfaceGravity: 0.0057,
+    jplId: "401"
+  },
+  {
+    name: "Deimos",
+    mass: 1.4762e15,
+    radius: 6.2e3,
+    color: 0x777777,
+    texture: "/Deimos.png",
+    parent: "Mars",
+    rotationPeriod: 30.35,
+    axialTilt: 0,
+    meanTemperature: 233,
+    surfaceGravity: 0.003,
+    jplId: "402"
+  },
+  {
     name: "Jupiter",
     mass: 1.8982e27,
     radius: 69911e3,
@@ -89,6 +115,58 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 165, // K
     surfaceGravity: 24.79,
     jplId: "599"
+  },
+  {
+    name: "Io",
+    mass: 8.9319e22,
+    radius: 1821.6e3,
+    color: 0xfbffa3,
+    texture: "/Io.jpg",
+    parent: "Jupiter",
+    rotationPeriod: 42.46,
+    axialTilt: 0,
+    meanTemperature: 110,
+    surfaceGravity: 1.796,
+    jplId: "501"
+  },
+  {
+    name: "Europa",
+    mass: 4.7998e22,
+    radius: 1560.8e3,
+    color: 0xc9c0bb,
+    texture: "/Europa.jpg",
+    parent: "Jupiter",
+    rotationPeriod: 85.23,
+    axialTilt: 0.1,
+    meanTemperature: 102,
+    surfaceGravity: 1.314,
+    jplId: "502"
+  },
+  {
+    name: "Ganymede",
+    mass: 1.4819e23,
+    radius: 2634.1e3,
+    color: 0x7c7268,
+    texture: "/Ganymede.png",
+    parent: "Jupiter",
+    rotationPeriod: 171.71,
+    axialTilt: 0.33,
+    meanTemperature: 110,
+    surfaceGravity: 1.428,
+    jplId: "503"
+  },
+  {
+    name: "Callisto",
+    mass: 1.0759e23,
+    radius: 2410.3e3,
+    color: 0x5e564d,
+    texture: "/Callisto.jpg",
+    parent: "Jupiter",
+    rotationPeriod: 400.55,
+    axialTilt: 0,
+    meanTemperature: 134,
+    surfaceGravity: 1.235,
+    jplId: "504"
   },
   {
     name: "Saturn",
@@ -105,6 +183,32 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "699"
   },
   {
+    name: "Titan",
+    mass: 1.3452e23,
+    radius: 2574.7e3,
+    color: 0xe3c968,
+    texture: "/Titan.jpg",
+    parent: "Saturn",
+    rotationPeriod: 382.69,
+    axialTilt: 0,
+    meanTemperature: 94,
+    surfaceGravity: 1.352,
+    jplId: "606"
+  },
+  {
+    name: "Enceladus",
+    mass: 1.0802e20,
+    radius: 252.1e3,
+    color: 0xffffff,
+    texture: "/Enceladus.jpg",
+    parent: "Saturn",
+    rotationPeriod: 32.88,
+    axialTilt: 0,
+    meanTemperature: 75,
+    surfaceGravity: 0.113,
+    jplId: "602"
+  },
+  {
     name: "Uranus",
     mass: 8.6810e25,
     radius: 25362e3,
@@ -117,6 +221,32 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "799"
   },
   {
+    name: "Titania",
+    mass: 3.527e21,
+    radius: 788.4e3,
+    color: 0xd3d3d3,
+    texture: "/Titania.jpg",
+    parent: "Uranus",
+    rotationPeriod: 208.94,
+    axialTilt: 0,
+    meanTemperature: 60,
+    surfaceGravity: 0.379,
+    jplId: "703"
+  },
+  {
+    name: "Oberon",
+    mass: 3.014e21,
+    radius: 761.4e3,
+    color: 0xa0a0a0,
+    texture: "/Oberon.jpg",
+    parent: "Uranus",
+    rotationPeriod: 323.11,
+    axialTilt: 0,
+    meanTemperature: 61,
+    surfaceGravity: 0.346,
+    jplId: "704"
+  },
+  {
     name: "Neptune",
     mass: 1.0241e26,
     radius: 24622e3,
@@ -127,5 +257,18 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 55, // K
     surfaceGravity: 11.15,
     jplId: "899"
+  },
+  {
+    name: "Triton",
+    mass: 2.14e22,
+    radius: 1353.4e3,
+    color: 0xffe4e1,
+    texture: "/Triton.jpg",
+    parent: "Neptune",
+    rotationPeriod: -141.04,
+    axialTilt: 0,
+    meanTemperature: 38,
+    surfaceGravity: 0.779,
+    jplId: "801"
   }
 ];
