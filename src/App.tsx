@@ -24,7 +24,6 @@ export function App() {
     useVisualScale,
     selectedObject,
     focusedObject,
-    focusedObjectPrevPos,
     setTimeStep,
     setIsPaused,
     setVisualScale,
@@ -76,7 +75,6 @@ export function App() {
         controlsRef={controlsRef}
         updatePhysics={updatePhysics}
         focusedObject={focusedObject}
-        focusedObjectPrevPos={focusedObjectPrevPos}
         orbitVisibility={orbitVisibility}
       />
 
@@ -100,7 +98,7 @@ export function App() {
           selectedObject={selectedObject}
           onSelect={(body) => {
             setSelectedObject(body);
-            handleFocusCamera();
+            setFocusedObject(body);
           }}
           orbitVisibility={orbitVisibility}
           onToggleOrbit={toggleOrbitVisibility}
@@ -128,7 +126,7 @@ export function App() {
       )}
 
       {isLoading && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-500">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-500">
           <div className="flex flex-col items-center p-8 rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl">
             <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-6"></div>
             <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">

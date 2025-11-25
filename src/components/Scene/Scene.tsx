@@ -20,7 +20,6 @@ interface SceneProps {
   controlsRef: React.MutableRefObject<any>;
   updatePhysics: () => void;
   focusedObject: PhysicsBody | null;
-  focusedObjectPrevPos: React.MutableRefObject<THREE.Vector3>;
   orbitVisibility: Record<string, boolean>;
 }
 
@@ -35,14 +34,12 @@ function PhysicsUpdater({ updatePhysics }: { updatePhysics: () => void }) {
 // Component that handles camera following focused object
 function CameraFollower({
   focusedObject,
-  focusedObjectPrevPos,
   visualBodies,
   visualScale,
   useVisualScale,
   controlsRef
 }: {
   focusedObject: PhysicsBody | null;
-  focusedObjectPrevPos: React.MutableRefObject<THREE.Vector3>;
   visualBodies: VisualBody[];
   visualScale: number;
   useVisualScale: boolean;
@@ -53,7 +50,6 @@ function CameraFollower({
   
   useCameraFocus(
     focusedObject,
-    focusedObjectPrevPos,
     visualBodies,
     visualScale,
     useVisualScale,
@@ -74,12 +70,12 @@ export function Scene({
   controlsRef,
   updatePhysics,
   focusedObject,
-  focusedObjectPrevPos,
   orbitVisibility
 }: SceneProps) {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
+        shadows
         camera={{ position: [0, 4000, 6000], fov: 50, near: 1e-6, far: 1000000 }}
         gl={{ 
           logarithmicDepthBuffer: true,
@@ -105,7 +101,6 @@ export function Scene({
         {/* Camera follow system */}
         <CameraFollower
           focusedObject={focusedObject}
-          focusedObjectPrevPos={focusedObjectPrevPos}
           visualBodies={visualBodies}
           visualScale={visualScale}
           useVisualScale={useVisualScale}

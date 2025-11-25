@@ -107,6 +107,8 @@ export function CelestialBody({
       rotation-x={rotationX}
       onClick={onClick}
       userData={{ parentBody: visualBody.body }}
+      castShadow={data.type !== 'star'}
+      receiveShadow={data.type !== 'star'}
     >
       <sphereGeometry args={[1, 64, 64]} />
       {material}

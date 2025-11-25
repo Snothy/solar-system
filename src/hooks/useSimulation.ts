@@ -17,7 +17,6 @@ export function useSimulation() {
   const [selectedObject, setSelectedObject] = useState<PhysicsBody | null>(null);
   const [focusedObject, setFocusedObject] = useState<PhysicsBody | null>(null);
 
-  const focusedObjectPrevPos = useRef(new THREE.Vector3());
   const initialized = useRef(false);
 
   // Initialize bodies
@@ -201,12 +200,7 @@ export function useSimulation() {
     setParticles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Physics update function to be called from Scene component
   const updatePhysics = () => {
-    if (focusedObject) {
-      focusedObjectPrevPos.current.copy(focusedObject.pos).multiplyScalar(SCALE);
-    }
-
     const dt = (!isPaused && timeStep > 0) ? (timeStep / 60) : 0;
 
     if (dt > 0) {
@@ -375,7 +369,6 @@ export function useSimulation() {
     useVisualScale,
     selectedObject,
     focusedObject,
-    focusedObjectPrevPos,
     orbitVisibility,
     setTimeStep,
     setIsPaused,
