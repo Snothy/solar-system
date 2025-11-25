@@ -69,7 +69,7 @@ export function Lights({ visualBodies, focusedObject, visualScale }: LightsProps
       <primitive object={targetRef.current} />
       
       {/* Ambient Light - very dim for space */}
-      <ambientLight intensity={0.05} />
+      <ambientLight intensity={0.08} />
       
       {stars.map(star => (
         <group key={star.body.name} position={star.mesh.position}>
