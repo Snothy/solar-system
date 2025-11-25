@@ -204,8 +204,17 @@ export function useSimulation() {
     const dt = (!isPaused && timeStep > 0) ? (timeStep / 60) : 0;
 
     if (dt > 0) {
-      // Update physics
-      velocityVerletStep(bodies, dt);
+      // Update physics with sub-stepping for stability
+      // Max step size of 600s (10 mins) ensures Phobos (period ~7.6h) remains stable
+      const MAX_SUB_STEP = 600;
+      let remainingDt = dt;
+
+      while (remainingDt > 0) {
+        const step = Math.min(remainingDt, MAX_SUB_STEP);
+        velocityVerletStep(bodies, step);
+        remainingDt -= step;
+      }
+
       setSimTime(prev => prev + dt * 1000);
 
       // Check collisions
