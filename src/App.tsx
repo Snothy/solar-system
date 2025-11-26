@@ -9,6 +9,7 @@ import { StatusBar } from './components/UI/StatusBar';
 import { PropertyEditor } from './components/UI/PropertyEditor';
 import { Minimap } from './components/UI/Minimap';
 import { SetupScreen } from './components/UI/SetupScreen';
+import { PhysicsSettings } from './components/UI/PhysicsSettings';
 import { useSimulation } from './hooks/useSimulation';
 import './index.css';
 
@@ -43,7 +44,21 @@ export function App() {
     setAllOrbitVisibility,
     setObserverPosition,
     useLightTimeDelay,
-    setUseLightTimeDelay
+    setUseLightTimeDelay,
+    enableTidalEvolution,
+    enableAtmosphericDrag,
+    enableYarkovsky,
+    enablePrecession,
+    enableNutation,
+    useTDBTime,
+    enableLightAberration,
+    setEnableTidalEvolution,
+    setEnableAtmosphericDrag,
+    setEnableYarkovsky,
+    setEnablePrecession,
+    setEnableNutation,
+    setUseTDBTime,
+    setEnableLightAberration
   } = useSimulation(simulationData, simulationStartDate);
 
   const handleObjectSelect = (index: number) => {
@@ -110,20 +125,24 @@ export function App() {
           onUseVisualScaleChange={setUseVisualScale}
         />
 
-        <div className="p-4 border-b border-white/10">
-          <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">
-            Physics
-          </h3>
-          <label className="flex items-center space-x-2 text-sm text-gray-300 cursor-pointer hover:text-white transition-colors">
-            <input
-              type="checkbox"
-              checked={useLightTimeDelay}
-              onChange={(e) => setUseLightTimeDelay(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-800"
-            />
-            <span>Light Time Delay</span>
-          </label>
-        </div>
+        <PhysicsSettings
+          enableTidalEvolution={enableTidalEvolution}
+          enableAtmosphericDrag={enableAtmosphericDrag}
+          enableYarkovsky={enableYarkovsky}
+          enablePrecession={enablePrecession}
+          enableNutation={enableNutation}
+          useTDBTime={useTDBTime}
+          enableLightAberration={enableLightAberration}
+          useLightTimeDelay={useLightTimeDelay}
+          onToggleTidalEvolution={setEnableTidalEvolution}
+          onToggleAtmosphericDrag={setEnableAtmosphericDrag}
+          onToggleYarkovsky={setEnableYarkovsky}
+          onTogglePrecession={setEnablePrecession}
+          onToggleNutation={setEnableNutation}
+          onToggleTDBTime={setUseTDBTime}
+          onToggleLightAberration={setEnableLightAberration}
+          onToggleLightTimeDelay={setUseLightTimeDelay}
+        />
 
         <TimeControls
           timeStep={timeStep}

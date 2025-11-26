@@ -42,6 +42,30 @@ export interface CelestialBodyData {
   ringOuterRadius?: number; // Outer radius of rings (m)
   ringTexture?: string;     // Path to ring texture (1D/2D)
   ringOpacity?: number;     // Ring opacity (0.0 - 1.0)
+  
+  // Higher-order gravity harmonics
+  J3?: number;              // Third zonal harmonic
+  J4?: number;              // Fourth zonal harmonic
+  C22?: number;             // Sectoral harmonic (equatorial ellipticity)
+  S22?: number;             // Sectoral harmonic
+  
+  // Tidal parameters
+  k2?: number;              // Tidal Love number
+  tidalQ?: number;          // Tidal dissipation factor
+  
+  // Atmospheric properties
+  hasAtmosphere?: boolean;
+  surfacePressure?: number; // Pascals
+  scaleHeight?: number;     // km
+  dragCoefficient?: number; // Cd (typically 2.0-2.2 for spheres)
+  
+  // Thermal properties (for Yarkovsky effect)
+  albedo?: number;          // Bond albedo (0-1)
+  thermalInertia?: number;  // J m^-2 s^-0.5 K^-1
+  
+  // Precession parameters
+  precessionRate?: number;  // arcseconds per year
+  nutationAmplitude?: number; // arcseconds
 }
 
 export interface PhysicsBody {
@@ -55,6 +79,35 @@ export interface PhysicsBody {
   parentName?: string;    // For moons
   J2?: number;            // J2 coefficient
   poleVector?: THREE.Vector3; // North pole direction vector
+  
+  // Higher-order gravity harmonics
+  J3?: number;
+  J4?: number;
+  C22?: number;
+  S22?: number;
+  
+  // Tidal parameters
+  k2?: number;
+  tidalQ?: number;
+  
+  // Atmospheric parameters
+  hasAtmosphere?: boolean;
+  surfacePressure?: number;
+  scaleHeight?: number;
+  dragCoefficient?: number;
+  
+  // Thermal properties
+  albedo?: number;
+  thermalInertia?: number;
+  
+  // Time-dependent pole orientation
+  poleRA0?: number;        // Initial pole RA at J2000
+  poleDec0?: number;       // Initial pole Dec at J2000
+  precessionRate?: number; // arcsec/year
+  nutationAmplitude?: number;
+  
+  // Temperature for atmospheric calculations
+  meanTemperature?: number; // Kelvin
 }
 
 export interface VisualBody {

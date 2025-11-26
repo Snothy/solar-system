@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
-import { START_DATE, SCALE,  TRAIL_LENGTH } from '../utils/constants';
+import { START_DATE, SCALE, TRAIL_LENGTH } from '../utils/constants';
 import { yoshida4Step, checkCollisions } from '../utils/physics';
+import { utcToTDB } from '../utils/timeUtils';
+import { computePoleVector, updatePoleOrientation } from '../utils/precession';
 
 export function useSimulation(initialData: any[] | null = null, startDate: Date = START_DATE) {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
@@ -20,6 +22,15 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   const initialized = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [useEphemeris, setUseEphemeris] = useState(false);
+  
+  // Advanced physics toggles
+  const [enableTidalEvolution, setEnableTidalEvolution] = useState(true);
+  const [enableAtmosphericDrag, setEnableAtmosphericDrag] = useState(true);
+  const [enableYarkovsky, setEnableYarkovsky] = useState(true);
+  const [enablePrecession, setEnablePrecession] = useState(true);
+  const [enableNutation, setEnableNutation] = useState(true);
+  const [useTDBTime, setUseTDBTime] = useState(true);
+  const [enableLightAberration, setEnableLightAberration] = useState(true);
 
   // Initialize bodies from passed data
   useEffect(() => {
@@ -42,26 +53,26 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
             force: new THREE.Vector3(),
             parentName: data.parent,
             J2: data.J2,
-            // Pole vector calculation (reused logic)
+            J3: data.J3,
+            J4: data.J4,
+            C22: data.C22,
+            S22: data.S22,
+            k2: data.k2,
+            tidalQ: data.tidalQ,
+            hasAtmosphere: data.hasAtmosphere,
+            surfacePressure: data.surfacePressure,
+            scaleHeight: data.scaleHeight,
+            dragCoefficient: data.dragCoefficient,
+            albedo: data.albedo,
+            thermalInertia: data.thermalInertia,
+            poleRA0: data.poleRA,
+            poleDec0: data.poleDec,
+            precessionRate: data.precessionRate,
+            nutationAmplitude: data.nutationAmplitude,
+            meanTemperature: data.meanTemperature,
+            // Compute initial pole vector
             poleVector: (data.poleRA !== undefined && data.poleDec !== undefined) 
-              ? (() => {
-                  const raRad = THREE.MathUtils.degToRad(data.poleRA);
-                  const decRad = THREE.MathUtils.degToRad(data.poleDec);
-                  
-                  const x_eq = Math.cos(decRad) * Math.cos(raRad);
-                  const y_eq = Math.cos(decRad) * Math.sin(raRad);
-                  const z_eq = Math.sin(decRad);
-                  
-                  const epsilon = THREE.MathUtils.degToRad(23.43928);
-                  const cosEps = Math.cos(epsilon);
-                  const sinEps = Math.sin(epsilon);
-                  
-                  const x_ecl = x_eq;
-                  const y_ecl = y_eq * cosEps + z_eq * sinEps;
-                  const z_ecl = -y_eq * sinEps + z_eq * cosEps;
-                  
-                  return new THREE.Vector3(x_ecl, z_ecl, -y_ecl).normalize();
-                })()
+              ? computePoleVector(data.poleRA, data.poleDec)
               : new THREE.Vector3(0, 1, 0)
           };
           
@@ -141,13 +152,39 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     const dt = (!isPaused && timeStep > 0) ? (timeStep / 60) : 0;
 
     if (dt > 0) {
+      // Get current time in TDB if enabled
+      const currentTime = useTDBTime ? utcToTDB(simTime) : simTime;
+      
+      // Update pole vectors for precession/nutation before physics calculation
+      if (enablePrecession || enableNutation) {
+        bodies.forEach(b => {
+          if (b.poleRA0 !== undefined && b.poleDec0 !== undefined) {
+            b.poleVector = updatePoleOrientation(
+              b.poleRA0,
+              b.poleDec0,
+              b.precessionRate,
+              b.nutationAmplitude,
+              currentTime,
+              enablePrecession,
+              enableNutation
+            );
+          }
+        });
+      }
+      
       // Update physics with sub-stepping for stability
       const MAX_SUB_STEP = 600;
       let remainingDt = dt;
 
       while (remainingDt > 0) {
         const step = Math.min(remainingDt, MAX_SUB_STEP);
-        yoshida4Step(bodies, step);
+        yoshida4Step(
+          bodies,
+          step,
+          enableTidalEvolution,
+          enableAtmosphericDrag,
+          enableYarkovsky
+        );
         remainingDt -= step;
       }
 
@@ -204,11 +241,49 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
           const delay = distMeters / C;
           
           // Backtrack position: pos_visual = pos_true - vel * delay
-          // vel is in m/s, need to convert to SceneUnits/s?
+          // vel is in m/s, need to convert to SceneUnits/s
           // body.vel is m/s.
           // visualPos change = vel * delay * SCALE
           const correction = vb.body.vel.clone().multiplyScalar(delay * SCALE).negate();
           visualPos.add(correction);
+        }
+
+        // Light Aberration Correction
+        if (enableLightAberration) {
+        // Accounts for apparent shift due to observer motion
+        // Classical aberration: tan(θ) ≈ v⊥/c for v << c
+        // Observer velocity is from camera/spacecraft motion
+        
+        // For Earth observer, use Earth's orbital velocity around Sun
+        // For spacecraft, would use vehicle velocity
+        // Here we approximate using the observer's reference frame velocity
+        
+        // Get observer velocity (if tracking a body, use that body's velocity)
+        let observerVel = new THREE.Vector3(0, 0, 0);
+        
+        if (focusedObject) {
+          // If camera is following a body, use that body's velocity
+          observerVel = focusedObject.vel.clone();
+        }
+        
+        // Direction from observer to object (at light-time corrected position)
+        const toObject = new THREE.Vector3().subVectors(visualPos, observerPos.current).normalize();
+        
+        // Compute aberration correction
+        // Δθ ≈ (v × n) / c, where v is observer velocity, n is direction to object
+        // This gives the perpendicular component causing the shift
+        
+        const C = 299792458; // m/s
+        const vCross = new THREE.Vector3().crossVectors(observerVel, toObject);
+        const aberrationAngle = vCross.length() / C; // radians (very small)
+        
+        // Apply correction (shift position perpendicular to line of sight)
+        if (aberrationAngle > 1e-12) { // Only if significant
+          const perpDirection = vCross.normalize();
+          const dist = observerPos.current.distanceTo(visualPos);
+          const shift = perpDirection.multiplyScalar(dist * Math.sin(aberrationAngle));
+          visualPos.add(shift.multiplyScalar(SCALE)); //Convert to scene units
+        }
         }
 
         // Moon visibility fix
@@ -379,6 +454,13 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     orbitVisibility,
     useLightTimeDelay,
     useEphemeris,
+    enableTidalEvolution,
+    enableAtmosphericDrag,
+    enableYarkovsky,
+    enablePrecession,
+    enableNutation,
+    useTDBTime,
+    enableLightAberration,
     setTimeStep,
     setIsPaused,
     setVisualScale,
@@ -393,6 +475,13 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     setObserverPosition,
     setUseLightTimeDelay,
     setUseEphemeris,
+    setEnableTidalEvolution,
+    setEnableAtmosphericDrag,
+    setEnableYarkovsky,
+    setEnablePrecession,
+    setEnableNutation,
+    setUseTDBTime,
+    setEnableLightAberration,
     isLoading
   };
 }

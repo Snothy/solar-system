@@ -12,10 +12,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "star",
     rotationPeriod: 609.12,
     axialTilt: 7.25,
-    meanTemperature: 5778, // Surface temperature K
+    meanTemperature: 5778,
     surfaceGravity: 274,
     jplId: "10",
     J2: 2.2e-7,
+    J4: 0.0, // Sun is nearly spherical
     poleRA: 286.13,
     poleDec: 63.87,
     W0: 84.176,
@@ -30,16 +31,19 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     texture: "/Mercury.jpeg",
     rotationPeriod: 1407.6,
     axialTilt: 0.03,
-    meanTemperature: 440, // K
+    meanTemperature: 440,
     surfaceGravity: 3.7,
     jplId: "199",
     type: "planet",
     J2: 6.0e-5,
+    C22: 1.0e-5,
+    k2: 0.4, // Tidal Love number
     poleRA: 281.01,
     poleDec: 61.45,
     W0: 329.5469,
     Wdot: 6.1385025,
-    radii: { x: 2439.7e3, y: 2439.7e3, z: 2439.7e3 }
+    radii: { x: 2439.7e3, y: 2439.7e3, z: 2439.7e3 },
+    albedo: 0.142
   },
   {
     name: "Venus",
@@ -49,16 +53,22 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     texture: "/Venus.jpeg",
     rotationPeriod: -5832.5,
     axialTilt: 177.3,
-    meanTemperature: 737, // K
+    meanTemperature: 737,
     surfaceGravity: 8.87,
     jplId: "299",
     type: "planet",
     J2: 4.4e-6,
+    k2: 0.295,
     poleRA: 272.76,
     poleDec: 67.16,
     W0: 160.20,
     Wdot: -1.4813688,
-    radii: { x: 6051.8e3, y: 6051.8e3, z: 6051.8e3 }
+    radii: { x: 6051.8e3, y: 6051.8e3, z: 6051.8e3 },
+    hasAtmosphere: true,
+    surfacePressure: 9.2e6, // 92 bar
+    scaleHeight: 15.9,
+    dragCoefficient: 2.2,
+    albedo: 0.76
   },
   {
     name: "Earth",
@@ -68,16 +78,29 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     texture: "/Earth.jpeg",
     rotationPeriod: 23.9345,
     axialTilt: 23.44,
-    meanTemperature: 288, // K
+    meanTemperature: 288,
     surfaceGravity: 9.8,
     jplId: "399",
     type: "planet",
     J2: 1.08263e-3,
-    poleRA: 0.0,      // Earth's pole precesses, but J2000 is approx 0, 90
+    J3: -2.53e-6,     // Pear-shaped term
+    J4: -1.62e-6,     // Fourth zonal harmonic
+    C22: 2.43e-6,     // Equatorial ellipticity
+    S22: -1.40e-6,    // Equatorial ellipticity (sine term)
+    k2: 0.299,        // Tidal Love number
+    tidalQ: 12,       // Tidal dissipation factor
+    poleRA: 0.0,
     poleDec: 90.0,
     W0: 100.21,
     Wdot: 360.9856235,
-    radii: { x: 6378.1e3, y: 6356.8e3, z: 6378.1e3 }
+    radii: { x: 6378.1e3, y: 6356.8e3, z: 6378.1e3 },
+    precessionRate: 50.29, // arcsec/year (26,000 year cycle)
+    nutationAmplitude: 9.2, // arcseconds
+    hasAtmosphere: true,
+    surfacePressure: 101325, // 1 atm in Pa
+    scaleHeight: 8.5,
+    dragCoefficient: 2.2,
+    albedo: 0.306
   },
   {
     name: "Moon",
@@ -88,18 +111,22 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     parent: "Earth",
     rel_a: 384400e3,
     rel_v: 1022,
-    rotationPeriod: 655.72, // 27.321661 days
+    rotationPeriod: 655.72,
     axialTilt: 6.68,
-    meanTemperature: 220, // K
+    meanTemperature: 220,
     surfaceGravity: 1.62,
     jplId: "301",
     type: "moon",
     J2: 2.027e-4,
+    C22: 2.23e-5,
+    k2: 0.0266,       // Tidal Love number
+    tidalQ: 30,       // Low Q = high dissipation
     poleRA: 266.86,
     poleDec: 65.64,
     W0: 38.3213,
     Wdot: 13.17635815,
-    radii: { x: 1738.1e3, y: 1736.0e3, z: 1738.1e3 }
+    radii: { x: 1738.1e3, y: 1736.0e3, z: 1738.1e3 },
+    albedo: 0.12
   },
   {
     name: "Mars",
@@ -109,16 +136,25 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     texture: "/Mars.jpeg",
     rotationPeriod: 24.6229,
     axialTilt: 25.19,
-    meanTemperature: 210, // K
+    meanTemperature: 210,
     surfaceGravity: 3.72,
     jplId: "499",
     type: "planet",
     J2: 1.96045e-3,
+    J3: 3.14e-5,
+    J4: -1.53e-5,
+    k2: 0.163,
+    tidalQ: 100,
     poleRA: 317.68,
     poleDec: 52.89,
     W0: 176.630,
     Wdot: 350.89198226,
-    radii: { x: 3396.2e3, y: 3376.2e3, z: 3396.2e3 }
+    radii: { x: 3396.2e3, y: 3376.2e3, z: 3396.2e3 },
+    hasAtmosphere: true,
+    surfacePressure: 600, // 0.6% of Earth
+    scaleHeight: 11.1,
+    dragCoefficient: 2.2,
+    albedo: 0.250
   },
   {
     name: "Phobos",
@@ -135,8 +171,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "401",
     type: "moon",
     J2: 0.105,
+    tidalQ: 100,      // Spiraling into Mars
     poleRA: 317.68,
-    poleDec: 52.90
+    poleDec: 52.90,
+    albedo: 0.071,    // Very dark
+    thermalInertia: 25 // For Yarkovsky effect
   },
   {
     name: "Deimos",
@@ -152,8 +191,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 0.003,
     jplId: "402",
     type: "moon",
+    tidalQ: 100,
     poleRA: 316.65,
-    poleDec: 53.52
+    poleDec: 53.52,
+    albedo: 0.068,
+    thermalInertia: 25
   },
   {
     name: "Jupiter",
@@ -168,6 +210,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "599",
     type: "planet",
     J2: 1.4736e-2,
+    J3: -2.2e-6,      // Third zonal harmonic
+    J4: -5.87e-4,     // Large J4 due to rapid rotation
     poleRA: 268.05,
     poleDec: 64.49,
     W0: 284.95,
@@ -267,6 +311,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "699",
     type: "planet",
     J2: 1.6298e-2,
+    J3: -2.0e-6,
+    J4: -9.15e-4,     // Saturn's strong oblateness
     poleRA: 40.58,
     poleDec: 83.54,
     W0: 38.90,
@@ -325,6 +371,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "799",
     type: "planet",
     J2: 3.34343e-3,
+    J3: -4.2e-6,
+    J4: -3.4e-5,
     poleRA: 257.31,
     poleDec: -15.17,
     W0: 203.81,
@@ -384,6 +432,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "899",
     type: "planet",
     J2: 3.411e-3,
+    J3: -3.0e-6,
+    J4: -3.3e-5,
     poleRA: 299.3,
     poleDec: 42.95,
     W0: 253.18,
