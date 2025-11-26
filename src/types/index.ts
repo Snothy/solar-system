@@ -33,9 +33,15 @@ export interface CelestialBodyData {
   J2?: number;              // J2 spherical harmonic coefficient
   poleRA?: number;          // Right Ascension of North Pole (degrees)
   poleDec?: number;         // Declination of North Pole (degrees)
+  W0?: number;              // Prime Meridian angle at J2000 (degrees)
+  Wdot?: number;            // Rotation rate (degrees/day)
   modelPath?: string;       // Path to GLB/GLTF model
   shape?: 'sphere' | 'model'; // Explicit shape type
   modelScale?: number;      // Scale factor for the model
+  ringInnerRadius?: number; // Inner radius of rings (m)
+  ringOuterRadius?: number; // Outer radius of rings (m)
+  ringTexture?: string;     // Path to ring texture (1D/2D)
+  ringOpacity?: number;     // Ring opacity (0.0 - 1.0)
 }
 
 export interface PhysicsBody {

@@ -18,6 +18,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 2.2e-7,
     poleRA: 286.13,
     poleDec: 63.87,
+    W0: 84.176,
+    Wdot: 14.1844000,
     radii: { x: 695700e3, y: 695700e3, z: 695700e3 }
   },
   {
@@ -35,6 +37,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 6.0e-5,
     poleRA: 281.01,
     poleDec: 61.45,
+    W0: 329.5469,
+    Wdot: 6.1385025,
     radii: { x: 2439.7e3, y: 2439.7e3, z: 2439.7e3 }
   },
   {
@@ -52,6 +56,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 4.4e-6,
     poleRA: 272.76,
     poleDec: 67.16,
+    W0: 160.20,
+    Wdot: -1.4813688,
     radii: { x: 6051.8e3, y: 6051.8e3, z: 6051.8e3 }
   },
   {
@@ -69,6 +75,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 1.08263e-3,
     poleRA: 0.0,      // Earth's pole precesses, but J2000 is approx 0, 90
     poleDec: 90.0,
+    W0: 100.21,
+    Wdot: 360.9856235,
     radii: { x: 6378.1e3, y: 6356.8e3, z: 6378.1e3 }
   },
   {
@@ -89,6 +97,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 2.027e-4,
     poleRA: 266.86,
     poleDec: 65.64,
+    W0: 38.3213,
+    Wdot: 13.17635815,
     radii: { x: 1738.1e3, y: 1736.0e3, z: 1738.1e3 }
   },
   {
@@ -106,6 +116,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 1.96045e-3,
     poleRA: 317.68,
     poleDec: 52.89,
+    W0: 176.630,
+    Wdot: 350.89198226,
     radii: { x: 3396.2e3, y: 3376.2e3, z: 3396.2e3 }
   },
   {
@@ -158,7 +170,15 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 1.4736e-2,
     poleRA: 268.05,
     poleDec: 64.49,
-    radii: { x: 71492e3, y: 66854e3, z: 71492e3 }
+    W0: 284.95,
+    Wdot: 870.5360000,
+    radii: { x: 71492e3, y: 66854e3, z: 71492e3 },
+    hasRings: true,
+    ringInnerRadius: 92000e3,
+    ringOuterRadius: 129000e3,
+    ringTexture: "/JupiterRings.png",
+    ringColor: 0x554433,
+    ringOpacity: 0.15
   },
   {
     name: "Io",
@@ -249,7 +269,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 1.6298e-2,
     poleRA: 40.58,
     poleDec: 83.54,
-    radii: { x: 60268e3, y: 54364e3, z: 60268e3 }
+    W0: 38.90,
+    Wdot: 810.7939024,
+    radii: { x: 60268e3, y: 54364e3, z: 60268e3 },
+    ringInnerRadius: 74500e3,
+    ringOuterRadius: 140220e3,
+    ringTexture: "/SaturnRings.png",
+    ringOpacity: 0.9
   },
   {
     name: "Titan",
@@ -301,7 +327,15 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 3.34343e-3,
     poleRA: 257.31,
     poleDec: -15.17,
-    radii: { x: 25559e3, y: 24973e3, z: 25559e3 }
+    W0: 203.81,
+    Wdot: -501.1600928,
+    radii: { x: 25559e3, y: 24973e3, z: 25559e3 },
+    hasRings: true,
+    ringInnerRadius: 38000e3,
+    ringOuterRadius: 51000e3,
+    ringTexture: "/UranusRings.png",
+    ringColor: 0x333333,
+    ringOpacity: 0.25
   },
   {
     name: "Titania",
@@ -352,7 +386,15 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J2: 3.411e-3,
     poleRA: 299.3,
     poleDec: 42.95,
-    radii: { x: 24764e3, y: 24341e3, z: 24764e3 }
+    W0: 253.18,
+    Wdot: 536.3128492,
+    radii: { x: 24764e3, y: 24341e3, z: 24764e3 },
+    hasRings: true,
+    ringInnerRadius: 41000e3,
+    ringOuterRadius: 63000e3,
+    ringTexture: "/NeptuneRings.png",
+    ringColor: 0x444444,
+    ringOpacity: 0.2
   },
   {
     name: "Triton",

@@ -96,6 +96,7 @@ export function App() {
         setObserverPosition={setObserverPosition}
         focusedObject={focusedObject}
         orbitVisibility={orbitVisibility}
+        simTime={simTime}
       />
 
       <Sidebar

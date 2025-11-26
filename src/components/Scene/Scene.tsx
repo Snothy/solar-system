@@ -6,6 +6,7 @@ import { Lights } from './Lights';
 import { CelestialBody } from './CelestialBody';
 import { OrbitalTrail } from './OrbitalTrail';
 import { ParticleExplosion } from './ParticleExplosion';
+import { Stars } from './Stars';
 import type { VisualBody, Particle, PhysicsBody } from '../../types';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
 import { useCameraFocus } from '../../hooks/useCameraFocus';
@@ -22,6 +23,7 @@ interface SceneProps {
   focusedObject: PhysicsBody | null;
   orbitVisibility: Record<string, boolean>;
   setObserverPosition: (x: number, y: number, z: number) => void;
+  simTime: number;
 }
 
 // Component that calls updatePhysics on every frame
@@ -81,8 +83,13 @@ export function Scene({
   updatePhysics,
   setObserverPosition,
   focusedObject,
-  orbitVisibility
+  orbitVisibility,
+  simTime
 }: SceneProps) {
+  // Find Sun for lighting reference
+  const sun = visualBodies.find(vb => vb.body.name === 'Sun');
+  const sunPosition = sun ? sun.mesh.position : new THREE.Vector3(0, 0, 0);
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
@@ -98,6 +105,8 @@ export function Scene({
       >
         <color attach="background" args={['#000005']} />
         
+        <Stars />
+
         <Lights 
           visualBodies={visualBodies}
           focusedObject={focusedObject}
@@ -170,6 +179,8 @@ export function Scene({
                   useVisualScale={useVisualScale}
                   onClick={() => onObjectSelect(index)}
                   layer={layer}
+                  sunPosition={sunPosition}
+                  simTime={simTime}
                 />
               </Suspense>
               

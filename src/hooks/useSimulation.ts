@@ -19,6 +19,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
 
   const initialized = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [useEphemeris, setUseEphemeris] = useState(false);
 
   // Initialize bodies from passed data
   useEffect(() => {
@@ -377,6 +378,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     focusedObject,
     orbitVisibility,
     useLightTimeDelay,
+    useEphemeris,
     setTimeStep,
     setIsPaused,
     setVisualScale,
@@ -390,6 +392,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     setAllOrbitVisibility,
     setObserverPosition,
     setUseLightTimeDelay,
+    setUseEphemeris,
     isLoading
   };
 }

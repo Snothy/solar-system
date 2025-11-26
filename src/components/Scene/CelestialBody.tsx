@@ -13,6 +13,8 @@ interface CelestialBodyProps {
   useVisualScale: boolean;
   onClick: () => void;
   layer: number;
+  sunPosition: THREE.Vector3;
+  simTime: number;
 }
 
 function BodyModel({ url, scale }: { url: string, scale: number }) {
@@ -40,7 +42,9 @@ export function CelestialBody({
   visualScale, 
   useVisualScale,
   onClick,
-  layer
+  layer,
+  sunPosition,
+  simTime
 }: CelestialBodyProps) {
   const groupRef = useRef<THREE.Group>(null);
   
@@ -75,8 +79,25 @@ export function CelestialBody({
       const baseQ = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), pole);
       
       // 2. Apply spin rotation around local Y axis (which is now aligned with pole)
-      // visualBody.mesh.rotation.y contains the accumulated rotation angle from the simulation loop
-      const spinAngle = visualBody.mesh.rotation.y;
+      let spinAngle = 0;
+      
+      if (data.W0 !== undefined && data.Wdot !== undefined) {
+        // Precise rotation based on IAU W0/Wdot
+        // d = days since J2000.0 (2000-01-01 12:00:00 TT)
+        // J2000 epoch is 2451545.0 JD
+        const J2000 = 946728000000; // ms timestamp for 2000-01-01 12:00 UTC approx
+        // Actually, let's just use standard day difference
+        const dayMs = 86400000;
+        const d = (simTime - J2000) / dayMs;
+        
+        // W = W0 + Wdot * d (degrees)
+        const W = data.W0 + data.Wdot * d;
+        spinAngle = THREE.MathUtils.degToRad(W);
+      } else {
+        // Fallback to accumulated rotation
+        spinAngle = visualBody.mesh.rotation.y;
+      }
+
       const spinQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spinAngle);
       
       // Combine: Base * Spin
@@ -181,20 +202,26 @@ export function CelestialBody({
           radius={scaleVec[0]}  
           color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
           density={data.name === 'Venus' ? 2.0 : 1.0}
+          sunPosition={sunPosition}
         />
       )}
 
-      {/* Rings for Saturn */}
-      {data.hasRings && (
-        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow scale={scaleVec}>
-          <ringGeometry args={[1.4, 2.4, 128]} />
+      {/* Rings */}
+      {data.hasRings && data.ringInnerRadius && data.ringOuterRadius && (
+        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow>
+          <ringGeometry args={[
+            data.ringInnerRadius * SCALE * (useVisualScale ? visualScale : 1), 
+            data.ringOuterRadius * SCALE * (useVisualScale ? visualScale : 1), 
+            128
+          ]} />
           <meshStandardMaterial
-            color={data.ringColor}
+            color={data.ringColor || 0xffffff}
             side={THREE.DoubleSide}
             transparent
-            opacity={0.8}
+            opacity={data.ringOpacity || 0.8}
             roughness={0.8}
             metalness={0.1}
+            // map={ringTexture} // TODO: Load texture if available
           />
         </mesh>
       )}
