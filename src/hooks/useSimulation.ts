@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import type { PhysicsBody, VisualBody, Particle, CelestialBodyData } from '../types';
+import type { PhysicsBody, VisualBody, Particle } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE,  TRAIL_LENGTH } from '../utils/constants';
 import { yoshida4Step, checkCollisions } from '../utils/physics';
 
-export function useSimulation() {
+export function useSimulation(initialData: any[] | null = null) {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
   const [visualBodies, setVisualBodies] = useState<VisualBody[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -18,124 +18,30 @@ export function useSimulation() {
   const [focusedObject, setFocusedObject] = useState<PhysicsBody | null>(null);
 
   const initialized = useRef(false);
-
-  // Initialize bodies
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize bodies
+  // Initialize bodies from passed data
   useEffect(() => {
-    if (initialized.current) return;
+    if (initialized.current || !initialData) return;
     initialized.current = true;
 
-    const initSimulation = async () => {
+    const initSimulation = () => {
       const newBodies: PhysicsBody[] = [];
       const newVisualBodies: VisualBody[] = [];
 
-      type PhysicsBodyProperties = {
-        pos: THREE.Vector3;
-        vel: THREE.Vector3;
-        mass: number;
-        radius: number;
-        rotationPeriod: number;
-        meanTemperature: number;
-        axialTilt: number;
-        surfaceGravity: number;
-      };
-
-      // Fetch real data for all bodies sequentially to avoid rate limiting
       try {
-        const realData: (CelestialBodyData & PhysicsBodyProperties)[] = [];
-        
-        // Fetch ALL bodies including Sun
-        const CONCURRENCY_LIMIT = 3;
-        const bodiesToFetch = SOLAR_SYSTEM_DATA.filter(d => d.jplId); // Fetch all with ID
-        
-        // Helper to process a single body
-        const fetchBody = async (data: typeof SOLAR_SYSTEM_DATA[0]) => {
-          try {
-            const { fetchBodyData } = await import('../services/jplHorizons');
-            const jplData = await fetchBodyData(data.jplId!);
-            
-            return { 
-              ...data, 
-              pos: jplData.pos, 
-              vel: jplData.vel,
-              mass: jplData.mass || data.mass || 0,
-              radius: jplData.radius || data.radius || 1000,
-              rotationPeriod: jplData.rotationPeriod || data.rotationPeriod || 0,
-              meanTemperature: jplData.meanTemperature || data.meanTemperature || 0,
-              axialTilt: jplData.axialTilt || data.axialTilt || 0,
-              surfaceGravity: jplData.surfaceGravity || data.surfaceGravity || 0
-            };
-          } catch (e) {
-            console.warn(`Failed to fetch JPL data for ${data.name}, using fallback`, e);
-            const { FALLBACK_DATA } = await import('../data/fallbackData');
-            const fallback = FALLBACK_DATA[data.name];
-            
-            if (fallback) {
-              return {
-                ...data,
-                pos: fallback.pos,
-                vel: fallback.vel,
-                mass: data.mass || 0,
-                radius: data.radius || 1000,
-                rotationPeriod: data.rotationPeriod || 0,
-                meanTemperature: data.meanTemperature || 0,
-                axialTilt: data.axialTilt || 0,
-                surfaceGravity: data.surfaceGravity || 0
-              };
-            }
-            return null;
-          }
-        };
-
-        // Process in chunks/batches or use a queue
-        // Simple batching approach
-        for (let i = 0; i < bodiesToFetch.length; i += CONCURRENCY_LIMIT) {
-          const batch = bodiesToFetch.slice(i, i + CONCURRENCY_LIMIT);
-          const results = await Promise.all(batch.map(fetchBody));
-          
-          results.forEach(res => {
-            if (res) realData.push(res);
-          });
-          
-          // Small delay between batches
-          if (i + CONCURRENCY_LIMIT < bodiesToFetch.length) {
-             await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        }
-        
-        if (realData.length === 0) {
-          console.error("No data fetched from JPL. Simulation cannot start.");
-          setIsLoading(false);
-          return; 
-        }
-
-        // Debug: Check Earth and Moon relative positions
-        const earth = realData.find(d => d.name === "Earth");
-        const moon = realData.find(d => d.name === "Moon");
-        if (earth && moon) {
-          const dist = moon.pos.distanceTo(earth.pos);
-          const velRel = moon.vel.clone().sub(earth.vel).length();
-          console.log(`[JPL Check] Earth-Moon Distance: ${(dist/1000).toFixed(1)} km (Expected ~384,400)`);
-          console.log(`[JPL Check] Moon Relative Velocity: ${velRel.toFixed(1)} m/s (Expected ~1022)`);
-          console.log(`[JPL Check] Earth Properties: Tilt=${earth.axialTilt?.toFixed(2)}°, Temp=${earth.meanTemperature}K, Gravity=${earth.surfaceGravity?.toFixed(2)}m/s²`);
-        }
-        
-        // Build bodies
-        realData.forEach(data => {
+        // Build bodies from initialData
+        initialData.forEach(data => {
           const body: PhysicsBody = {
             name: data.name,
-            mass: data.mass!,
-            radius: data.radius!,
+            mass: data.mass,
+            radius: data.radius,
             pos: data.pos,
             vel: data.vel,
             force: new THREE.Vector3(),
             parentName: data.parent,
             J2: data.J2,
-            // Calculate pole vector from RA/Dec
-            // RA/Dec are in ICRF (Equatorial) coordinates
-            // X = Vernal Equinox, Z = North Celestial Pole, Y = 90deg RA
+            // Pole vector calculation (reused logic)
             poleVector: (data.poleRA !== undefined && data.poleDec !== undefined) 
               ? (() => {
                   const raRad = THREE.MathUtils.degToRad(data.poleRA);
@@ -145,8 +51,6 @@ export function useSimulation() {
                   const y_eq = Math.cos(decRad) * Math.sin(raRad);
                   const z_eq = Math.sin(decRad);
                   
-                  // Convert Equatorial to Ecliptic Coordinates
-                  // Rotate around X axis by epsilon (obliquity)
                   const epsilon = THREE.MathUtils.degToRad(23.43928);
                   const cosEps = Math.cos(epsilon);
                   const sinEps = Math.sin(epsilon);
@@ -155,17 +59,11 @@ export function useSimulation() {
                   const y_ecl = y_eq * cosEps + z_eq * sinEps;
                   const z_ecl = -y_eq * sinEps + z_eq * cosEps;
                   
-                  // Map to Scene Coordinates:
-                  // JPL Ecliptic (x, y, z) -> Scene (x, z, -y)
-                  // x_scene = x_ecl
-                  // y_scene = z_ecl (Up)
-                  // z_scene = -y_ecl
                   return new THREE.Vector3(x_ecl, z_ecl, -y_ecl).normalize();
                 })()
-              : new THREE.Vector3(0, 1, 0) // Default up
+              : new THREE.Vector3(0, 1, 0)
           };
           
-          // Pole vector is already correctly transformed above.
           newBodies.push(body);
 
           // Create visual representation
@@ -186,16 +84,30 @@ export function useSimulation() {
             const periodSeconds = data.rotationPeriod * 3600;
             rotationSpeed = (2 * Math.PI) / periodSeconds;
           }
+          
+          // Load texture if available
+          // Texture loading is handled by the Scene/VisualBody component usually, 
+          // but here we just pass the path/url.
+          // The actual THREE.Texture loading happens in Scene or we can pre-load.
+          // For now, we just pass the string URL.
 
           const visualBody: VisualBody = {
             body: body,
-            mesh: new THREE.Mesh(),
+            mesh: new THREE.Mesh(), // Geometry/Material assigned in Scene or here? 
+            // In previous code, mesh was empty here. Scene likely handles it or it's missing?
+            // Wait, looking at Scene.tsx (not visible but inferred), it probably iterates visualBodies and adds them.
+            // Actually, in the previous code, mesh was just new THREE.Mesh().
+            // The geometry/material creation seems to happen elsewhere or was missing in the snippet I saw?
+            // Ah, I see `CelestialBody` component in previous conversations. 
+            // `Scene` probably maps `visualBodies` to `CelestialBody` components.
+            // So we just need the data here.
             trail: trail,
             trailIdx: 0,
             trailCount: 0,
-            baseRadius: data.radius! * SCALE,
+            baseRadius: data.radius * SCALE,
             type: data.type,
-            rotationSpeed: rotationSpeed
+            rotationSpeed: rotationSpeed,
+            textureUrl: data.texture // Pass the texture URL (custom or default)
           };
           newVisualBodies.push(visualBody);
         });
@@ -211,7 +123,7 @@ export function useSimulation() {
     };
 
     initSimulation();
-  }, []);
+  }, [initialData]);
 
   const removeParticle = (index: number) => {
     setParticles(prev => prev.filter((_, i) => i !== index));

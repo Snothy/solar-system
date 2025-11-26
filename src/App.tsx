@@ -8,11 +8,14 @@ import { SelectionPanel } from './components/UI/SelectionPanel';
 import { StatusBar } from './components/UI/StatusBar';
 import { PropertyEditor } from './components/UI/PropertyEditor';
 import { Minimap } from './components/UI/Minimap';
+import { SetupScreen } from './components/UI/SetupScreen';
 import { useSimulation } from './hooks/useSimulation';
 import './index.css';
 
 export function App() {
   const controlsRef = useRef<any>(null);
+  const [simulationReady, setSimulationReady] = useState(false);
+  const [simulationData, setSimulationData] = useState<any[] | null>(null);
 
   const {
     bodies,
@@ -39,9 +42,8 @@ export function App() {
     setAllOrbitVisibility,
     setObserverPosition,
     useLightTimeDelay,
-    setUseLightTimeDelay,
-    isLoading
-  } = useSimulation();
+    setUseLightTimeDelay
+  } = useSimulation(simulationData);
 
   const handleObjectSelect = (index: number) => {
     setSelectedObject(visualBodies[index].body);
@@ -67,6 +69,15 @@ export function App() {
   };
 
   const [showMinimap, setShowMinimap] = useState(true);
+
+  const handleSimulationStart = (data: any[]) => {
+    setSimulationData(data);
+    setSimulationReady(true);
+  };
+
+  if (!simulationReady) {
+    return <SetupScreen onSimulationStart={handleSimulationStart} />;
+  }
 
   return (
     <>
@@ -150,20 +161,8 @@ export function App() {
         />
       )}
 
-      {isLoading && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-500">
-          <div className="flex flex-col items-center p-8 rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl">
-            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-6"></div>
-            <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-              Initializing OrbitEngine
-            </div>
-            <div className="text-sm text-gray-400 font-mono">
-              Fetching ephemeris data from JPL Horizons...
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Removed old loading screen since SetupScreen handles it */}
+      
       {showMinimap && (
         <Minimap 
           visualBodies={visualBodies} 

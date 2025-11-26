@@ -56,6 +56,7 @@ export interface VisualBody {
   baseRadius: number;     // Base radius in scene units
   type?: string;
   rotationSpeed: number;  // Radians per simulation second
+  textureUrl?: string;    // Custom or default texture URL
 }
 
 export interface Particle {
