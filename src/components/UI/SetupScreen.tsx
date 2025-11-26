@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
 import { fetchMultipleBodies } from '../../services/jplHorizons';
 import { saveTexture, saveTextureSelection, getAllTextures, getAllTextureSelections, deleteTexture, deleteTextureSelection } from '../../services/textureStorage';
+import { dataCache } from '../../services/dataCache';
 import type { CelestialBodyData } from '../../types';
 import './SetupScreen.css';
 
 interface SetupScreenProps {
-  onSimulationStart: (data: any[]) => void;
+  onSimulationStart: (data: any[], date: Date) => void;
 }
 
 interface FetchStatus {
@@ -26,6 +27,10 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
   const [textureSelections, setTextureSelections] = useState<TextureSelection>({});
   const [isFetching, setIsFetching] = useState(false);
   const [previewTexture, setPreviewTexture] = useState<{ url: string; name: string } | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [cachedDates, setCachedDates] = useState<string[]>([]);
+  const [useParallelFetching, setUseParallelFetching] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,6 +44,9 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
 
     // Load stored textures
     loadStoredTextures();
+    
+    // Load cached dates
+    setCachedDates(dataCache.getAvailableDates());
   }, []);
 
   const loadStoredTextures = async () => {
@@ -76,12 +84,14 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
     const jplIds = bodiesToFetch.map(b => b.jplId!);
     
     try {
-      const resultsMap = await fetchMultipleBodies(jplIds, new Date(), (id, status) => {
+      const targetDate = new Date(selectedDate);
+      const concurrency = useParallelFetching ? 5 : 1;
+      const resultsMap = await fetchMultipleBodies(jplIds, targetDate, (id, status) => {
         const bodyName = bodiesToFetch.find(b => b.jplId === id)?.name;
         if (bodyName) {
           updateStatus(bodyName, status);
         }
-      });
+      }, concurrency, forceRefresh);
 
       const finalResults = bodiesToFetch.map(body => {
         const jplData = resultsMap[body.jplId!];
@@ -108,6 +118,8 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
       console.error("Bulk fetch failed", e);
     } finally {
       setIsFetching(false);
+      // Refresh cached dates after fetch
+      setCachedDates(dataCache.getAvailableDates());
     }
   };
 
@@ -195,7 +207,8 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
       };
     });
     
-    onSimulationStart(finalData);
+
+    onSimulationStart(finalData, new Date(selectedDate));
   };
 
   // Organize bodies hierarchically
@@ -237,6 +250,66 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
           >
             Start Simulation
           </button>
+        </div>
+        </div>
+
+
+
+
+      {/* Date Selection Bar */}
+      <div className="date-selection-bar">
+        <div className="date-input-group">
+          <label>Simulation Date:</label>
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="date-input"
+          />
+        </div>
+        
+        {cachedDates.length > 0 && (
+          <div className="cached-dates-group">
+            <label>Load Cached:</label>
+            <select 
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(e.target.value);
+                }
+              }}
+              value=""
+              className="date-select"
+            >
+              <option value="">Select a date...</option>
+              {cachedDates.map(date => (
+                <option key={date} value={date}>{date}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="toggle-group">
+          <label>Parallel Fetching:</label>
+          <label className="toggle-switch">
+            <input 
+              type="checkbox" 
+              checked={useParallelFetching}
+              onChange={(e) => setUseParallelFetching(e.target.checked)}
+            />
+            <span className="slider"></span>
+          </label>
+        </div>
+
+        <div className="toggle-group">
+          <label>Force Refresh:</label>
+          <label className="toggle-switch">
+            <input 
+              type="checkbox" 
+              checked={forceRefresh}
+              onChange={(e) => setForceRefresh(e.target.checked)}
+            />
+            <span className="slider"></span>
+          </label>
         </div>
       </div>
 
@@ -285,16 +358,18 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
               <div className="body-header">
                 <div className="body-avatar">
                   <img 
-                    src={getBodyTexture(selectedBody.name)} 
-                    alt={selectedBody.name}
+                    src={getBodyTexture(selectedBody!.name)} 
+                    alt={selectedBody!.name}
                     onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=?';
                     }}
                   />
                 </div>
                 <div className="body-info">
-                  <h2>{selectedBody.name}</h2>
-                  <p className="body-type">{(selectedBody.type || 'unknown').charAt(0).toUpperCase() + (selectedBody.type || 'unknown').slice(1)}</p>
+                  <h2>{selectedBody!.name}</h2>
+                  <p className="body-type">
+                    {(selectedBody!.type ? selectedBody!.type.charAt(0).toUpperCase() + selectedBody!.type.slice(1) : 'Unknown')}
+                  </p>
                 </div>
               </div>
 
@@ -308,30 +383,30 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
                   {/* Default Texture Option */}
                   <div 
                     onClick={() => handleTextureSelect('default')}
-                    className={`texture-option ${(!textureSelections[selectedBody.name] || textureSelections[selectedBody.name] === 'default') ? 'selected' : ''}`}
+                    className={`texture-option ${(!textureSelections[selectedBody!.name] || textureSelections[selectedBody!.name] === 'default') ? 'selected' : ''}`}
                   >
                     <img 
-                      src={selectedBody.texture} 
+                      src={selectedBody!.texture} 
                       alt="Default" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        setPreviewTexture({ url: selectedBody.texture || '', name: 'Default' });
+                        setPreviewTexture({ url: selectedBody!.texture || '', name: 'Default' });
                       }}
                     />
                     <div className="texture-label">Default</div>
-                    {(!textureSelections[selectedBody.name] || textureSelections[selectedBody.name] === 'default') && (
+                    {(!textureSelections[selectedBody!.name] || textureSelections[selectedBody!.name] === 'default') && (
                       <div className="check-badge">✓</div>
                     )}
                   </div>
 
                   {/* Custom Textures */}
-                  {customTextures.filter(t => t.name.startsWith(selectedBody.name)).map(texture => {
+                  {customTextures.filter(t => t.name.startsWith(selectedBody!.name)).map(texture => {
                     const url = URL.createObjectURL(texture.blob);
                     return (
                       <div 
                         key={texture.name}
                         onClick={() => handleTextureSelect(texture.name)}
-                        className={`texture-option ${textureSelections[selectedBody.name] === texture.name ? 'selected' : ''}`}
+                        className={`texture-option ${textureSelections[selectedBody!.name] === texture.name ? 'selected' : ''}`}
                       >
                         <img 
                           src={url} 
@@ -342,7 +417,7 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
                           }}
                         />
                         <div className="texture-label">Custom</div>
-                        {textureSelections[selectedBody.name] === texture.name && (
+                        {textureSelections[selectedBody!.name] === texture.name && (
                           <div className="check-badge">✓</div>
                         )}
                         <button 
@@ -386,51 +461,51 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
                   <div className="stat-row">
                     <span className="stat-label">Mass</span>
                     <span className="stat-value">
-                      {(fetchedData.find(d => d.name === selectedBody.name)?.mass || selectedBody.mass).toExponential(2)} kg
+                      {(fetchedData.find(d => d.name === selectedBody!.name)?.mass || selectedBody!.mass || 0).toExponential(2)} kg
                     </span>
                   </div>
                   <div className="stat-row">
                     <span className="stat-label">Radius</span>
                     <span className="stat-value">
-                      {((fetchedData.find(d => d.name === selectedBody.name)?.radius || selectedBody.radius) / 1000).toLocaleString()} km
+                      {((fetchedData.find(d => d.name === selectedBody!.name)?.radius || selectedBody!.radius || 0) / 1000).toLocaleString()} km
                     </span>
                   </div>
                   <div className="stat-row">
                     <span className="stat-label">Rotation Period</span>
                     <span className="stat-value">
-                      {(fetchedData.find(d => d.name === selectedBody.name)?.rotationPeriod || selectedBody.rotationPeriod).toFixed(2)} h
+                      {(fetchedData.find(d => d.name === selectedBody!.name)?.rotationPeriod || selectedBody!.rotationPeriod || 0).toFixed(2)} h
                     </span>
                   </div>
                   <div className="stat-row">
                     <span className="stat-label">Axial Tilt</span>
                     <span className="stat-value">
-                      {(fetchedData.find(d => d.name === selectedBody.name)?.axialTilt || selectedBody.axialTilt).toFixed(2)}°
+                      {(fetchedData.find(d => d.name === selectedBody!.name)?.axialTilt || selectedBody!.axialTilt || 0).toFixed(2)}°
                     </span>
                   </div>
                   <div className="stat-row">
                     <span className="stat-label">Mean Temp</span>
                     <span className="stat-value">
-                      {fetchedData.find(d => d.name === selectedBody.name)?.meanTemperature || selectedBody.meanTemperature || 'N/A'} K
+                      {fetchedData.find(d => d.name === selectedBody!.name)?.meanTemperature || selectedBody!.meanTemperature || 'N/A'} K
                     </span>
                   </div>
                   <div className="stat-row">
                     <span className="stat-label">Surface Gravity</span>
                     <span className="stat-value">
-                      {(fetchedData.find(d => d.name === selectedBody.name)?.surfaceGravity || selectedBody.surfaceGravity || 0).toFixed(2)} m/s²
+                      {(fetchedData.find(d => d.name === selectedBody!.name)?.surfaceGravity || selectedBody!.surfaceGravity || 0).toFixed(2)} m/s²
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Stats Preview (Optional) */}
-              {fetchedData.find(d => d.name === selectedBody.name) && (
+              {fetchedData.find(d => d.name === selectedBody!.name) && (
                  <div className="section-card">
                    <h3 className="section-title">
                      <span className="accent-bar"></span>
                      Fetched Data
                    </h3>
                    <div className="stats-grid">
-                     {Object.entries(fetchedData.find(d => d.name === selectedBody.name) || {}).map(([key, value]) => {
+                     {Object.entries(fetchedData.find(d => d.name === selectedBody!.name) || {}).map(([key, value]) => {
                         if (key === 'pos' || key === 'vel' || typeof value === 'object') return null;
                         return (
                           <div key={key} className="stat-row">
@@ -460,8 +535,8 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
             <button className="modal-close" onClick={() => setPreviewTexture(null)}>
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <h3 className="modal-title">{previewTexture.name} Texture</h3>
-            <img src={previewTexture.url} alt="Preview" className="modal-image" />
+            <h3 className="modal-title">{previewTexture!.name} Texture</h3>
+            <img src={previewTexture!.url} alt="Preview" className="modal-image" />
           </div>
         </div>
       )}

@@ -16,6 +16,7 @@ export function App() {
   const controlsRef = useRef<any>(null);
   const [simulationReady, setSimulationReady] = useState(false);
   const [simulationData, setSimulationData] = useState<any[] | null>(null);
+  const [simulationStartDate, setSimulationStartDate] = useState<Date>(new Date());
 
   const {
     bodies,
@@ -43,7 +44,7 @@ export function App() {
     setObserverPosition,
     useLightTimeDelay,
     setUseLightTimeDelay
-  } = useSimulation(simulationData);
+  } = useSimulation(simulationData, simulationStartDate);
 
   const handleObjectSelect = (index: number) => {
     setSelectedObject(visualBodies[index].body);
@@ -70,8 +71,9 @@ export function App() {
 
   const [showMinimap, setShowMinimap] = useState(true);
 
-  const handleSimulationStart = (data: any[]) => {
+  const handleSimulationStart = (data: any[], date: Date) => {
     setSimulationData(data);
+    setSimulationStartDate(date);
     setSimulationReady(true);
   };
 

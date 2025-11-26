@@ -19,7 +19,7 @@ export interface CelestialBodyData {
   texture?: string;
   ringColor?: number;
   hasRings?: boolean;
-  type?: 'star' | 'planet' | 'moon';
+  type?: 'star' | 'planet' | 'moon' | 'dwarf planet' | 'asteroid' | 'comet';
   elements?: OrbitalElements | null;
   parent?: string;
   rel_a?: number;           // Relative semi-major axis (m) for moons
@@ -32,6 +32,9 @@ export interface CelestialBodyData {
   J2?: number;              // J2 spherical harmonic coefficient
   poleRA?: number;          // Right Ascension of North Pole (degrees)
   poleDec?: number;         // Declination of North Pole (degrees)
+  modelPath?: string;       // Path to GLB/GLTF model
+  shape?: 'sphere' | 'model'; // Explicit shape type
+  modelScale?: number;      // Scale factor for the model
 }
 
 export interface PhysicsBody {

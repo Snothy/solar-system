@@ -71,5 +71,44 @@ export const dataCache = {
         localStorage.removeItem(key);
       }
     });
+  },
+
+  /**
+   * Get list of all dates that have cached data
+   */
+  getAvailableDates: (): string[] => {
+    const dates = new Set<string>();
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith(CACHE_PREFIX)) {
+        // Key format: solar_system_cache_v1_ID_DATE
+        // We need to extract DATE.
+        // Split by '_'
+        const parts = key.split('_');
+        // solar, system, cache, v1, ID, DATE
+        // But DATE might contain hyphens? No, date is YYYY-MM-DD.
+        // Let's assume ID doesn't contain underscores.
+        // Actually, ID is usually a number.
+        // Let's be safer. The prefix is `solar_system_cache_v1_`.
+        // The rest is `ID_DATE`.
+        // Date is always YYYY-MM-DD (10 chars).
+        // So we can take the last 10 chars.
+        const datePart = parts[parts.length - 1];
+        if (datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          dates.add(datePart);
+        }
+      }
+    });
+    return Array.from(dates).sort().reverse(); // Newest first
+  },
+
+  /**
+   * Clear cache for a specific date
+   */
+  clearDate: (date: string): void => {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith(CACHE_PREFIX) && key.endsWith(`_${date}`)) {
+        localStorage.removeItem(key);
+      }
+    });
   }
 };

@@ -1,4 +1,5 @@
 import type { CelestialBodyData } from '../types';
+import { EXTENDED_BODIES } from './extendedBodies';
 
 export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
   {
@@ -29,6 +30,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 440, // K
     surfaceGravity: 3.7,
     jplId: "199",
+    type: "planet",
     J2: 6.0e-5,
     poleRA: 281.01,
     poleDec: 61.45
@@ -44,6 +46,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 737, // K
     surfaceGravity: 8.87,
     jplId: "299",
+    type: "planet",
     J2: 4.4e-6,
     poleRA: 272.76,
     poleDec: 67.16
@@ -59,6 +62,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 288, // K
     surfaceGravity: 9.8,
     jplId: "399",
+    type: "planet",
     J2: 1.08263e-3,
     poleRA: 0.0,      // Earth's pole precesses, but J2000 is approx 0, 90
     poleDec: 90.0
@@ -77,6 +81,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 220, // K
     surfaceGravity: 1.62,
     jplId: "301",
+    type: "moon",
     J2: 2.027e-4,
     poleRA: 266.86,
     poleDec: 65.64
@@ -92,6 +97,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 210, // K
     surfaceGravity: 3.72,
     jplId: "499",
+    type: "planet",
     J2: 1.96045e-3,
     poleRA: 317.68,
     poleDec: 52.89
@@ -108,6 +114,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 233,
     surfaceGravity: 0.0057,
     jplId: "401",
+    type: "moon",
     J2: 0.105,
     poleRA: 317.68,
     poleDec: 52.90
@@ -124,6 +131,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 233,
     surfaceGravity: 0.003,
     jplId: "402",
+    type: "moon",
     poleRA: 316.65,
     poleDec: 53.52
   },
@@ -138,6 +146,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 165, // K
     surfaceGravity: 24.79,
     jplId: "599",
+    type: "planet",
     J2: 1.4736e-2,
     poleRA: 268.05,
     poleDec: 64.49
@@ -154,6 +163,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 110,
     surfaceGravity: 1.796,
     jplId: "501",
+    type: "moon",
     J2: 1.863e-3,
     poleRA: 268.05,
     poleDec: 64.50
@@ -170,6 +180,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 102,
     surfaceGravity: 1.314,
     jplId: "502",
+    type: "moon",
     J2: 4.355e-4,
     poleRA: 268.08,
     poleDec: 64.51
@@ -186,6 +197,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 110,
     surfaceGravity: 1.428,
     jplId: "503",
+    type: "moon",
     J2: 1.27e-4,
     poleRA: 268.20,
     poleDec: 64.57
@@ -202,6 +214,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 134,
     surfaceGravity: 1.235,
     jplId: "504",
+    type: "moon",
     J2: 3.27e-5,
     poleRA: 268.72,
     poleDec: 64.83
@@ -219,6 +232,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 134, // K
     surfaceGravity: 10.44,
     jplId: "699",
+    type: "planet",
     J2: 1.6298e-2,
     poleRA: 40.58,
     poleDec: 83.54
@@ -235,6 +249,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 94,
     surfaceGravity: 1.352,
     jplId: "606",
+    type: "moon",
     J2: 3.17e-5,
     poleRA: 36.41,
     poleDec: 83.94
@@ -251,6 +266,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 75,
     surfaceGravity: 0.113,
     jplId: "602",
+    type: "moon",
     poleRA: 40.66,
     poleDec: 83.52
   },
@@ -265,6 +281,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 76, // K
     surfaceGravity: 8.69,
     jplId: "799",
+    type: "planet",
     J2: 3.34343e-3,
     poleRA: 257.31,
     poleDec: -15.17
@@ -281,6 +298,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 60,
     surfaceGravity: 0.379,
     jplId: "703",
+    type: "moon",
     poleRA: 257.43,
     poleDec: -15.10
   },
@@ -296,6 +314,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 61,
     surfaceGravity: 0.346,
     jplId: "704",
+    type: "moon",
     poleRA: 257.43,
     poleDec: -15.10
   },
@@ -310,6 +329,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 55, // K
     surfaceGravity: 11.15,
     jplId: "899",
+    type: "planet",
     J2: 3.411e-3,
     poleRA: 299.3,
     poleDec: 42.95
@@ -326,7 +346,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     meanTemperature: 38,
     surfaceGravity: 0.779,
     jplId: "801",
+    type: "moon",
     poleRA: 299.36,
     poleDec: 41.17
-  }
+  },
+  ...EXTENDED_BODIES
 ];
+

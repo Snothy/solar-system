@@ -5,11 +5,11 @@ import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE,  TRAIL_LENGTH } from '../utils/constants';
 import { yoshida4Step, checkCollisions } from '../utils/physics';
 
-export function useSimulation(initialData: any[] | null = null) {
+export function useSimulation(initialData: any[] | null = null, startDate: Date = START_DATE) {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
   const [visualBodies, setVisualBodies] = useState<VisualBody[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
-  const [simTime, setSimTime] = useState(START_DATE.getTime());
+  const [simTime, setSimTime] = useState(startDate.getTime());
   const [timeStep, setTimeStep] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
   const [visualScale, setVisualScale] = useState(100);

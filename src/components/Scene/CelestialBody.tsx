@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useTexture } from '@react-three/drei';
+import { useTexture, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Atmosphere } from './Atmosphere';
 import type { CelestialBodyData, VisualBody } from '../../types';
@@ -14,6 +14,25 @@ interface CelestialBodyProps {
   layer: number;
 }
 
+function BodyModel({ url, scale }: { url: string, scale: number }) {
+  const { scene } = useGLTF(url);
+  const clone = useMemo(() => {
+    const c = scene.clone();
+    c.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        // Optional: Apply color if model doesn't have texture?
+        // For now, keep model's own materials.
+      }
+    });
+    return c;
+  }, [scene]);
+  
+  return <primitive object={clone} scale={[scale, scale, scale]} />;
+}
+
 export function CelestialBody({ 
   data, 
   visualBody, 
@@ -22,10 +41,12 @@ export function CelestialBody({
   onClick,
   layer
 }: CelestialBodyProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   
   // Load texture if available (useTexture hook with Suspense)
-  const texture = data.texture ? useTexture(data.texture) : null;
+  // Only load texture if we are NOT using a model (or if model needs it, but usually model has its own)
+  const shouldLoadTexture = !data.shape || data.shape === 'sphere';
+  const texture = (data.texture && shouldLoadTexture) ? useTexture(data.texture) : null;
   
   // Set color space for texture
   useMemo(() => {
@@ -40,13 +61,11 @@ export function CelestialBody({
     }
   }, [texture]);
   
-
-  
   // Update position and rotation every frame from physics simulation
   useFrame(() => {
-    if (meshRef.current) {
+    if (groupRef.current) {
       // Update position from physics simulation
-      meshRef.current.position.copy(visualBody.mesh.position);
+      groupRef.current.position.copy(visualBody.mesh.position);
       
       // Update rotation
       // 1. Get base orientation (Pole alignment)
@@ -60,7 +79,7 @@ export function CelestialBody({
       const spinQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spinAngle);
       
       // Combine: Base * Spin
-      meshRef.current.quaternion.copy(baseQ.multiply(spinQ));
+      groupRef.current.quaternion.copy(baseQ.multiply(spinQ));
     }
   });
 
@@ -86,8 +105,10 @@ export function CelestialBody({
     return r;
   }, [visualBody.baseRadius, visualScale, useVisualScale, data.type]);
   
-  // Material
+  // Material for sphere
   const material = useMemo(() => {
+    if (!shouldLoadTexture) return null;
+    
     if (data.type === 'star') {
       return (
         <meshBasicMaterial 
@@ -101,10 +122,11 @@ export function CelestialBody({
           map={texture} 
           roughness={1.0} 
           metalness={0.0}
+          color={!texture ? data.color : 0xffffff}
         />
       );
     }
-  }, [data.type, texture]);
+  }, [data.type, texture, shouldLoadTexture, data.color]);
   
   // Axial tilt rotation - REMOVED in favor of Pole Vector Quaternion
   // const rotationX = useMemo(() => {
@@ -113,41 +135,48 @@ export function CelestialBody({
   
   // Apply layer
   useMemo(() => {
-    if (meshRef.current) {
-      meshRef.current.layers.set(layer);
-      meshRef.current.traverse((child) => {
+    if (groupRef.current) {
+      groupRef.current.layers.set(layer);
+      groupRef.current.traverse((child) => {
         child.layers.set(layer);
       });
     }
   }, [layer]);
 
   return (
-    <mesh 
-      ref={meshRef}
-      scale={[scale, scale, scale]}
-      // rotation-x={rotationX} // Controlled by Quaternion now
+    <group 
+      ref={groupRef}
       onClick={onClick}
       userData={{ parentBody: visualBody.body }}
-      castShadow={data.type !== 'star'}
-      receiveShadow={data.type !== 'star'}
     >
-      <sphereGeometry args={[1, 64, 64]} />
-      {material}
+      {data.shape === 'model' && data.modelPath ? (
+        <BodyModel 
+          url={data.modelPath} 
+          scale={scale * (data.modelScale || 1)} 
+        />
+      ) : (
+        <mesh 
+          scale={[scale, scale, scale]}
+          castShadow={data.type !== 'star'}
+          receiveShadow={data.type !== 'star'}
+        >
+          <sphereGeometry args={[1, 64, 64]} />
+          {material}
+        </mesh>
+      )}
       
-
-      
-      {/* Atmosphere for Earth, Venus, Mars */}
-      {['Earth', 'Venus', 'Mars'].includes(data.name) && (
+      {/* Atmosphere for Earth, Venus, Mars (Only if sphere) */}
+      {shouldLoadTexture && ['Earth', 'Venus', 'Mars'].includes(data.name) && (
         <Atmosphere 
-          radius={1} 
+          radius={scale} 
           color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
           density={data.name === 'Venus' ? 2.0 : 1.0}
         />
       )}
 
-      {/* Rings for Saturn - using color only since texture URL is dead */}
+      {/* Rings for Saturn */}
       {data.hasRings && (
-        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow>
+        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow scale={[scale, scale, scale]}>
           <ringGeometry args={[1.4, 2.4, 128]} />
           <meshStandardMaterial
             color={data.ringColor}
@@ -159,6 +188,6 @@ export function CelestialBody({
           />
         </mesh>
       )}
-    </mesh>
+    </group>
   );
 }
