@@ -66,6 +66,16 @@ export const getTextureSelection = async (bodyName: string) => {
   return db.get('selections', bodyName);
 };
 
+export const deleteTexture = async (name: string) => {
+  const db = await initDB();
+  await db.delete('textures', name);
+};
+
+export const deleteTextureSelection = async (bodyName: string) => {
+  const db = await initDB();
+  await db.delete('selections', bodyName);
+};
+
 export const getAllTextureSelections = async () => {
   const db = await initDB();
   return db.getAll('selections');

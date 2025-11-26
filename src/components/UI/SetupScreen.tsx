@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
 import { fetchBodyData } from '../../services/jplHorizons';
-import { saveTexture, saveTextureSelection, getAllTextures, getAllTextureSelections } from '../../services/textureStorage';
+import { saveTexture, saveTextureSelection, getAllTextures, getAllTextureSelections, deleteTexture, deleteTextureSelection } from '../../services/textureStorage';
 import type { CelestialBodyData } from '../../types';
 import './SetupScreen.css';
 
@@ -130,6 +130,31 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
       ...prev,
       [selectedBody.name]: textureId
     }));
+  };
+
+  const handleTextureDelete = async (textureName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedBody) return;
+
+    if (confirm('Are you sure you want to delete this texture?')) {
+      try {
+        await deleteTexture(textureName);
+        
+        // If the deleted texture was selected, revert to default
+        if (textureSelections[selectedBody.name] === textureName) {
+          await deleteTextureSelection(selectedBody.name);
+          setTextureSelections(prev => {
+            const next = { ...prev };
+            delete next[selectedBody.name];
+            return next;
+          });
+        }
+        
+        await loadStoredTextures();
+      } catch (err) {
+        console.error("Failed to delete texture", err);
+      }
+    }
   };
 
   const getBodyTexture = (bodyName: string) => {
@@ -312,6 +337,13 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
                         {textureSelections[selectedBody.name] === texture.name && (
                           <div className="check-badge">✓</div>
                         )}
+                        <button 
+                          className="delete-btn"
+                          onClick={(e) => handleTextureDelete(texture.name, e)}
+                          title="Delete Texture"
+                        >
+                          ✕
+                        </button>
                       </div>
                     );
                   })}
@@ -334,6 +366,52 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
                   onChange={handleTextureUpload}
                   style={{ display: 'none' }}
                 />
+              </div>
+
+              {/* Body Characteristics */}
+              <div className="section-card">
+                <h3 className="section-title">
+                  <span className="accent-bar"></span>
+                  Body Characteristics
+                </h3>
+                <div className="stats-grid">
+                  <div className="stat-row">
+                    <span className="stat-label">Mass</span>
+                    <span className="stat-value">
+                      {(fetchedData.find(d => d.name === selectedBody.name)?.mass || selectedBody.mass).toExponential(2)} kg
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Radius</span>
+                    <span className="stat-value">
+                      {((fetchedData.find(d => d.name === selectedBody.name)?.radius || selectedBody.radius) / 1000).toLocaleString()} km
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Rotation Period</span>
+                    <span className="stat-value">
+                      {(fetchedData.find(d => d.name === selectedBody.name)?.rotationPeriod || selectedBody.rotationPeriod).toFixed(2)} h
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Axial Tilt</span>
+                    <span className="stat-value">
+                      {(fetchedData.find(d => d.name === selectedBody.name)?.axialTilt || selectedBody.axialTilt).toFixed(2)}°
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Mean Temp</span>
+                    <span className="stat-value">
+                      {fetchedData.find(d => d.name === selectedBody.name)?.meanTemperature || selectedBody.meanTemperature || 'N/A'} K
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Surface Gravity</span>
+                    <span className="stat-value">
+                      {(fetchedData.find(d => d.name === selectedBody.name)?.surfaceGravity || selectedBody.surfaceGravity || 0).toFixed(2)} m/s²
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Stats Preview (Optional) */}

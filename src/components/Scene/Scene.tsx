@@ -131,8 +131,15 @@ export function Scene({
         
         {/* Render all celestial bodies */}
         {visualBodies.map((vb, index) => {
-          const data = SOLAR_SYSTEM_DATA.find(d => d.name === vb.body.name);
-          if (!data) return null;
+          const staticData = SOLAR_SYSTEM_DATA.find(d => d.name === vb.body.name);
+          if (!staticData) return null;
+          
+          // Use the texture from the visual body (which comes from SetupScreen) 
+          // instead of the static data
+          const data = {
+            ...staticData,
+            texture: vb.textureUrl || staticData.texture
+          };
           
           // Determine if this body should be in the "High Quality" layer (Layer 1)
           // It should be in Layer 1 if:
