@@ -75,7 +75,7 @@ export function Lights({ visualBodies, focusedObject, visualScale }: LightsProps
         <group key={star.body.name} position={star.mesh.position}>
           {/* 1. Global Fill Light (Point) - Layer 0 Only (Non-focused objects) */}
           <pointLight 
-            intensity={2.0} // Much brighter to combat decay
+            intensity={25000} // Physically accurate intensity for 1 AU distance with decay=2
             distance={0} 
             decay={2} // Inverse Square Law
             layers={0} 

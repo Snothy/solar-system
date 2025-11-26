@@ -21,11 +21,21 @@ interface SceneProps {
   updatePhysics: () => void;
   focusedObject: PhysicsBody | null;
   orbitVisibility: Record<string, boolean>;
+  setObserverPosition: (x: number, y: number, z: number) => void;
 }
 
 // Component that calls updatePhysics on every frame
-function PhysicsUpdater({ updatePhysics }: { updatePhysics: () => void }) {
+function PhysicsUpdater({ 
+  updatePhysics, 
+  setObserverPosition 
+}: { 
+  updatePhysics: () => void;
+  setObserverPosition: (x: number, y: number, z: number) => void;
+}) {
+  const { camera } = useThree();
+  
   useFrame(() => {
+    setObserverPosition(camera.position.x, camera.position.y, camera.position.z);
     updatePhysics();
   });
   return null;
@@ -69,6 +79,7 @@ export function Scene({
   onParticleComplete,
   controlsRef,
   updatePhysics,
+  setObserverPosition,
   focusedObject,
   orbitVisibility
 }: SceneProps) {
@@ -104,7 +115,10 @@ export function Scene({
         />
         
         {/* Physics update loop */}
-        <PhysicsUpdater updatePhysics={updatePhysics} />
+        <PhysicsUpdater 
+          updatePhysics={updatePhysics} 
+          setObserverPosition={setObserverPosition}
+        />
         
         {/* Camera follow system */}
         <CameraFollower

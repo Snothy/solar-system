@@ -37,6 +37,9 @@ export function App() {
     orbitVisibility,
     toggleOrbitVisibility,
     setAllOrbitVisibility,
+    setObserverPosition,
+    useLightTimeDelay,
+    setUseLightTimeDelay,
     isLoading
   } = useSimulation();
 
@@ -77,6 +80,7 @@ export function App() {
         onParticleComplete={removeParticle}
         controlsRef={controlsRef}
         updatePhysics={updatePhysics}
+        setObserverPosition={setObserverPosition}
         focusedObject={focusedObject}
         orbitVisibility={orbitVisibility}
       />
@@ -91,6 +95,21 @@ export function App() {
           onVisualScaleChange={setVisualScale}
           onUseVisualScaleChange={setUseVisualScale}
         />
+
+        <div className="p-4 border-b border-white/10">
+          <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">
+            Physics
+          </h3>
+          <label className="flex items-center space-x-2 text-sm text-gray-300 cursor-pointer hover:text-white transition-colors">
+            <input
+              type="checkbox"
+              checked={useLightTimeDelay}
+              onChange={(e) => setUseLightTimeDelay(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-800"
+            />
+            <span>Light Time Delay</span>
+          </label>
+        </div>
 
         <TimeControls
           timeStep={timeStep}

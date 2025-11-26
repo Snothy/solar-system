@@ -217,12 +217,18 @@ export function useSimulation() {
     setParticles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const observerPos = useRef(new THREE.Vector3(0, 0, 500)); // Default camera pos
+  const [useLightTimeDelay, setUseLightTimeDelay] = useState(true);
+
+  const setObserverPosition = (x: number, y: number, z: number) => {
+    observerPos.current.set(x, y, z);
+  };
+
   const updatePhysics = () => {
     const dt = (!isPaused && timeStep > 0) ? (timeStep / 60) : 0;
 
     if (dt > 0) {
       // Update physics with sub-stepping for stability
-      // Max step size of 600s (10 mins) ensures Phobos (period ~7.6h) remains stable
       const MAX_SUB_STEP = 600;
       let remainingDt = dt;
 
@@ -269,31 +275,28 @@ export function useSimulation() {
         );
 
         // Light Time Delay Correction
-        // We see the object where it WAS when light left it.
-        // t_delay = distance / c
-        // pos_visual = pos_current - vel_current * t_delay (First order approximation)
-        // For higher accuracy, we iterate, but 1st order is good for visual.
-        
-        // We need the observer position. Let's assume observer is at (0,0,0) or the Camera.
-        // But in this "God View", we usually want to see the "True" state.
-        // However, the user asked for "Physically Accurate" which implies what we would SEE.
-        // But for a simulation, "True" state is often preferred.
-        // Let's add a toggle or just apply it if we are simulating "Earth View".
-        // Actually, for a God-view simulation, showing "True" positions is standard.
-        // Showing "Retarded" positions is only for an observer on Earth.
-        // Let's stick to True positions for the main view to avoid confusion, 
-        // UNLESS the user specifically asked for "Light Time Delay" which I suggested.
-        // I suggested it. So I should implement it.
-        // Let's calculate it relative to the Camera? No, that's too dynamic.
-        // Let's calculate it relative to Earth (if we are simulating Earth-based observation).
-        // Or just keep True positions because "1:1 simulation" usually means "Simulate the System", not "Simulate a Telescope".
-        // Re-reading: "1:1 simulation of the solar system that is accurate to real life".
-        // Real life is the True State. Light delay is an observational artifact.
-        // I will SKIP Light Time Delay for the global view to avoid making planets look "wrong" relative to each other in a God view.
-        // But I will keep the code ready if needed.
-        
-        // Instead, let's ensure the Sun is rendered correctly at the barycenter.
-        // The visualPos is already correct (relative to SSB).
+        if (useLightTimeDelay) {
+          // Calculate distance from observer to the object's TRUE position
+          // Note: observerPos is in Scene Coordinates (scaled)
+          // visualPos is also in Scene Coordinates (scaled)
+          const dist = observerPos.current.distanceTo(visualPos);
+          
+          // Convert distance to meters for time calculation
+          const distMeters = dist / SCALE;
+          
+          // Speed of light in m/s
+          const C = 299792458;
+          
+          // Time delay in seconds
+          const delay = distMeters / C;
+          
+          // Backtrack position: pos_visual = pos_true - vel * delay
+          // vel is in m/s, need to convert to SceneUnits/s?
+          // body.vel is m/s.
+          // visualPos change = vel * delay * SCALE
+          const correction = vb.body.vel.clone().multiplyScalar(delay * SCALE).negate();
+          visualPos.add(correction);
+        }
 
         // Moon visibility fix
         if (useVisualScale && vb.body.parentName) {
@@ -304,6 +307,23 @@ export function useSimulation() {
               parentVb.body.pos.y * SCALE,
               parentVb.body.pos.z * SCALE
             );
+            
+            // Apply LTD to parent pos as well for consistent relative check?
+            // If we delay the moon, we should delay the parent too.
+            // But parentVb.mesh.position is ALREADY updated in this loop?
+            // No, forEach order matters. If parent is processed before child, mesh.position is updated.
+            // If after, it's old.
+            // Ideally we should use the calculated visualPos of the parent.
+            // But for this "pop-out" fix, using the mesh position is "okay" but might jitter.
+            // Let's re-calculate parent visual pos with LTD for this check to be safe.
+            
+            if (useLightTimeDelay) {
+               const pDist = observerPos.current.distanceTo(parentPos);
+               const pDelay = (pDist / SCALE) / 299792458;
+               const pCorrection = parentVb.body.vel.clone().multiplyScalar(pDelay * SCALE).negate();
+               parentPos.add(pCorrection);
+            }
+
             const parentRadius = parentVb.baseRadius * visualScale;
             const childRadius = vb.baseRadius * visualScale;
 
@@ -444,6 +464,7 @@ export function useSimulation() {
     selectedObject,
     focusedObject,
     orbitVisibility,
+    useLightTimeDelay,
     setTimeStep,
     setIsPaused,
     setVisualScale,
@@ -455,6 +476,8 @@ export function useSimulation() {
     updateBody,
     toggleOrbitVisibility,
     setAllOrbitVisibility,
+    setObserverPosition,
+    setUseLightTimeDelay,
     isLoading
   };
 }
