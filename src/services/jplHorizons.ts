@@ -13,6 +13,7 @@ export interface JPLData {
   vel: THREE.Vector3;
   mass?: number;
   radius?: number;
+  radii?: { x: number; y: number; z: number };
   rotationPeriod?: number;
   meanTemperature?: number;
   axialTilt?: number;
@@ -142,12 +143,38 @@ export async function fetchBodyData(id: string, date: Date = new Date()): Promis
       result.mass = base * Math.pow(10, exponent);
     }
 
-    // 2. Radius
-    // Pattern: "Vol. Mean Radius (km) = 6371.01" or "Mean Radius (km) = ..."
-    const radiusMatch = headerText.match(/(?:Vol\.\s*)?Mean\s*Radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-    if (radiusMatch) {
-      // Convert km to meters
-      result.radius = parseFloat(radiusMatch[1].replace('~', '')) * 1000;
+    // 2. Radius and Radii
+    // Try to find tri-axial dimensions first
+    // Pattern: "Dimensions (km) = 13.0 x 11.4 x 9.1" (Phobos style)
+    const dimMatch = headerText.match(/Dimensions\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)\s*x\s*([~]?\d+(?:\.\d+)?)\s*x\s*([~]?\d+(?:\.\d+)?)/i);
+    if (dimMatch) {
+      const x = parseFloat(dimMatch[1].replace('~', '')) * 1000;
+      const y = parseFloat(dimMatch[2].replace('~', '')) * 1000;
+      const z = parseFloat(dimMatch[3].replace('~', '')) * 1000;
+      result.radii = { x, y, z };
+      result.radius = Math.max(x, y, z); // Use max dimension as bounding radius
+    } else {
+      // Try Equatorial/Polar radii
+      // Pattern: "Equatorial radius (km) = 6378.137"
+      // Pattern: "Polar radius (km) = 6356.752"
+      const eqRadiusMatch = headerText.match(/Equatorial\s*radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
+      const polRadiusMatch = headerText.match(/Polar\s*radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
+      
+      if (eqRadiusMatch && polRadiusMatch) {
+        const eqR = parseFloat(eqRadiusMatch[1].replace('~', '')) * 1000;
+        const polR = parseFloat(polRadiusMatch[1].replace('~', '')) * 1000;
+        result.radii = { x: eqR, y: polR, z: eqR }; // y is polar axis in our local space before rotation
+        result.radius = eqR;
+      } else {
+        // Fallback to Mean Radius
+        // Pattern: "Vol. Mean Radius (km) = 6371.01" or "Mean Radius (km) = ..."
+        const radiusMatch = headerText.match(/(?:Vol\.\s*)?Mean\s*Radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
+        if (radiusMatch) {
+          // Convert km to meters
+          result.radius = parseFloat(radiusMatch[1].replace('~', '')) * 1000;
+          result.radii = { x: result.radius, y: result.radius, z: result.radius };
+        }
+      }
     }
 
     // 3. Rotation Period

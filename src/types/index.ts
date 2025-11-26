@@ -14,6 +14,7 @@ export interface CelestialBodyData {
   name: string;
   mass?: number;
   radius?: number;
+  radii?: { x: number; y: number; z: number }; // Tri-axial radii for irregular bodies
   color: number;
   emissive?: number; // For stars
   texture?: string;

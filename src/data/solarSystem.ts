@@ -17,7 +17,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "10",
     J2: 2.2e-7,
     poleRA: 286.13,
-    poleDec: 63.87
+    poleDec: 63.87,
+    radii: { x: 695700e3, y: 695700e3, z: 695700e3 }
   },
   {
     name: "Mercury",
@@ -33,7 +34,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 6.0e-5,
     poleRA: 281.01,
-    poleDec: 61.45
+    poleDec: 61.45,
+    radii: { x: 2439.7e3, y: 2439.7e3, z: 2439.7e3 }
   },
   {
     name: "Venus",
@@ -49,7 +51,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 4.4e-6,
     poleRA: 272.76,
-    poleDec: 67.16
+    poleDec: 67.16,
+    radii: { x: 6051.8e3, y: 6051.8e3, z: 6051.8e3 }
   },
   {
     name: "Earth",
@@ -65,7 +68,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 1.08263e-3,
     poleRA: 0.0,      // Earth's pole precesses, but J2000 is approx 0, 90
-    poleDec: 90.0
+    poleDec: 90.0,
+    radii: { x: 6378.1e3, y: 6356.8e3, z: 6378.1e3 }
   },
   {
     name: "Moon",
@@ -84,7 +88,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J2: 2.027e-4,
     poleRA: 266.86,
-    poleDec: 65.64
+    poleDec: 65.64,
+    radii: { x: 1738.1e3, y: 1736.0e3, z: 1738.1e3 }
   },
   {
     name: "Mars",
@@ -100,12 +105,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 1.96045e-3,
     poleRA: 317.68,
-    poleDec: 52.89
+    poleDec: 52.89,
+    radii: { x: 3396.2e3, y: 3376.2e3, z: 3396.2e3 }
   },
   {
     name: "Phobos",
     mass: 1.0659e16,
     radius: 11.26e3,
+    radii: { x: 13000, y: 11400, z: 9100 },
     color: 0x888888,
     texture: "/Phobos.png",
     parent: "Mars",
@@ -123,6 +130,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     name: "Deimos",
     mass: 1.4762e15,
     radius: 6.2e3,
+    radii: { x: 8050, y: 5900, z: 5100 },
     color: 0x777777,
     texture: "/Deimos.png",
     parent: "Mars",
@@ -149,7 +157,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 1.4736e-2,
     poleRA: 268.05,
-    poleDec: 64.49
+    poleDec: 64.49,
+    radii: { x: 71492e3, y: 66854e3, z: 71492e3 }
   },
   {
     name: "Io",
@@ -166,7 +175,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J2: 1.863e-3,
     poleRA: 268.05,
-    poleDec: 64.50
+    poleDec: 64.50,
+    radii: { x: 1830.0e3, y: 1815.3e3, z: 1830.0e3 }
   },
   {
     name: "Europa",
@@ -183,7 +193,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J2: 4.355e-4,
     poleRA: 268.08,
-    poleDec: 64.51
+    poleDec: 64.51,
+    radii: { x: 1560.8e3, y: 1560.8e3, z: 1560.8e3 }
   },
   {
     name: "Ganymede",
@@ -200,7 +211,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J2: 1.27e-4,
     poleRA: 268.20,
-    poleDec: 64.57
+    poleDec: 64.57,
+    radii: { x: 2634.1e3, y: 2634.1e3, z: 2634.1e3 }
   },
   {
     name: "Callisto",
@@ -217,7 +229,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J2: 3.27e-5,
     poleRA: 268.72,
-    poleDec: 64.83
+    poleDec: 64.83,
+    radii: { x: 2410.3e3, y: 2410.3e3, z: 2410.3e3 }
   },
   {
     name: "Saturn",
@@ -235,7 +248,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 1.6298e-2,
     poleRA: 40.58,
-    poleDec: 83.54
+    poleDec: 83.54,
+    radii: { x: 60268e3, y: 54364e3, z: 60268e3 }
   },
   {
     name: "Titan",
@@ -252,7 +266,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J2: 3.17e-5,
     poleRA: 36.41,
-    poleDec: 83.94
+    poleDec: 83.94,
+    radii: { x: 2574.9e3, y: 2574.3e3, z: 2574.9e3 }
   },
   {
     name: "Enceladus",
@@ -268,7 +283,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "602",
     type: "moon",
     poleRA: 40.66,
-    poleDec: 83.52
+    poleDec: 83.52,
+    radii: { x: 256.5e3, y: 248.5e3, z: 256.5e3 }
   },
   {
     name: "Uranus",
@@ -284,7 +300,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 3.34343e-3,
     poleRA: 257.31,
-    poleDec: -15.17
+    poleDec: -15.17,
+    radii: { x: 25559e3, y: 24973e3, z: 25559e3 }
   },
   {
     name: "Titania",
@@ -300,7 +317,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "703",
     type: "moon",
     poleRA: 257.43,
-    poleDec: -15.10
+    poleDec: -15.10,
+    radii: { x: 788.4e3, y: 788.4e3, z: 788.4e3 }
   },
   {
     name: "Oberon",
@@ -316,7 +334,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "704",
     type: "moon",
     poleRA: 257.43,
-    poleDec: -15.10
+    poleDec: -15.10,
+    radii: { x: 761.4e3, y: 761.4e3, z: 761.4e3 }
   },
   {
     name: "Neptune",
@@ -332,7 +351,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J2: 3.411e-3,
     poleRA: 299.3,
-    poleDec: 42.95
+    poleDec: 42.95,
+    radii: { x: 24764e3, y: 24341e3, z: 24764e3 }
   },
   {
     name: "Triton",
@@ -348,7 +368,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "801",
     type: "moon",
     poleRA: 299.36,
-    poleDec: 41.17
+    poleDec: 41.17,
+    radii: { x: 1353.4e3, y: 1353.4e3, z: 1353.4e3 }
   },
   ...EXTENDED_BODIES
 ];

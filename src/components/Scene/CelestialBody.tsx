@@ -4,6 +4,7 @@ import { useTexture, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Atmosphere } from './Atmosphere';
 import type { CelestialBodyData, VisualBody } from '../../types';
+import { SCALE } from '../../utils/constants';
 
 interface CelestialBodyProps {
   data: CelestialBodyData;
@@ -88,22 +89,31 @@ export function CelestialBody({
   // The previous useMemo for initial orientation is removed/replaced by the above.
   
   // Calculate scale
-  const scale = useMemo(() => {
+  const scaleVec = useMemo(() => {
+    if (data.radii) {
+      const s = SCALE * (useVisualScale ? visualScale : 1);
+      // Tri-axial scaling: x, z, y because Three.js Y is up (polar axis), 
+      // but usually radii are given as a, b, c. 
+      // In solarSystem.ts we defined x, y, z.
+      // Let's assume x, y, z map to local x, y, z of the sphere.
+      // Note: We rotate the sphere to align the pole to Y.
+      // So 'y' radius should be the polar radius (c).
+      // 'x' and 'z' are equatorial radii (a, b).
+      // Our data has x, y, z. Let's map them directly.
+      return [data.radii.x * s, data.radii.y * s, data.radii.z * s] as [number, number, number];
+    }
+
     let r = visualBody.baseRadius;
     // Apply visual scale uniformly to all bodies, but cap the Sun's scale
-    // The Sun is huge, so if we scale it up by the same factor as planets, it eats the inner solar system
     if (useVisualScale) {
       if (data.type === 'star') {
-        // Scale sun much less than planets - maybe 1/10th of the visual scale or a fixed cap
-        // visualScale is typically around 1000-3000 for planets to be visible
-        // Let's try a much smaller multiplier for the sun
         r = r * (1 + (visualScale - 1) * 0.05);
       } else {
         r = r * visualScale;
       }
     }
-    return r;
-  }, [visualBody.baseRadius, visualScale, useVisualScale, data.type]);
+    return [r, r, r] as [number, number, number];
+  }, [visualBody.baseRadius, visualScale, useVisualScale, data.type, data.radii]);
   
   // Material for sphere
   const material = useMemo(() => {
@@ -152,11 +162,11 @@ export function CelestialBody({
       {data.shape === 'model' && data.modelPath ? (
         <BodyModel 
           url={data.modelPath} 
-          scale={scale * (data.modelScale || 1)} 
+          scale={scaleVec[0] * (data.modelScale || 1)} 
         />
       ) : (
         <mesh 
-          scale={[scale, scale, scale]}
+          scale={scaleVec}
           castShadow={data.type !== 'star'}
           receiveShadow={data.type !== 'star'}
         >
@@ -168,7 +178,7 @@ export function CelestialBody({
       {/* Atmosphere for Earth, Venus, Mars (Only if sphere) */}
       {shouldLoadTexture && ['Earth', 'Venus', 'Mars'].includes(data.name) && (
         <Atmosphere 
-          radius={scale} 
+          radius={scaleVec[0]}  
           color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
           density={data.name === 'Venus' ? 2.0 : 1.0}
         />
@@ -176,7 +186,7 @@ export function CelestialBody({
 
       {/* Rings for Saturn */}
       {data.hasRings && (
-        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow scale={[scale, scale, scale]}>
+        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow scale={scaleVec}>
           <ringGeometry args={[1.4, 2.4, 128]} />
           <meshStandardMaterial
             color={data.ringColor}
