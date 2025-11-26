@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
-import { fetchBodyData } from '../../services/jplHorizons';
+import { fetchMultipleBodies } from '../../services/jplHorizons';
 import { saveTexture, saveTextureSelection, getAllTextures, getAllTextureSelections, deleteTexture, deleteTextureSelection } from '../../services/textureStorage';
 import type { CelestialBodyData } from '../../types';
 import './SetupScreen.css';
@@ -60,9 +60,7 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
   const startFetching = async () => {
     setIsFetching(true);
     const bodiesToFetch = SOLAR_SYSTEM_DATA.filter(d => d.jplId);
-    const results: any[] = [];
-    let completed = 0;
-
+    
     const updateStatus = (name: string, status: FetchStatus['status'], error?: string) => {
       setFetchStatuses(prev => ({
         ...prev,
@@ -70,13 +68,29 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
       }));
     };
 
-    for (const body of bodiesToFetch) {
+    // Initialize statuses
+    bodiesToFetch.forEach(body => {
       updateStatus(body.name, 'loading');
-      
-      try {
-        const jplData = await fetchBodyData(body.jplId!);
-        
-        const mergedData = {
+    });
+
+    const jplIds = bodiesToFetch.map(b => b.jplId!);
+    
+    try {
+      const resultsMap = await fetchMultipleBodies(jplIds, new Date(), (id, status) => {
+        const bodyName = bodiesToFetch.find(b => b.jplId === id)?.name;
+        if (bodyName) {
+          updateStatus(bodyName, status);
+        }
+      });
+
+      const finalResults = bodiesToFetch.map(body => {
+        const jplData = resultsMap[body.jplId!];
+        if (!jplData) {
+          updateStatus(body.name, 'error', 'Failed to fetch');
+          return null;
+        }
+
+        return {
           ...body,
           pos: jplData.pos,
           vel: jplData.vel,
@@ -87,20 +101,14 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
           axialTilt: jplData.axialTilt || body.axialTilt || 0,
           surfaceGravity: jplData.surfaceGravity || body.surfaceGravity || 0
         };
-        
-        results.push(mergedData);
-        updateStatus(body.name, 'complete');
-      } catch (e) {
-        console.warn(`Failed to fetch ${body.name}`, e);
-        updateStatus(body.name, 'error', 'Failed to fetch');
-      }
-      
-      completed++;
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+      }).filter(Boolean);
 
-    setFetchedData(results);
-    setIsFetching(false);
+      setFetchedData(finalResults);
+    } catch (e) {
+      console.error("Bulk fetch failed", e);
+    } finally {
+      setIsFetching(false);
+    }
   };
 
   const handleTextureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
