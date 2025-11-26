@@ -6,5 +6,5 @@ interface OrbitalTrailProps {
 }
 
 export function OrbitalTrail({ trail, visible }: OrbitalTrailProps) {
-  return <primitive object={trail} visible={visible} />;
+  return <primitive object={trail} visible={visible} frustumCulled={false} />;
 }

@@ -13,7 +13,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 7.25,
     meanTemperature: 5778, // Surface temperature K
     surfaceGravity: 274,
-    jplId: "10"
+    jplId: "10",
+    J2: 2.2e-7,
+    poleRA: 286.13,
+    poleDec: 63.87
   },
   {
     name: "Mercury",
@@ -25,7 +28,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0.03,
     meanTemperature: 440, // K
     surfaceGravity: 3.7,
-    jplId: "199"
+    jplId: "199",
+    J2: 6.0e-5,
+    poleRA: 281.01,
+    poleDec: 61.45
   },
   {
     name: "Venus",
@@ -37,7 +43,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 177.3,
     meanTemperature: 737, // K
     surfaceGravity: 8.87,
-    jplId: "299"
+    jplId: "299",
+    J2: 4.4e-6,
+    poleRA: 272.76,
+    poleDec: 67.16
   },
   {
     name: "Earth",
@@ -49,7 +58,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 23.44,
     meanTemperature: 288, // K
     surfaceGravity: 9.8,
-    jplId: "399"
+    jplId: "399",
+    J2: 1.08263e-3,
+    poleRA: 0.0,      // Earth's pole precesses, but J2000 is approx 0, 90
+    poleDec: 90.0
   },
   {
     name: "Moon",
@@ -60,11 +72,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     parent: "Earth",
     rel_a: 384400e3,
     rel_v: 1022,
-    rotationPeriod: 655.7,
+    rotationPeriod: 655.72, // 27.321661 days
     axialTilt: 6.68,
     meanTemperature: 220, // K
     surfaceGravity: 1.62,
-    jplId: "301"
+    jplId: "301",
+    J2: 2.027e-4,
+    poleRA: 266.86,
+    poleDec: 65.64
   },
   {
     name: "Mars",
@@ -76,7 +91,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 25.19,
     meanTemperature: 210, // K
     surfaceGravity: 3.72,
-    jplId: "499"
+    jplId: "499",
+    J2: 1.96045e-3,
+    poleRA: 317.68,
+    poleDec: 52.89
   },
   {
     name: "Phobos",
@@ -89,7 +107,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 233,
     surfaceGravity: 0.0057,
-    jplId: "401"
+    jplId: "401",
+    J2: 0.105,
+    poleRA: 317.68,
+    poleDec: 52.90
   },
   {
     name: "Deimos",
@@ -102,7 +123,9 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 233,
     surfaceGravity: 0.003,
-    jplId: "402"
+    jplId: "402",
+    poleRA: 316.65,
+    poleDec: 53.52
   },
   {
     name: "Jupiter",
@@ -114,7 +137,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 3.13,
     meanTemperature: 165, // K
     surfaceGravity: 24.79,
-    jplId: "599"
+    jplId: "599",
+    J2: 1.4736e-2,
+    poleRA: 268.05,
+    poleDec: 64.49
   },
   {
     name: "Io",
@@ -127,7 +153,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 110,
     surfaceGravity: 1.796,
-    jplId: "501"
+    jplId: "501",
+    J2: 1.863e-3,
+    poleRA: 268.05,
+    poleDec: 64.50
   },
   {
     name: "Europa",
@@ -140,7 +169,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0.1,
     meanTemperature: 102,
     surfaceGravity: 1.314,
-    jplId: "502"
+    jplId: "502",
+    J2: 4.355e-4,
+    poleRA: 268.08,
+    poleDec: 64.51
   },
   {
     name: "Ganymede",
@@ -153,7 +185,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0.33,
     meanTemperature: 110,
     surfaceGravity: 1.428,
-    jplId: "503"
+    jplId: "503",
+    J2: 1.27e-4,
+    poleRA: 268.20,
+    poleDec: 64.57
   },
   {
     name: "Callisto",
@@ -166,7 +201,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 134,
     surfaceGravity: 1.235,
-    jplId: "504"
+    jplId: "504",
+    J2: 3.27e-5,
+    poleRA: 268.72,
+    poleDec: 64.83
   },
   {
     name: "Saturn",
@@ -180,7 +218,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 26.73,
     meanTemperature: 134, // K
     surfaceGravity: 10.44,
-    jplId: "699"
+    jplId: "699",
+    J2: 1.6298e-2,
+    poleRA: 40.58,
+    poleDec: 83.54
   },
   {
     name: "Titan",
@@ -193,7 +234,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 94,
     surfaceGravity: 1.352,
-    jplId: "606"
+    jplId: "606",
+    J2: 3.17e-5,
+    poleRA: 36.41,
+    poleDec: 83.94
   },
   {
     name: "Enceladus",
@@ -206,7 +250,9 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 75,
     surfaceGravity: 0.113,
-    jplId: "602"
+    jplId: "602",
+    poleRA: 40.66,
+    poleDec: 83.52
   },
   {
     name: "Uranus",
@@ -218,7 +264,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 97.77,
     meanTemperature: 76, // K
     surfaceGravity: 8.69,
-    jplId: "799"
+    jplId: "799",
+    J2: 3.34343e-3,
+    poleRA: 257.31,
+    poleDec: -15.17
   },
   {
     name: "Titania",
@@ -231,7 +280,9 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 60,
     surfaceGravity: 0.379,
-    jplId: "703"
+    jplId: "703",
+    poleRA: 257.43,
+    poleDec: -15.10
   },
   {
     name: "Oberon",
@@ -244,7 +295,9 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 61,
     surfaceGravity: 0.346,
-    jplId: "704"
+    jplId: "704",
+    poleRA: 257.43,
+    poleDec: -15.10
   },
   {
     name: "Neptune",
@@ -256,7 +309,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 28.32,
     meanTemperature: 55, // K
     surfaceGravity: 11.15,
-    jplId: "899"
+    jplId: "899",
+    J2: 3.411e-3,
+    poleRA: 299.3,
+    poleDec: 42.95
   },
   {
     name: "Triton",
@@ -269,6 +325,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 38,
     surfaceGravity: 0.779,
-    jplId: "801"
+    jplId: "801",
+    poleRA: 299.36,
+    poleDec: 41.17
   }
 ];

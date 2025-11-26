@@ -75,9 +75,9 @@ export function Lights({ visualBodies, focusedObject, visualScale }: LightsProps
         <group key={star.body.name} position={star.mesh.position}>
           {/* 1. Global Fill Light (Point) - Layer 0 Only (Non-focused objects) */}
           <pointLight 
-            intensity={0.8} 
+            intensity={2.0} // Much brighter to combat decay
             distance={0} 
-            decay={0}
+            decay={2} // Inverse Square Law
             layers={0} 
           />
 
@@ -85,11 +85,11 @@ export function Lights({ visualBodies, focusedObject, visualScale }: LightsProps
           {focusedObject && (
             <directionalLight
               ref={lightRef}
-              intensity={2.0}
+              intensity={3.0} // Sun is bright!
               castShadow
-              shadow-mapSize-width={4096} // 4k is plenty for a tight orthographic box
+              shadow-mapSize-width={4096} 
               shadow-mapSize-height={4096}
-              shadow-bias={-0.0001} // Standard bias usually works well for ortho
+              shadow-bias={-0.0001} 
               shadow-normalBias={0.002}
               layers={1}
             />

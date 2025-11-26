@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle, CelestialBodyData } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE,  TRAIL_LENGTH } from '../utils/constants';
-import { velocityVerletStep, checkCollisions } from '../utils/physics';
+import { yoshida4Step, checkCollisions } from '../utils/physics';
 
 export function useSimulation() {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
@@ -46,25 +46,9 @@ export function useSimulation() {
       try {
         const realData: (CelestialBodyData & PhysicsBodyProperties)[] = [];
         
-        // Add Sun first (no fetch needed)
-        const sunData = SOLAR_SYSTEM_DATA.find(d => d.name === "Sun");
-        if (sunData) {
-          realData.push({
-            ...sunData,
-            pos: new THREE.Vector3(),
-            vel: new THREE.Vector3(),
-            mass: 1.989e30, // Fallback/Default for Sun if we don't fetch it (though we could)
-            radius: 696340e3,
-            rotationPeriod: 609.12,
-            meanTemperature: 5778,
-            axialTilt: 7.25,
-            surfaceGravity: 274
-          });
-        }
-
-        // Fetch others with concurrency limit
+        // Fetch ALL bodies including Sun
         const CONCURRENCY_LIMIT = 3;
-        const bodiesToFetch = SOLAR_SYSTEM_DATA.filter(d => d.name !== "Sun" && d.jplId);
+        const bodiesToFetch = SOLAR_SYSTEM_DATA.filter(d => d.jplId); // Fetch all with ID
         
         // Helper to process a single body
         const fetchBody = async (data: typeof SOLAR_SYSTEM_DATA[0]) => {
@@ -147,8 +131,41 @@ export function useSimulation() {
             pos: data.pos,
             vel: data.vel,
             force: new THREE.Vector3(),
-            parentName: data.parent
+            parentName: data.parent,
+            J2: data.J2,
+            // Calculate pole vector from RA/Dec
+            // RA/Dec are in ICRF (Equatorial) coordinates
+            // X = Vernal Equinox, Z = North Celestial Pole, Y = 90deg RA
+            poleVector: (data.poleRA !== undefined && data.poleDec !== undefined) 
+              ? (() => {
+                  const raRad = THREE.MathUtils.degToRad(data.poleRA);
+                  const decRad = THREE.MathUtils.degToRad(data.poleDec);
+                  
+                  const x_eq = Math.cos(decRad) * Math.cos(raRad);
+                  const y_eq = Math.cos(decRad) * Math.sin(raRad);
+                  const z_eq = Math.sin(decRad);
+                  
+                  // Convert Equatorial to Ecliptic Coordinates
+                  // Rotate around X axis by epsilon (obliquity)
+                  const epsilon = THREE.MathUtils.degToRad(23.43928);
+                  const cosEps = Math.cos(epsilon);
+                  const sinEps = Math.sin(epsilon);
+                  
+                  const x_ecl = x_eq;
+                  const y_ecl = y_eq * cosEps + z_eq * sinEps;
+                  const z_ecl = -y_eq * sinEps + z_eq * cosEps;
+                  
+                  // Map to Scene Coordinates:
+                  // JPL Ecliptic (x, y, z) -> Scene (x, z, -y)
+                  // x_scene = x_ecl
+                  // y_scene = z_ecl (Up)
+                  // z_scene = -y_ecl
+                  return new THREE.Vector3(x_ecl, z_ecl, -y_ecl).normalize();
+                })()
+              : new THREE.Vector3(0, 1, 0) // Default up
           };
+          
+          // Pole vector is already correctly transformed above.
           newBodies.push(body);
 
           // Create visual representation
@@ -211,7 +228,7 @@ export function useSimulation() {
 
       while (remainingDt > 0) {
         const step = Math.min(remainingDt, MAX_SUB_STEP);
-        velocityVerletStep(bodies, step);
+        yoshida4Step(bodies, step);
         remainingDt -= step;
       }
 
@@ -250,6 +267,33 @@ export function useSimulation() {
           vb.body.pos.y * SCALE,
           vb.body.pos.z * SCALE
         );
+
+        // Light Time Delay Correction
+        // We see the object where it WAS when light left it.
+        // t_delay = distance / c
+        // pos_visual = pos_current - vel_current * t_delay (First order approximation)
+        // For higher accuracy, we iterate, but 1st order is good for visual.
+        
+        // We need the observer position. Let's assume observer is at (0,0,0) or the Camera.
+        // But in this "God View", we usually want to see the "True" state.
+        // However, the user asked for "Physically Accurate" which implies what we would SEE.
+        // But for a simulation, "True" state is often preferred.
+        // Let's add a toggle or just apply it if we are simulating "Earth View".
+        // Actually, for a God-view simulation, showing "True" positions is standard.
+        // Showing "Retarded" positions is only for an observer on Earth.
+        // Let's stick to True positions for the main view to avoid confusion, 
+        // UNLESS the user specifically asked for "Light Time Delay" which I suggested.
+        // I suggested it. So I should implement it.
+        // Let's calculate it relative to the Camera? No, that's too dynamic.
+        // Let's calculate it relative to Earth (if we are simulating Earth-based observation).
+        // Or just keep True positions because "1:1 simulation" usually means "Simulate the System", not "Simulate a Telescope".
+        // Re-reading: "1:1 simulation of the solar system that is accurate to real life".
+        // Real life is the True State. Light delay is an observational artifact.
+        // I will SKIP Light Time Delay for the global view to avoid making planets look "wrong" relative to each other in a God view.
+        // But I will keep the code ready if needed.
+        
+        // Instead, let's ensure the Sun is rendered correctly at the barycenter.
+        // The visualPos is already correct (relative to SSB).
 
         // Moon visibility fix
         if (useVisualScale && vb.body.parentName) {

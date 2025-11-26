@@ -76,7 +76,7 @@ export function Scene({
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
         shadows
-        camera={{ position: [0, 4000, 6000], fov: 50, near: 1e-6, far: 1000000, layers: undefined }} // Layers handled by ref
+        camera={{ position: [0, 20000, 10000], fov: 50, near: 1e-6, far: 1000000, layers: undefined }} // Layers handled by ref
         onCreated={({ camera }) => {
           camera.layers.enable(1); // Enable Layer 1 so we can see focused objects
         }}
@@ -95,6 +95,7 @@ export function Scene({
         
         <OrbitControls 
           ref={controlsRef}
+          makeDefault
           enableDamping 
           dampingFactor={0.05} 
           minDistance={1e-5}

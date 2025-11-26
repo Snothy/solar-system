@@ -39,23 +39,21 @@ export function useCameraFocus(
       
       // Target distance multiplier
       const targetDist = radius * 4.0;
-      const currentDist = cameraRef.current.position.distanceTo(currentPos);
       
-      // Only zoom in if we are too far away
-      if (currentDist > targetDist * 1.5) {
-        const dir = new THREE.Vector3()
-          .subVectors(cameraRef.current.position, currentPos)
-          .normalize();
-        
-        // If camera is directly on top/bottom, might cause issues, so ensure some offset
-        if (dir.lengthSq() < 0.001) dir.set(0, 0, 1);
-        
-        const newPos = currentPos.clone().add(dir.multiplyScalar(targetDist));
-        cameraRef.current.position.copy(newPos);
-      }
+      // Enforce a consistent "Solar System Plane" view (45 degrees up, from the South)
+      // This ensures the camera is always oriented correctly relative to the ecliptic.
+      // Offset: (0, height, distance)
+      // We use a fixed direction vector (0, 0.5, 1) normalized
+      const viewDir = new THREE.Vector3(0, 0.6, 1).normalize();
+      const newPos = currentPos.clone().add(viewDir.multiplyScalar(targetDist));
+      
+      cameraRef.current.position.copy(newPos);
+      cameraRef.current.up.set(0, 1, 0); // Ensure camera is upright
+      // cameraRef.current.lookAt(currentPos); // OrbitControls handles this. Calling it manually breaks the internal state.
       
       // Reset controls target to the object
       controlsRef.current.target.copy(currentPos);
+      controlsRef.current.update(); // CRITICAL: Sync controls with new camera position
     } else {
       // Continuous follow logic
       if (prevTargetPosRef.current) {
@@ -76,6 +74,7 @@ export function useCameraFocus(
     }
     prevTargetPosRef.current.copy(currentPos);
     
-    controlsRef.current.update();
+    // We do NOT call controlsRef.current.update() here because @react-three/drei OrbitControls
+    // handles it internally in its own useFrame loop. Calling it twice causes jitter/clunkiness.
   });
 }

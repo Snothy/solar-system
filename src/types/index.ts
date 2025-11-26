@@ -29,6 +29,9 @@ export interface CelestialBodyData {
   meanTemperature?: number; // Kelvin
   surfaceGravity?: number;  // m/s^2
   jplId?: string;
+  J2?: number;              // J2 spherical harmonic coefficient
+  poleRA?: number;          // Right Ascension of North Pole (degrees)
+  poleDec?: number;         // Declination of North Pole (degrees)
 }
 
 export interface PhysicsBody {
@@ -40,6 +43,8 @@ export interface PhysicsBody {
   force: THREE.Vector3;   // Force in Newtons
   acc?: THREE.Vector3;    // Acceleration in m/s^2
   parentName?: string;    // For moons
+  J2?: number;            // J2 coefficient
+  poleVector?: THREE.Vector3; // North pole direction vector
 }
 
 export interface VisualBody {

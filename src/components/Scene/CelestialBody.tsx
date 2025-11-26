@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import { Atmosphere } from './Atmosphere';
 import type { CelestialBodyData, VisualBody } from '../../types';
 
 interface CelestialBodyProps {
@@ -39,12 +40,7 @@ export function CelestialBody({
     }
   }, [texture]);
   
-  // Calculate rotation speed
-  const rotationSpeed = useMemo(() => {
-    if (!data.rotationPeriod) return 0;
-    const periodSeconds = data.rotationPeriod * 3600;
-    return (2 * Math.PI) / periodSeconds;
-  }, [data.rotationPeriod]);
+
   
   // Update position and rotation every frame from physics simulation
   useFrame(() => {
@@ -53,11 +49,24 @@ export function CelestialBody({
       meshRef.current.position.copy(visualBody.mesh.position);
       
       // Update rotation
-      if (rotationSpeed !== 0) {
-        meshRef.current.rotation.y = visualBody.mesh.rotation.y;
-      }
+      // 1. Get base orientation (Pole alignment)
+      // Default sphere has pole at (0, 1, 0)
+      const pole = visualBody.body.poleVector || new THREE.Vector3(0, 1, 0);
+      const baseQ = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), pole);
+      
+      // 2. Apply spin rotation around local Y axis (which is now aligned with pole)
+      // visualBody.mesh.rotation.y contains the accumulated rotation angle from the simulation loop
+      const spinAngle = visualBody.mesh.rotation.y;
+      const spinQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spinAngle);
+      
+      // Combine: Base * Spin
+      meshRef.current.quaternion.copy(baseQ.multiply(spinQ));
     }
   });
+
+  // Initial orientation is now handled in useFrame to support dynamic updates if needed, 
+  // but we can remove the separate useMemo for it to avoid conflicts.
+  // The previous useMemo for initial orientation is removed/replaced by the above.
   
   // Calculate scale
   const scale = useMemo(() => {
@@ -97,10 +106,10 @@ export function CelestialBody({
     }
   }, [data.type, texture]);
   
-  // Axial tilt rotation
-  const rotationX = useMemo(() => {
-    return data.axialTilt ? THREE.MathUtils.degToRad(data.axialTilt) : 0;
-  }, [data.axialTilt]);
+  // Axial tilt rotation - REMOVED in favor of Pole Vector Quaternion
+  // const rotationX = useMemo(() => {
+  //   return data.axialTilt ? THREE.MathUtils.degToRad(data.axialTilt) : 0;
+  // }, [data.axialTilt]);
   
   // Apply layer
   useMemo(() => {
@@ -116,7 +125,7 @@ export function CelestialBody({
     <mesh 
       ref={meshRef}
       scale={[scale, scale, scale]}
-      rotation-x={rotationX}
+      // rotation-x={rotationX} // Controlled by Quaternion now
       onClick={onClick}
       userData={{ parentBody: visualBody.body }}
       castShadow={data.type !== 'star'}
@@ -127,15 +136,26 @@ export function CelestialBody({
       
 
       
+      {/* Atmosphere for Earth, Venus, Mars */}
+      {['Earth', 'Venus', 'Mars'].includes(data.name) && (
+        <Atmosphere 
+          radius={1} 
+          color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
+          density={data.name === 'Venus' ? 2.0 : 1.0}
+        />
+      )}
+
       {/* Rings for Saturn - using color only since texture URL is dead */}
       {data.hasRings && (
-        <mesh rotation-x={Math.PI / 2}>
+        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow>
           <ringGeometry args={[1.4, 2.4, 128]} />
-          <meshBasicMaterial
+          <meshStandardMaterial
             color={data.ringColor}
             side={THREE.DoubleSide}
             transparent
-            opacity={0.6}
+            opacity={0.8}
+            roughness={0.8}
+            metalness={0.1}
           />
         </mesh>
       )}

@@ -51,11 +51,12 @@ export async function fetchBodyData(id: string, date: Date = new Date()): Promis
     OBJ_DATA: "'YES'",
     MAKE_EPHEM: "'YES'",
     EPHEM_TYPE: "'VECTORS'",
-    CENTER: "'@sun'", // Heliocentric
+    CENTER: "'@ssb'", // Solar System Barycenter
     START_TIME: `'${startTime}'`,
     STOP_TIME: `'${stopTime}'`,
     STEP_SIZE: "'1d'",
-    OUT_UNITS: "'KM-S'"
+    OUT_UNITS: "'KM-S'",
+    REF_PLANE: "'ECLIPTIC'" // Use Ecliptic plane (XY is orbit plane, Z is North)
   });
 
   const targetUrl = `${BASE_URL}?${params.toString()}`;
