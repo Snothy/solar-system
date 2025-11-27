@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Scene } from './components/Scene/Scene';
 import { Sidebar } from './components/UI/Sidebar';
 import { ScaleControls } from './components/UI/ScaleControls';
@@ -13,6 +13,7 @@ import { PhysicsSettings } from './components/UI/PhysicsSettings';
 import { PerformanceSettings } from './components/UI/PerformanceSettings';
 import { SearchPanel } from './components/UI/SearchPanel';
 import { useSimulation } from './hooks/useSimulation';
+import type { PerformanceMetrics } from './utils/PerformanceMonitor';
 import './index.css';
 
 export function App() {
@@ -68,6 +69,24 @@ export function App() {
     physicsCompute, // GPU/Worker compute interface
     addBody
   } = useSimulation(simulationData, simulationStartDate);
+
+  // Poll performance metrics periodically
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
+    fps: 0,
+    physicsTime: 0,
+    renderTime: 0,
+    bodyCount: 0,
+    mode: 'main',
+    avgFrameTime: 0
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPerformanceMetrics(physicsCompute.getPerformanceMetrics());
+    }, 250); // Update 4 times per second
+
+    return () => clearInterval(interval);
+  }, [physicsCompute]);
 
   const handleObjectSelect = (index: number) => {
     setSelectedObject(visualBodies[index].body);
@@ -157,7 +176,7 @@ export function App() {
         />
 
         <PerformanceSettings
-          metrics={physicsCompute.getPerformanceMetrics()}
+          metrics={performanceMetrics}
         />
 
         <TimeControls
