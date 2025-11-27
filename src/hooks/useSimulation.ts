@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE, TRAIL_LENGTH } from '../utils/constants';
-import { yoshida4Step, checkCollisions } from '../utils/physics';
+import { yoshida4Step, checkCollisions, computeBarycenter, computeOpticalLibration } from '../utils/physics';
 import { utcToTDB } from '../utils/timeUtils';
 import { computePoleVector, updatePoleOrientation } from '../utils/precession';
 
@@ -14,14 +14,13 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   const [simTime, setSimTime] = useState(startDate.getTime());
   const [timeStep, setTimeStep] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
-  const [visualScale, setVisualScale] = useState(100);
+  const [visualScale, setVisualScale] = useState(1);
   const [useVisualScale, setUseVisualScale] = useState(false);
   const [selectedObject, setSelectedObject] = useState<PhysicsBody | null>(null);
   const [focusedObject, setFocusedObject] = useState<PhysicsBody | null>(null);
 
   const initialized = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [useEphemeris, setUseEphemeris] = useState(false);
   
   // Advanced physics toggles
   const [enableTidalEvolution, setEnableTidalEvolution] = useState(true);
@@ -73,7 +72,16 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
             // Compute initial pole vector
             poleVector: (data.poleRA !== undefined && data.poleDec !== undefined) 
               ? computePoleVector(data.poleRA, data.poleDec)
-              : new THREE.Vector3(0, 1, 0)
+              : new THREE.Vector3(0, 1, 0),
+            
+            // Rotational Physics
+            momentOfInertia: 0.4 * data.mass * data.radius * data.radius, // Solid sphere approximation
+            angularVelocity: (data.rotationPeriod) 
+              ? ((data.poleRA !== undefined && data.poleDec !== undefined) 
+                  ? computePoleVector(data.poleRA, data.poleDec) 
+                  : new THREE.Vector3(0, 1, 0)
+                ).multiplyScalar((2 * Math.PI) / (data.rotationPeriod * 3600))
+              : new THREE.Vector3(0, 0, 0)
           };
           
           newBodies.push(body);
@@ -215,6 +223,13 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
         setParticles(prev => [...prev, ...newParticles]);
       }
 
+      // Barycentric Correction (Recenter system on Barycenter)
+      const barycenter = computeBarycenter(bodies);
+      // Apply correction to all bodies (position only)
+      bodies.forEach(b => {
+        b.pos.sub(barycenter);
+      });
+
       // Update visual bodies
       visualBodies.forEach(vb => {
         // Update position
@@ -223,6 +238,14 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
           vb.body.pos.y * SCALE,
           vb.body.pos.z * SCALE
         );
+
+        // Calculate Moon Libration
+        if (vb.body.name === 'Moon') {
+          const earth = bodies.find(b => b.name === 'Earth');
+          if (earth) {
+            vb.libration = computeOpticalLibration(vb.body, earth);
+          }
+        }
 
         // Light Time Delay Correction
         if (useLightTimeDelay) {
@@ -330,7 +353,15 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
         vb.mesh.position.copy(visualPos);
 
         // Update rotation
-        if (vb.rotationSpeed !== 0) {
+        if (vb.body.angularVelocity) {
+          // Use physics angular velocity (magnitude around pole)
+          // We assume angularVelocity is roughly aligned with pole for now, 
+          // or we just take the magnitude if it's a simple spin.
+          // Dot product with pole vector gives the component along the axis.
+          const pole = vb.body.poleVector || new THREE.Vector3(0, 1, 0);
+          const spinSpeed = vb.body.angularVelocity.dot(pole);
+          vb.mesh.rotation.y += spinSpeed * dt;
+        } else if (vb.rotationSpeed !== 0) {
           vb.mesh.rotation.y += vb.rotationSpeed * dt;
         }
 
@@ -453,7 +484,6 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     focusedObject,
     orbitVisibility,
     useLightTimeDelay,
-    useEphemeris,
     enableTidalEvolution,
     enableAtmosphericDrag,
     enableYarkovsky,
@@ -474,7 +504,6 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     setAllOrbitVisibility,
     setObserverPosition,
     setUseLightTimeDelay,
-    setUseEphemeris,
     setEnableTidalEvolution,
     setEnableAtmosphericDrag,
     setEnableYarkovsky,

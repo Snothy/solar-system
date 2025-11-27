@@ -108,6 +108,11 @@ export interface PhysicsBody {
   
   // Temperature for atmospheric calculations
   meanTemperature?: number; // Kelvin
+
+  // Rotational Physics (Spin-Orbit Coupling)
+  momentOfInertia?: number; // kg*m^2
+  angularVelocity?: THREE.Vector3; // rad/s
+  torque?: THREE.Vector3; // N*m
 }
 
 export interface VisualBody {
@@ -120,6 +125,7 @@ export interface VisualBody {
   type?: string;
   rotationSpeed: number;  // Radians per simulation second
   textureUrl?: string;    // Custom or default texture URL
+  libration?: number; // Optical libration offset in radians
 }
 
 export interface Particle {

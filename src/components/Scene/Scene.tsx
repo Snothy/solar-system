@@ -83,8 +83,7 @@ export function Scene({
   updatePhysics,
   setObserverPosition,
   focusedObject,
-  orbitVisibility,
-  simTime
+  orbitVisibility
 }: SceneProps) {
   // Find Sun for lighting reference
   const sun = visualBodies.find(vb => vb.body.name === 'Sun');
@@ -180,7 +179,6 @@ export function Scene({
                   onClick={() => onObjectSelect(index)}
                   layer={layer}
                   sunPosition={sunPosition}
-                  simTime={simTime}
                 />
               </Suspense>
               

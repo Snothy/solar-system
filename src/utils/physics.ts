@@ -450,6 +450,100 @@ export function yoshida4Step(
   bodies.forEach(b => {
     b.pos.addScaledVector(b.vel, c1_y * dt);
   });
+
+  // Update Rotation (Symplectic Euler for rotation)
+  // We compute torques once per step for simplicity (or could do it in computeGravitationalForces)
+  // Since torque depends on position, we already have updated positions.
+  
+  // Reset torques
+  bodies.forEach(b => {
+    if (!b.torque) b.torque = new THREE.Vector3();
+    b.torque.set(0, 0, 0);
+  });
+
+  // Compute Torques
+  if (enableTidal) {
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        applyTidalTorque(bodies[i], bodies[j]);
+      }
+    }
+  }
+
+  // Integrate Angular Velocity
+  bodies.forEach(b => {
+    if (b.momentOfInertia && b.angularVelocity && b.torque) {
+      // dL/dt = Torque
+      // I * dw/dt = Torque (assuming constant I and principal axis alignment)
+      // dw = (Torque / I) * dt
+      const dw = b.torque.clone().multiplyScalar(dt / b.momentOfInertia);
+      b.angularVelocity.add(dw);
+    }
+  });
+}
+
+/**
+ * Apply Tidal Torque (Spin-Orbit Coupling)
+ * MacDonald's Torque Model:
+ * Torque = (3/2) * (k2/Q) * (G * M_primary^2 * R^5 / r^6) * sign(omega - n)
+ * Actually, vector form:
+ * Tau = ... * ((n - omega) / |n - omega|)
+ * It tries to synchronize spin (omega) with orbital mean motion (n).
+ */
+function applyTidalTorque(b1: PhysicsBody, b2: PhysicsBody): void {
+  // Determine primary/satellite (though torque acts on both, usually satellite locks to primary)
+  // We calculate torque ON b1 from b2, and ON b2 from b1.
+  
+  const rVec = new THREE.Vector3().subVectors(b2.pos, b1.pos);
+  const dist = rVec.length();
+  
+  // Torque on b1 due to b2
+  if (b1.k2 && b1.tidalQ && b1.momentOfInertia && b1.angularVelocity) {
+    // Better: n = v_tan / r
+    // Orbital angular velocity vector: Omega_orb = (r x v) / r^2
+    const relVel = new THREE.Vector3().subVectors(b2.vel, b1.vel);
+    const orbitalAngVel = new THREE.Vector3().crossVectors(rVec, relVel).divideScalar(dist*dist);
+    
+    // Spin angular velocity
+    const spinAngVel = b1.angularVelocity;
+    
+    // Difference
+    const diff = new THREE.Vector3().subVectors(orbitalAngVel, spinAngVel);
+    
+    // Magnitude of torque
+    // T ~ (3/2) * k2/Q * G * M2^2 * R1^5 / r^6
+    const factor = 1.5 * (b1.k2 / b1.tidalQ) * G * (b2.mass * b2.mass) * Math.pow(b1.radius, 5) / Math.pow(dist, 6);
+    
+    // Torque direction: along the difference vector (restoring force)
+    const torque = diff.normalize().multiplyScalar(factor);
+    
+    // Add to b1 torque
+    if (!b1.torque) b1.torque = new THREE.Vector3();
+    b1.torque.add(torque);
+    
+    // Newton's 3rd law? Torque on orbit is opposite.
+    // But here we are calculating torque on SPIN.
+    // The reaction torque acts on the ORBIT (changing angular momentum of orbit).
+    // We are already applying tidal FORCES which handle the orbital evolution.
+    // This function is for SPIN evolution.
+  }
+
+  // Torque on b2 due to b1
+  if (b2.k2 && b2.tidalQ && b2.momentOfInertia && b2.angularVelocity) {
+    const rVecRev = rVec.clone().negate();
+    const relVelRev = new THREE.Vector3().subVectors(b1.vel, b2.vel);
+    const orbitalAngVel = new THREE.Vector3().crossVectors(rVecRev, relVelRev).divideScalar(dist*dist);
+    
+    const spinAngVel = b2.angularVelocity;
+    const diff = new THREE.Vector3().subVectors(orbitalAngVel, spinAngVel);
+    
+    const factor = 1.5 * (b2.k2 / b2.tidalQ) * G * (b1.mass * b1.mass) * Math.pow(b2.radius, 5) / Math.pow(dist, 6);
+    
+    const torque = diff.normalize().multiplyScalar(factor);
+    
+    if (!b2.torque) b2.torque = new THREE.Vector3();
+    b2.torque.add(torque);
+  }
 }
 
 /**
@@ -475,4 +569,52 @@ export function checkCollisions(bodies: PhysicsBody[]): THREE.Vector3[] {
   }
   
   return collisions;
+}
+
+/**
+ * Compute the Solar System Barycenter (Center of Mass)
+ */
+export function computeBarycenter(bodies: PhysicsBody[]): THREE.Vector3 {
+  const totalMass = bodies.reduce((sum, b) => sum + b.mass, 0);
+  const baryPos = new THREE.Vector3();
+  
+  bodies.forEach(b => {
+    baryPos.addScaledVector(b.pos, b.mass / totalMass);
+  });
+  
+  return baryPos;
+}
+
+/**
+ * Compute Optical Libration in Longitude for the Moon
+ * Returns the angle offset in radians to be added to rotation
+ */
+export function computeOpticalLibration(moon: PhysicsBody, earth: PhysicsBody): number {
+  const rVec = new THREE.Vector3().subVectors(moon.pos, earth.pos);
+  const r = rVec.length();
+  
+  // Moon orbital parameters
+  const a = 384400e3; // Semi-major axis (m)
+  const e = 0.0549;   // Eccentricity
+  
+  // Calculate True Anomaly (nu)
+  // r = a(1-e^2) / (1 + e*cos(nu))
+  // cos(nu) = (a(1-e^2)/r - 1) / e
+  const p = a * (1 - e * e);
+  const cosNu = (p / r - 1) / e;
+  const clampedCosNu = Math.max(-1, Math.min(1, cosNu));
+  
+  // Determine sign of nu based on dot product with velocity (moving away vs approaching)
+  // r dot v > 0 means moving away (0 < nu < pi)
+  // r dot v < 0 means approaching (pi < nu < 2pi)
+  const rDotV = rVec.dot(new THREE.Vector3().subVectors(moon.vel, earth.vel));
+  let nu = Math.acos(clampedCosNu);
+  if (rDotV < 0) nu = 2 * Math.PI - nu;
+  
+  // Mean Anomaly M (approximate)
+  // M ≈ nu - 2e*sin(nu)
+  // Optical Libration in Longitude = Mean Anomaly - True Anomaly
+  // L_opt = M - nu ≈ -2e*sin(nu)
+  // We return this offset
+  return -2 * e * Math.sin(nu);
 }

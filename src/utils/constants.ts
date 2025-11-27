@@ -15,7 +15,7 @@ export const LEAP_SECONDS_2024 = 37;    // UTC - TAI as of 2024-01-01 (update pe
 export const J2000_JD = 2451545.0;      // Julian Date of J2000 epoch
 
 // Simulation defaults
-export const DEFAULT_VISUAL_SCALE = 1000;
+export const DEFAULT_VISUAL_SCALE = 1;
 export const DEFAULT_TIME_STEP = 1;  // Simulation seconds per frame
 export const TRAIL_LENGTH = 3000;    // Number of trail points
 
