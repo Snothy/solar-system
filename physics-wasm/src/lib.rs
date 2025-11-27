@@ -4,7 +4,7 @@ mod forces;
 
 use wasm_bindgen::prelude::*;
 use crate::types::{Vector3, PhysicsBody};
-use crate::constants::SOLAR_MASS_LOSS;
+use crate::constants::{SOLAR_MASS_LOSS, G};
 use crate::forces::*;
 
 #[wasm_bindgen]
@@ -34,22 +34,19 @@ impl PhysicsEngine {
         enable_srp: bool,
         enable_yarkovsky: bool,
         enable_drag: bool,
-        use_eih: bool
+        use_eih: bool,
+        enable_precession: bool,
+        enable_nutation: bool
     ) -> f64 {
         // Update Pole Orientation (Precession/Nutation)
-        // We use enable_j2 as a proxy for enabling precession/nutation if needed, 
-        // or we could add more flags. For now, let's assume if J2 is on, we want accurate poles.
-        // Actually, let's just use the flags passed in.
-        // Wait, I don't have separate flags for precession/nutation in Rust step yet.
-        // Let's assume they are enabled if J2 is enabled (high fidelity mode).
-        self.update_pole_orientation(sim_time, enable_j2, enable_j2);
+        self.update_pole_orientation(sim_time, enable_precession, enable_nutation);
 
         // Apply Solar Mass Loss
         if let Some(sun_idx) = self.bodies.iter().position(|b| b.name == "Sun") {
             self.bodies[sun_idx].mass -= SOLAR_MASS_LOSS * dt;
         }
 
-        // Calculate Moon Libration
+        // Calculate Moon Libration (dynamically from current state)
         let moon_idx = self.bodies.iter().position(|b| b.name == "Moon");
         let earth_idx = self.bodies.iter().position(|b| b.name == "Earth");
         
@@ -58,27 +55,54 @@ impl PhysicsEngine {
             let e_pos = self.bodies[e_idx].pos;
             let m_vel = self.bodies[m_idx].vel;
             let e_vel = self.bodies[e_idx].vel;
+            let m_mass = self.bodies[m_idx].mass;
+            let e_mass = self.bodies[e_idx].mass;
             
             let mut r_vec = m_pos; r_vec.sub(&e_pos);
             let r = r_vec.len();
             
-            let a = 384400e3;
-            let ecc = 0.0549;
-            
-            let p = a * (1.0 - ecc * ecc);
-            let cos_nu = (p / r - 1.0) / ecc;
-            let clamped_cos_nu = cos_nu.max(-1.0).min(1.0);
-            
+            // Calculate orbital elements dynamically from state vectors
             let mut rel_vel = m_vel; rel_vel.sub(&e_vel);
-            let r_dot_v = r_vec.dot(&rel_vel);
+            let mu = G * (e_mass + m_mass); // Standard gravitational parameter
             
-            let mut nu = clamped_cos_nu.acos();
-            if r_dot_v < 0.0 {
-                nu = 2.0 * std::f64::consts::PI - nu;
+            // Specific orbital energy: E = v²/2 - μ/r
+            let v_sq = rel_vel.len_sq();
+            let specific_energy = v_sq / 2.0 - mu / r;
+            
+            // Semi-major axis: a = -μ / (2E)
+            let a = -mu / (2.0 * specific_energy);
+            
+            // Specific angular momentum: h = r × v
+            let h_vec = r_vec.cross(&rel_vel);
+            let h = h_vec.len();
+            
+            // Eccentricity: e = sqrt(1 + 2Eh²/μ²)
+            let ecc_sq = 1.0 + (2.0 * specific_energy * h * h) / (mu * mu);
+            let ecc = if ecc_sq > 0.0 { ecc_sq.sqrt() } else { 0.0 };
+            
+            // Semi-latus rectum: p = a(1 - e²)
+            let p = a * (1.0 - ecc * ecc);
+            
+            // True anomaly from orbit equation: r = p / (1 + e cos ν)
+            // cos ν = (p/r - 1) / e
+            if ecc > 1e-6 { // Avoid division by zero for circular orbits
+                let cos_nu = (p / r - 1.0) / ecc;
+                let clamped_cos_nu = cos_nu.max(-1.0).min(1.0);
+                
+                let r_dot_v = r_vec.dot(&rel_vel);
+                
+                let mut nu = clamped_cos_nu.acos();
+                if r_dot_v < 0.0 {
+                    nu = 2.0 * std::f64::consts::PI - nu;
+                }
+                
+                // Physical libration: δψ = -2e sin(ν)
+                let libration = -2.0 * ecc * nu.sin();
+                self.bodies[m_idx].libration = Some(libration);
+            } else {
+                // Circular orbit: no libration
+                self.bodies[m_idx].libration = Some(0.0);
             }
-            
-            let libration = -2.0 * ecc * nu.sin();
-            self.bodies[m_idx].libration = Some(libration);
         }
 
         // RK4 Integration
@@ -139,6 +163,9 @@ impl PhysicsEngine {
         if enable_tidal {
              self.apply_tidal_torque(dt);
         }
+
+        // Recenter System (Barycenter Correction) to prevent drift
+        self.recenter_system();
 
         dt
     }
@@ -229,16 +256,16 @@ impl PhysicsEngine {
                         if use_eih {
                              let (f1, f2) = apply_relativity_eih(b1, b2, &r_vec, dist, dist_sq);
                              let mut a1 = f1; a1.scale(1.0 / b1.mass);
-                             let mut a2 = f2; a2.scale(1.0 / b2.mass); // EIH returns force on body, so add directly
+                             let mut a2 = f2; a2.scale(1.0 / b2.mass);
                              accs[i].add(&a1);
                              accs[j].add(&a2);
                         } else {
-                             let f = apply_relativity_ppn(b1, b2, &r_vec, dist, dist_sq);
-                             let mut a1 = f; a1.scale(1.0 / b1.mass);
+                             // PPN is now symmetric
+                             let (f1, f2) = apply_relativity_ppn(b1, b2, &r_vec, dist, dist_sq);
+                             let mut a1 = f1; a1.scale(1.0 / b1.mass);
+                             let mut a2 = f2; a2.scale(1.0 / b2.mass);
                              accs[i].add(&a1);
-                             // PPN is applied to b1 (satellite) usually. 
-                             // If we want symmetry, we should apply to b2 too?
-                             // Current impl only returns force on b1.
+                             accs[j].add(&a2);
                         }
                     }
 
@@ -432,6 +459,37 @@ impl PhysicsEngine {
                 let z = dec_rad.sin();
                 
                 b.pole_vector = Some(Vector3::new(x, y, z));
+            }
+        }
+    }
+
+    fn recenter_system(&mut self) {
+        let mut total_mass = 0.0;
+        let mut center_of_mass = Vector3::zero();
+        let mut linear_momentum = Vector3::zero();
+
+        for body in &self.bodies {
+            total_mass += body.mass;
+            
+            let mut mass_pos = body.pos;
+            mass_pos.scale(body.mass);
+            center_of_mass.add(&mass_pos);
+            
+            let mut momentum = body.vel;
+            momentum.scale(body.mass);
+            linear_momentum.add(&momentum);
+        }
+
+        if total_mass > 0.0 {
+            // center_of_mass.scale(1.0 / total_mass);
+            linear_momentum.scale(1.0 / total_mass); // Velocity of COM
+            
+            for body in &mut self.bodies {
+                // Disable position recentering to prevent visual jumps when mass changes
+                // body.pos.sub(&center_of_mass);
+                
+                // Keep velocity correction to prevent system drift
+                body.vel.sub(&linear_momentum);
             }
         }
     }

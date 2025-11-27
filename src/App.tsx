@@ -9,7 +9,7 @@ import { StatusBar } from './components/UI/StatusBar';
 import { PropertyEditor } from './components/UI/PropertyEditor';
 import { Minimap } from './components/UI/Minimap';
 import { SetupScreen } from './components/UI/SetupScreen';
-import { PhysicsSettings } from './components/UI/PhysicsSettings';
+import { SettingsModal } from './components/UI/SettingsModal';
 import { PerformanceSettings } from './components/UI/PerformanceSettings';
 import { SearchPanel } from './components/UI/SearchPanel';
 import { useSimulation } from './hooks/useSimulation';
@@ -112,6 +112,7 @@ export function App() {
   };
 
   const [showMinimap, setShowMinimap] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleSimulationStart = (data: any[], date: Date) => {
     setSimulationData(data);
@@ -144,35 +145,13 @@ export function App() {
       <Sidebar
         showMinimap={showMinimap}
         onToggleMinimap={setShowMinimap}
+        onOpenSettings={() => setShowSettings(true)}
       >
         <ScaleControls
           visualScale={visualScale}
           useVisualScale={useVisualScale}
           onVisualScaleChange={setVisualScale}
           onUseVisualScaleChange={setUseVisualScale}
-        />
-
-        <PhysicsSettings
-          enableTidalEvolution={enableTidalEvolution}
-          enableAtmosphericDrag={enableAtmosphericDrag}
-          enableYarkovsky={enableYarkovsky}
-          enablePrecession={enablePrecession}
-          enableNutation={enableNutation}
-          useTDBTime={useTDBTime}
-          enableLightAberration={enableLightAberration}
-          useLightTimeDelay={useLightTimeDelay}
-          onToggleTidalEvolution={setEnableTidalEvolution}
-          onToggleAtmosphericDrag={setEnableAtmosphericDrag}
-          onToggleYarkovsky={setEnableYarkovsky}
-          onTogglePrecession={setEnablePrecession}
-          onToggleNutation={setEnableNutation}
-          onToggleTDBTime={setUseTDBTime}
-          onToggleLightAberration={setEnableLightAberration}
-          onToggleLightTimeDelay={setUseLightTimeDelay}
-          enableRelativity={enableRelativity}
-          useAdaptiveTimeStep={useAdaptiveTimeStep}
-          onToggleRelativity={setEnableRelativity}
-          onToggleAdaptiveTimeStep={setUseAdaptiveTimeStep}
         />
 
         <PerformanceSettings
@@ -232,6 +211,31 @@ export function App() {
           }}
         />
       )}
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        enableTidalEvolution={enableTidalEvolution}
+        enableAtmosphericDrag={enableAtmosphericDrag}
+        enableYarkovsky={enableYarkovsky}
+        enablePrecession={enablePrecession}
+        enableNutation={enableNutation}
+        useTDBTime={useTDBTime}
+        enableLightAberration={enableLightAberration}
+        useLightTimeDelay={useLightTimeDelay}
+        onToggleTidalEvolution={(val) => { console.log('App: Setting Tidal to', val); setEnableTidalEvolution(val); }}
+        onToggleAtmosphericDrag={(val) => { console.log('App: Setting Drag to', val); setEnableAtmosphericDrag(val); }}
+        onToggleYarkovsky={(val) => { console.log('App: Setting Yarkovsky to', val); setEnableYarkovsky(val); }}
+        onTogglePrecession={setEnablePrecession}
+        onToggleNutation={setEnableNutation}
+        onToggleTDBTime={setUseTDBTime}
+        onToggleLightAberration={setEnableLightAberration}
+        onToggleLightTimeDelay={setUseLightTimeDelay}
+        enableRelativity={enableRelativity}
+        useAdaptiveTimeStep={useAdaptiveTimeStep}
+        onToggleRelativity={(val) => { console.log('App: Setting Relativity to', val); setEnableRelativity(val); }}
+        onToggleAdaptiveTimeStep={setUseAdaptiveTimeStep}
+      />
     </>
   );
 }

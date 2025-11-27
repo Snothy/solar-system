@@ -321,37 +321,54 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     const targetDt = !physics.isPaused ? ((physics.timeStep === 0 ? 1 : physics.timeStep) / 60) : 0;
 
     if (targetDt > 0) {
+      // Start performance tracking for this frame
+      physicsCompute.performanceMonitor.startFrame();
+      physicsCompute.performanceMonitor.setBodyCount(bodies.length);
+
       // Add this frame's required simulation time to our debt
       physicsDebt.current += targetDt;
       
-      // Adaptive sub-stepping: break large timesteps into smaller chunks
-      // Max sub-step size: 60 seconds (1 minute) for numerical stability
-      const MAX_SUBSTEP = 60; // seconds
-      
-      // PERFORMANCE OPTIMIZATION: Limit substeps per frame to prevent chopping
-      // Instead of doing ALL substeps at once, we do a reasonable batch per frame
-      // and carry the "debt" forward. This maintains 100% accuracy while improving smoothness.
-      const MAX_SUBSTEPS_PER_FRAME = 10; // Tune this: higher = more accurate but choppier
+      // MAXIMUM ACCURACY MODE: Process ALL physics debt with fixed sub-stepping
+      // Breaking large timesteps into smaller chunks for numerical stability
+      const MAX_SUBSTEP = 60; // Maximum substep size in seconds (1 minute)
       
       let totalSimulatedDt = 0;
-      let substepsThisFrame = 0;
+      let substepsProcessed = 0;
       
-      // Process physics debt in manageable chunks
-      while (physicsDebt.current > 0 && substepsThisFrame < MAX_SUBSTEPS_PER_FRAME) {
-        // Calculate the size of this substep (capped at MAX_SUBSTEP for stability)
-        const subDt = Math.min(physicsDebt.current, MAX_SUBSTEP);
-        
-        // Perform the physics step
-        const simulatedDt = physics.step(subDt);
-        totalSimulatedDt += simulatedDt;
-        physicsDebt.current -= simulatedDt;
-        substepsThisFrame++;
+      // Process physics debt
+      if (physics.useAdaptiveTimeStep) {
+        // MAXIMUM ACCURACY MODE: Process ALL physics debt with fixed sub-stepping
+        // Breaking large timesteps into smaller chunks for numerical stability
+        while (physicsDebt.current > 0) {
+          // Calculate the size of this substep (capped at MAX_SUBSTEP for stability)
+          const subDt = Math.min(physicsDebt.current, MAX_SUBSTEP);
+          
+          // Perform the physics step
+          const simulatedDt = physics.step(subDt);
+          totalSimulatedDt += simulatedDt;
+          physicsDebt.current -= simulatedDt;
+          substepsProcessed++;
+        }
+      } else {
+        // RAW PERFORMANCE MODE: Single step for the entire debt
+        // Faster, but may be unstable at high speeds (moons might fly off)
+        if (physicsDebt.current > 0) {
+           const simulatedDt = physics.step(physicsDebt.current);
+           totalSimulatedDt += simulatedDt;
+           physicsDebt.current = 0; // All processed
+           substepsProcessed = 1;
+        }
       }
       
-      // Update visuals with whatever we managed to simulate this frame
+      // Update visuals with the total simulated time
       if (totalSimulatedDt > 0) {
         visuals.updateVisuals(totalSimulatedDt);
         physics.setSimTime(prev => prev + totalSimulatedDt * 1000);
+      }
+      
+      // Performance monitoring
+      if (substepsProcessed > 100) {
+        console.warn(`High substep count: ${substepsProcessed} substeps processed this frame. Consider reducing time acceleration for better performance.`);
       }
       
       physicsCompute.performanceMonitor.endFrame();

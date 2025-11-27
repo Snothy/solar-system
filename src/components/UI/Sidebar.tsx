@@ -5,13 +5,23 @@ interface SidebarProps {
   children: ReactNode;
   showMinimap: boolean;
   onToggleMinimap: (show: boolean) => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ children, showMinimap, onToggleMinimap }: SidebarProps) {
+export function Sidebar({ children, showMinimap, onToggleMinimap, onOpenSettings }: SidebarProps) {
   return (
     <div className={styles.sidebar}>
       <div className={styles.header}>
-        <h1 className={styles.title}>OrbitEngine</h1>
+        <div className="flex items-center justify-between">
+          <h1 className={styles.title}>OrbitEngine</h1>
+          <button 
+            onClick={onOpenSettings}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-blue-400 hover:text-white group relative"
+            title="Physics Settings"
+          >
+            <span className="text-xl block group-hover:rotate-90 transition-transform duration-500">⚙️</span>
+          </button>
+        </div>
       </div>
       
       <div className={styles.scrollContent}>

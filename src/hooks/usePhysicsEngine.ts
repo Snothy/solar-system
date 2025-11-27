@@ -3,8 +3,39 @@ import * as THREE from 'three';
 import type { PhysicsBody, Particle } from '../types';
 import { SCALE } from '../utils/constants';
 
+/**
+ * Convert UTC time to Barycentric Dynamical Time (TDB)
+ * TDB is the time standard used for Solar System dynamics calculations
+ * @param utcTime - Time in milliseconds since Unix epoch (UTC)
+ * @returns Time in milliseconds since Unix epoch (TDB)
+ */
 function utcToTDB(utcTime: number): number {
-  return utcTime;
+  // Convert milliseconds to Julian Date
+  const jd = utcTime / 86400000 + 2440587.5;
+  
+  // Time in centuries since J2000.0
+  const t = (jd - 2451545.0) / 36525.0;
+  
+  // Earth's mean anomaly (degrees)
+  const g = 357.53 + 35999.05 * t;
+  const g_rad = g * Math.PI / 180.0;
+  
+  // TDB - TT periodic correction (seconds)
+  // Simplified formula: TDB - TT ≈ 0.001658 sin(g) + 0.000014 sin(2g)
+  const tdb_tt = 0.001658 * Math.sin(g_rad) + 0.000014 * Math.sin(2 * g_rad);
+  
+  // TT - TAI offset (constant 32.184 seconds)
+  const tt_tai = 32.184;
+  
+  // TAI - UTC offset (leap seconds, 37 as of 2024)
+  // NOTE: Update this value when new leap seconds are announced
+  const tai_utc = 37.0;
+  
+  // Total correction: UTC → TAI → TT → TDB
+  const total_correction_seconds = tai_utc + tt_tai + tdb_tt;
+  
+  // Convert seconds to milliseconds and add to UTC time
+  return utcTime + total_correction_seconds * 1000;
 }
 import { usePhysicsCompute } from './usePhysicsCompute';
 import init, { PhysicsEngine as WasmPhysicsEngine } from '../../physics-wasm/pkg/physics_wasm';
@@ -177,10 +208,6 @@ export function usePhysicsEngine(
   }, [wasmReady, bodies]);
 
   const step = useCallback((dt: number) => {
-    // Start performance tracking
-    physicsCompute.performanceMonitor.startFrame();
-    physicsCompute.performanceMonitor.setBodyCount(bodies.length);
-
     // Get current time in TDB if enabled
     const currentTime = useTDBTime ? utcToTDB(simTime) : simTime;
 
@@ -199,12 +226,36 @@ export function usePhysicsEngine(
                 dt,
                 currentTime, // Pass sim_time for pole updates
                 enableRelativity, 
-                enablePrecession, // enable_j2 (proxy)
+                enablePrecession, // enable_j2 (proxy for J2 force) - Wait, enablePrecession is for AXIAL precession. 
+                // We need a separate J2 flag if we want to toggle J2 force independently.
+                // Currently UI has "Axial Precession" toggle.
+                // And "General Relativity".
+                // But NO "J2" toggle explicitly?
+                // Looking at PhysicsSettings.tsx:
+                // - General Relativity
+                // - Tidal Evolution
+                // - Atmospheric Drag
+                // - Yarkovsky Effect
+                // - Adaptive Time-Stepping
+                // - Axial Precession
+                // - Nutation
+                //
+                // It seems "J2" force is NOT togglable in the UI anymore?
+                // In the original code, enablePrecession was passed as enable_j2.
+                // So "Axial Precession" toggle controlled J2 forces? That's confusing.
+                // I should probably pass 'true' for J2 if we want it always on, or add a toggle.
+                // OR, re-use enablePrecession for J2 force for now to maintain behavior, 
+                // but pass it separately for actual precession.
+                // Let's pass enablePrecession for J2 force (to keep existing behavior) 
+                // AND for enable_precession (new arg).
+                enablePrecession, // enable_j2
                 enableTidalEvolution,
                 true, // enable_srp
                 enableYarkovsky,
                 enableAtmosphericDrag,
-                useEIH
+                useEIH,
+                enablePrecession, // enable_precession
+                enableNutation    // enable_nutation
             );
             
             // Sync back bodies

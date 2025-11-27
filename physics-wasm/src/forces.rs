@@ -9,19 +9,38 @@ pub fn apply_newtonian(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist
     f
 }
 
-pub fn apply_relativity_ppn(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f64, dist_sq: f64) -> Vector3 {
-    let mut acc_rel = Vector3::zero();
+pub fn apply_relativity_ppn(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f64, dist_sq: f64) -> (Vector3, Vector3) {
+    // PPN (Parameterized Post-Newtonian) first-order relativistic correction
+    // Made symmetric to conserve momentum
+    
+    let mut r12 = *r_vec; r12.scale(-1.0);
+    
+    // Force on b1 due to b2
     let mut v_rel = b1.vel; v_rel.sub(&b2.vel);
     let v_sq = b1.vel.len_sq();
     let term1 = (4.0 * G * b2.mass / dist) - v_sq;
     let r_dot_v = r_vec.dot(&b1.vel);
     let mut term1_vec = *r_vec; term1_vec.scale(term1);
     let mut term2_vec = b1.vel; term2_vec.scale(4.0 * r_dot_v);
+    let mut acc_rel = Vector3::zero();
     acc_rel.add(&term1_vec);
     acc_rel.add(&term2_vec);
     acc_rel.scale(G * b2.mass / (dist_sq * dist * C_LIGHT * C_LIGHT));
-    let mut f_rel = acc_rel; f_rel.scale(b1.mass);
-    f_rel
+    let mut f1 = acc_rel; f1.scale(b1.mass);
+    
+    // Force on b2 due to b1 (symmetric calculation)
+    let v2_sq = b2.vel.len_sq();
+    let term1_b = (4.0 * G * b1.mass / dist) - v2_sq;
+    let r_dot_v2 = r12.dot(&b2.vel);
+    let mut term1_vec_b = r12; term1_vec_b.scale(term1_b);
+    let mut term2_vec_b = b2.vel; term2_vec_b.scale(4.0 * r_dot_v2);
+    let mut acc_rel_b = Vector3::zero();
+    acc_rel_b.add(&term1_vec_b);
+    acc_rel_b.add(&term2_vec_b);
+    acc_rel_b.scale(G * b1.mass / (dist_sq * dist * C_LIGHT * C_LIGHT));
+    let mut f2 = acc_rel_b; f2.scale(b2.mass);
+    
+    (f1, f2)
 }
 
 pub fn apply_relativity_eih(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f64, dist_sq: f64) -> (Vector3, Vector3) {
@@ -77,6 +96,9 @@ pub fn apply_j2(primary: &PhysicsBody, satellite: &PhysicsBody, r_vec: &Vector3,
         let mut t1 = *r_vec; t1.scale(5.0 * z2_r2 - 1.0);
         let mut t2 = pole; t2.scale(2.0 * z);
         t1.sub(&t2);
+        // Fixed: Added division by dist - force should scale as 1/r^4
+        // t1 is proportional to r (meters), factor is Newtons.
+        // We need Result in Newtons, so divide by meters.
         t1.scale(-factor / dist);
         return t1;
     }
@@ -94,6 +116,7 @@ pub fn apply_j3(primary: &PhysicsBody, satellite: &PhysicsBody, r_vec: &Vector3,
         let mut t1 = *r_vec; t1.scale(5.0 * z_r * (7.0 * z2_r2 - 3.0));
         let mut t2 = pole; t2.scale(3.0 * (5.0 * z2_r2 - 1.0));
         t1.sub(&t2);
+        // Fixed: Added division by dist - force should scale as 1/r^5
         t1.scale(-factor / (2.0 * dist));
         return t1;
     }
@@ -111,6 +134,8 @@ pub fn apply_j4(primary: &PhysicsBody, satellite: &PhysicsBody, r_vec: &Vector3,
         let mut t1 = *r_vec; t1.scale(3.0 - 42.0 * z2_r2 + 63.0 * z4_r4);
         let mut t2 = pole; t2.scale(12.0 * z / dist - 28.0 * (z * z2_r2) / dist);
         t1.add(&t2);
+        // Fixed: Added division by dist - force should scale as 1/r^6
+        // Negative sign already present in formula
         t1.scale(-factor / dist);
         return t1;
     }
@@ -133,11 +158,19 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
     if let (Some(k2), Some(q)) = (b1.k2, b1.tidal_q) {
         let mut orb_vel = b2.vel; orb_vel.sub(&b1.vel);
         let v_mag = orb_vel.len();
-        let n = v_mag / dist;
-        let acc = (k2 / q) * (b1.mass / b2.mass) * (b1.radius / dist).powi(5) * n * n * 1e-15;
+        let n = v_mag / dist; // Mean motion approximation
         
+        // Proper tidal force formula:
+        // a_tidal = (3/2) * k2/Q * (GM/r²) * (R/r)⁵
+        // Units: m/s²
+        let gm_over_r2 = G * b1.mass / (dist * dist);
+        let r_ratio_5 = (b1.radius / dist).powi(5);
+        let acc = 1.5 * (k2 / q) * gm_over_r2 * r_ratio_5;
+        
+        // Direction: tangential to orbit (opposes motion for tidal drag)
         let mut cross1 = r_vec.cross(&orb_vel);
-        let mut tan = r_vec.cross(&cross1); tan.normalize();
+        let mut tan = r_vec.cross(&cross1); 
+        tan.normalize();
         tan.scale(acc * b2.mass);
         return tan;
     }
