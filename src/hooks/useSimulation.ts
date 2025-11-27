@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE, TRAIL_LENGTH } from '../utils/constants';
-import { yoshida4Step, checkCollisions, computeBarycenter, computeOpticalLibration } from '../utils/physics';
+import { yoshida4Step, checkCollisions, computeOpticalLibration } from '../utils/physics';
 import { utcToTDB } from '../utils/timeUtils';
 import { computePoleVector, updatePoleOrientation } from '../utils/precession';
 import { usePhysicsCompute } from './usePhysicsCompute';
@@ -184,16 +184,13 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   };
 
   const updateVisuals = (dt: number) => {
-    // Compute barycentric correction (but don't modify physics state!)
-    const barycenter = computeBarycenter(bodies);
-
-    // Update visual bodies
+    // Update visual bodies (heliocentric frame - Sun at origin)
     visualBodies.forEach(vb => {
-      // Update position with barycentric correction applied to visual only
+      // Update position (simple heliocentric coordinates)
       let visualPos = new THREE.Vector3(
-        (vb.body.pos.x - barycenter.x) * SCALE,
-        (vb.body.pos.y - barycenter.y) * SCALE,
-        (vb.body.pos.z - barycenter.z) * SCALE
+        vb.body.pos.x * SCALE,
+        vb.body.pos.y * SCALE,
+        vb.body.pos.z * SCALE
       );
 
       // Calculate Moon Libration
