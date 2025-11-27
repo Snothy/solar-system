@@ -184,20 +184,16 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   };
 
   const updateVisuals = (dt: number) => {
-    // Main thread always used now
-    // Barycentric Correction
+    // Compute barycentric correction (but don't modify physics state!)
     const barycenter = computeBarycenter(bodies);
-    bodies.forEach(b => {
-      b.pos.sub(barycenter);
-    });
 
     // Update visual bodies
     visualBodies.forEach(vb => {
-      // Update position
+      // Update position with barycentric correction applied to visual only
       let visualPos = new THREE.Vector3(
-        vb.body.pos.x * SCALE,
-        vb.body.pos.y * SCALE,
-        vb.body.pos.z * SCALE
+        (vb.body.pos.x - barycenter.x) * SCALE,
+        (vb.body.pos.y - barycenter.y) * SCALE,
+        (vb.body.pos.z - barycenter.z) * SCALE
       );
 
       // Calculate Moon Libration
