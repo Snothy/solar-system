@@ -15,6 +15,10 @@ interface PhysicsSettingsProps {
   onToggleTDBTime: (enabled: boolean) => void;
   onToggleLightAberration: (enabled: boolean) => void;
   onToggleLightTimeDelay: (enabled: boolean) => void;
+  enableRelativity: boolean;
+  useAdaptiveTimeStep: boolean;
+  onToggleRelativity: (enabled: boolean) => void;
+  onToggleAdaptiveTimeStep: (enabled: boolean) => void;
 }
 
 export function PhysicsSettings({
@@ -33,7 +37,11 @@ export function PhysicsSettings({
   onToggleNutation,
   onToggleTDBTime,
   onToggleLightAberration,
-  onToggleLightTimeDelay
+  onToggleLightTimeDelay,
+  enableRelativity,
+  useAdaptiveTimeStep,
+  onToggleRelativity,
+  onToggleAdaptiveTimeStep
 }: PhysicsSettingsProps) {
   return (
     <div className="p-4 border-b border-white/10">
@@ -78,6 +86,32 @@ export function PhysicsSettings({
             />
             <span>Tidal Evolution</span>
             <span className="text-[10px] text-gray-500">(Moon recession)</span>
+          </label>
+        </div>
+
+        {/* Integration & Accuracy */}
+        <div className="mb-3">
+          <div className="text-[10px] font-semibold text-gray-500 uppercase mb-1.5">Precision</div>
+          <label className="flex items-center space-x-2 text-sm text-gray-300 cursor-pointer hover:text-white transition-colors">
+            <input
+              type="checkbox"
+              checked={useAdaptiveTimeStep}
+              onChange={(e) => onToggleAdaptiveTimeStep(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+            />
+            <span>Adaptive Time-Stepping</span>
+            <span className="text-[10px] text-gray-500">(RKF45)</span>
+          </label>
+          
+          <label className="flex items-center space-x-2 text-sm text-gray-300 cursor-pointer hover:text-white transition-colors">
+            <input
+              type="checkbox"
+              checked={enableRelativity}
+              onChange={(e) => onToggleRelativity(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+            />
+            <span>General Relativity</span>
+            <span className="text-[10px] text-gray-500">(EIH)</span>
           </label>
         </div>
 

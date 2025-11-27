@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle } from '../types';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE, TRAIL_LENGTH } from '../utils/constants';
-import { yoshida4Step, checkCollisions, computeOpticalLibration } from '../utils/physics';
+import { yoshida4Step, rkf45Step, checkCollisions, computeOpticalLibration } from '../utils/physics';
 import { utcToTDB } from '../utils/timeUtils';
 import { computePoleVector, updatePoleOrientation } from '../utils/precession';
 import { usePhysicsCompute } from './usePhysicsCompute';
@@ -31,6 +31,8 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   const [enableNutation, setEnableNutation] = useState(true);
   const [useTDBTime, setUseTDBTime] = useState(true);
   const [enableLightAberration, setEnableLightAberration] = useState(true);
+  const [enableRelativity, setEnableRelativity] = useState(true);
+  const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(false);
 
   // Physics compute (worker/GPU) integration
   const physicsCompute = usePhysicsCompute();
@@ -165,19 +167,55 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   const runMainThreadPhysics = (dt: number) => {
     physicsCompute.performanceMonitor.startPhysics();
     
-    const MAX_SUB_STEP = 600;
-    let remainingDt = dt;
+    if (useAdaptiveTimeStep) {
+      // Adaptive Step (RKF45)
+      let remainingDt = dt;
+      let currentStep = dt; // Initial guess
+      
+      while (remainingDt > 1e-6) {
+        // Don't step past the end of the frame
+        const stepAttempt = Math.min(currentStep, remainingDt);
+        
+        const result = rkf45Step(
+          bodies,
+          stepAttempt,
+          1e-9, // Tolerance
+          enableTidalEvolution,
+          enableAtmosphericDrag,
+          enableYarkovsky,
+          enableRelativity
+        );
+        
+        if (result.takenDt > 0) {
+          remainingDt -= result.takenDt;
+        }
+        
+        currentStep = result.nextDt;
+        
+        // Safety break if step becomes too small
+        if (currentStep < 1e-8 && remainingDt > 1e-6) {
+             // Force a small step or break? 
+             // Let's just break to avoid infinite loop and accept the drift
+             break;
+        }
+      }
+    } else {
+      // Fixed Step (Yoshida)
+      const MAX_SUB_STEP = 600;
+      let remainingDt = dt;
 
-    while (remainingDt > 0) {
-      const step = Math.min(remainingDt, MAX_SUB_STEP);
-      yoshida4Step(
-        bodies,
-        step,
-        enableTidalEvolution,
-        enableAtmosphericDrag,
-        enableYarkovsky
-      );
-      remainingDt -= step;
+      while (remainingDt > 0) {
+        const step = Math.min(remainingDt, MAX_SUB_STEP);
+        yoshida4Step(
+          bodies,
+          step,
+          enableTidalEvolution,
+          enableAtmosphericDrag,
+          enableYarkovsky,
+          enableRelativity
+        );
+        remainingDt -= step;
+      }
     }
     
     physicsCompute.performanceMonitor.endPhysics();
@@ -551,6 +589,10 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     setEnableNutation,
     setUseTDBTime,
     setEnableLightAberration,
+    enableRelativity,
+    setEnableRelativity,
+    useAdaptiveTimeStep,
+    setUseAdaptiveTimeStep,
     isLoading
   };
 }

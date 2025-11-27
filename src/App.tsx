@@ -61,6 +61,10 @@ export function App() {
     setEnableNutation,
     setUseTDBTime,
     setEnableLightAberration,
+    enableRelativity,
+    setEnableRelativity,
+    useAdaptiveTimeStep,
+    setUseAdaptiveTimeStep,
     physicsCompute, // GPU/Worker compute interface
     addBody
   } = useSimulation(simulationData, simulationStartDate);
@@ -146,6 +150,10 @@ export function App() {
           onToggleTDBTime={setUseTDBTime}
           onToggleLightAberration={setEnableLightAberration}
           onToggleLightTimeDelay={setUseLightTimeDelay}
+          enableRelativity={enableRelativity}
+          useAdaptiveTimeStep={useAdaptiveTimeStep}
+          onToggleRelativity={setEnableRelativity}
+          onToggleAdaptiveTimeStep={setUseAdaptiveTimeStep}
         />
 
         <PerformanceSettings
