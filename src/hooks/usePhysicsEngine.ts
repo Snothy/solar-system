@@ -332,7 +332,7 @@ export function usePhysicsEngine(
     // Return the actual time simulated
     return simulatedDt;
 
-  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, useAdaptiveTimeStep]);
+  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, useAdaptiveTimeStep, adaptiveQuality]);
 
   // Custom setter to handle ref and throttling
   const setSimTimeThrottled = useCallback((valOrUpdater: number | ((prev: number) => number)) => {
