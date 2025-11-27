@@ -5,16 +5,9 @@ import type { PhysicsBody, VisualBody } from '../types';
 import { SCALE, TRAIL_LENGTH } from '../utils/constants';
 
 // Reusable objects to avoid GC
+// Reusable objects to avoid GC
 const _visualPos = new THREE.Vector3();
-const _correction = new THREE.Vector3();
-const _observerVel = new THREE.Vector3();
-const _toObject = new THREE.Vector3();
-const _vCross = new THREE.Vector3();
-const _perpDirection = new THREE.Vector3();
-const _parentPos = new THREE.Vector3();
-const _dir = new THREE.Vector3();
 const _pole = new THREE.Vector3();
-const _geometricPos = new THREE.Vector3();
 
 export interface VisualUpdates {
   visualScale: number;
@@ -118,86 +111,17 @@ export function useVisualUpdates(
         }
     }
 
-    // Fallback to JS (Original Logic)
+    // Fallback to JS (Minimal Geometric Update)
+    // If WASM is not ready, just show bodies at their current geometric position.
     visualBodies.forEach(vb => {
-      // Update position (simple heliocentric coordinates)
-      _geometricPos.set(
+      _visualPos.set(
         vb.body.pos.x * SCALE,
         vb.body.pos.y * SCALE,
         vb.body.pos.z * SCALE
       );
-      _visualPos.copy(_geometricPos);
-
-      // Update Libration (Moon only)
-      if (vb.body.name === "Moon" && vb.body.libration !== undefined) {
-         vb.libration = vb.body.libration;
-      }
-
-      // Light Time Delay Correction
-      if (useLightTimeDelay) {
-        const dist = observerPos.current.distanceTo(_visualPos);
-        const distMeters = dist / SCALE;
-        const C = 299792458;
-        const delay = distMeters / C;
-        
-        _correction.copy(vb.body.vel).multiplyScalar(delay * SCALE).negate();
-        _visualPos.add(_correction);
-      }
-
-      // Light Aberration Correction
-      if (enableLightAberration) {
-        _observerVel.set(0, 0, 0);
-        if (focusedObject) {
-          _observerVel.copy(focusedObject.vel);
-        }
-        
-        _toObject.subVectors(_visualPos, observerPos.current).normalize();
-        const C = 299792458;
-        _vCross.crossVectors(_observerVel, _toObject);
-        const aberrationAngle = _vCross.length() / C;
-        
-        if (aberrationAngle > 1e-12) {
-          _perpDirection.copy(_vCross).normalize();
-          const dist = observerPos.current.distanceTo(_visualPos);
-          const shift = _perpDirection.multiplyScalar(dist * Math.sin(aberrationAngle));
-          _visualPos.add(shift);
-        }
-      }
-
-      // Moon visibility fix (Visual Scale)
-      if (useVisualScale && vb.body.parentName) {
-        const parentVb = visualBodies.find(p => p.body.name === vb.body.parentName);
-        if (parentVb) {
-          _parentPos.set(
-            parentVb.body.pos.x * SCALE,
-            parentVb.body.pos.y * SCALE,
-            parentVb.body.pos.z * SCALE
-          );
-          
-          if (useLightTimeDelay) {
-             const pDist = observerPos.current.distanceTo(_parentPos);
-             const pDelay = (pDist / SCALE) / 299792458;
-             _correction.copy(parentVb.body.vel).multiplyScalar(pDelay * SCALE).negate();
-             _parentPos.add(_correction);
-          }
-
-          const parentRadius = parentVb.baseRadius * visualScale;
-          const childRadius = vb.baseRadius * visualScale;
-
-          _dir.subVectors(_visualPos, _parentPos);
-          const dist = _dir.length();
-          const minDistance = parentRadius * 1.2 + childRadius;
-
-          if (dist < minDistance) {
-            _dir.normalize();
-            _visualPos.copy(_parentPos).add(_dir.multiplyScalar(minDistance));
-          }
-        }
-      }
-
       vb.mesh.position.copy(_visualPos);
 
-      // Update rotation
+      // Simple rotation
       if (vb.body.angularVelocity) {
         _pole.copy(vb.body.poleVector || new THREE.Vector3(0, 1, 0));
         const spinSpeed = vb.body.angularVelocity.dot(_pole);
@@ -206,23 +130,21 @@ export function useVisualUpdates(
         vb.mesh.rotation.y += vb.rotationSpeed * dt;
       }
 
-      // Update trail
-      const positions = vb.trail.geometry.attributes.position.array as Float32Array;
-      
+      // Simple trail update (Geometric)
+      const trailPositions = vb.trail.geometry.attributes.position.array as Float32Array;
       if (vb.trailCount >= TRAIL_LENGTH) {
-        positions.copyWithin(0, 3, TRAIL_LENGTH * 3);
+        trailPositions.copyWithin(0, 3, TRAIL_LENGTH * 3);
         const lastIdx = (TRAIL_LENGTH - 1) * 3;
-        positions[lastIdx] = _geometricPos.x;
-        positions[lastIdx + 1] = _geometricPos.y;
-        positions[lastIdx + 2] = _geometricPos.z;
+        trailPositions[lastIdx] = _visualPos.x;
+        trailPositions[lastIdx + 1] = _visualPos.y;
+        trailPositions[lastIdx + 2] = _visualPos.z;
       } else {
         const idx = vb.trailCount * 3;
-        positions[idx] = _geometricPos.x;
-        positions[idx + 1] = _geometricPos.y;
-        positions[idx + 2] = _geometricPos.z;
+        trailPositions[idx] = _visualPos.x;
+        trailPositions[idx + 1] = _visualPos.y;
+        trailPositions[idx + 2] = _visualPos.z;
         vb.trailCount++;
       }
-
       vb.trail.geometry.setDrawRange(0, vb.trailCount);
       vb.trail.geometry.attributes.position.needsUpdate = true;
     });

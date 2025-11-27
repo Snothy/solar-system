@@ -98,6 +98,16 @@ export function usePhysicsEngine(
   const [timeStep, setTimeStep] = useState(0); // Real time: 0 = realtime (1 second per second)
   const [particles, setParticles] = useState<Particle[]>([]);
 
+  // Refs for throttled time updates
+  const simTimeRef = useRef(initialTime);
+  const lastStateUpdateTime = useRef(0);
+
+  // Sync ref if initialTime changes
+  useEffect(() => {
+    if (simTimeRef.current === initialTime) return;
+    simTimeRef.current = initialTime;
+  }, [initialTime]);
+
   // Physics Settings
   const [enableTidalEvolution, setEnableTidalEvolution] = useState(true);
   const [enableAtmosphericDrag, setEnableAtmosphericDrag] = useState(true);
@@ -229,7 +239,8 @@ export function usePhysicsEngine(
 
   const step = useCallback((dt: number) => {
     // Get current time in TDB if enabled
-    const currentTime = useTDBTime ? utcToTDB(simTime) : simTime;
+    // Use the ref for accurate physics time
+    const currentTime = useTDBTime ? utcToTDB(simTimeRef.current) : simTimeRef.current;
 
     let simulatedDt = dt;
 
@@ -317,7 +328,33 @@ export function usePhysicsEngine(
     // Return the actual time simulated
     return simulatedDt;
 
-  }, [bodies, simTime, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions]);
+  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, useAdaptiveTimeStep]);
+
+  // Custom setter to handle ref and throttling
+  const setSimTimeThrottled = useCallback((valOrUpdater: number | ((prev: number) => number)) => {
+    let newVal: number;
+    if (typeof valOrUpdater === 'function') {
+      newVal = valOrUpdater(simTimeRef.current);
+    } else {
+      newVal = valOrUpdater;
+    }
+    
+    simTimeRef.current = newVal;
+
+    // Throttle React state update to ~15 FPS (every 60ms)
+    const now = performance.now();
+    if (now - lastStateUpdateTime.current > 60) {
+      setSimTime(newVal);
+      lastStateUpdateTime.current = now;
+    }
+  }, []);
+
+  // Force update state when pausing to ensure UI is consistent
+  useEffect(() => {
+    if (isPaused) {
+        setSimTime(simTimeRef.current);
+    }
+  }, [isPaused]);
 
   // Expose getVisualState for visual updates
   const getVisualState = useCallback((
@@ -351,7 +388,7 @@ export function usePhysicsEngine(
 
   return {
     simTime,
-    setSimTime,
+    setSimTime: setSimTimeThrottled, // Use our wrapper
     timeStep,
     setTimeStep,
     isPaused,

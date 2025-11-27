@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import React from 'react';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
 import type { PhysicsBody } from '../../types';
 import styles from './ObjectList.module.css';
@@ -12,7 +13,7 @@ interface ObjectListProps {
   onToggleAllOrbits: (visible: boolean) => void;
 }
 
-export function ObjectList({ 
+export const ObjectList = React.memo(function ObjectList({ 
   bodies, 
   selectedObject, 
   onSelect, 
@@ -53,7 +54,8 @@ export function ObjectList({
                 className={`${styles.objectItem} ${isSelected ? styles.selected : ''}`}
               >
                 <div 
-                  className="flex-1 flex items-center cursor-pointer"
+                  className={styles.objectItemContent}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                   onClick={() => onSelect(body)}
                 >
                   <div 
@@ -98,7 +100,7 @@ export function ObjectList({
                     style={{ paddingLeft: '2rem', borderLeft: '2px solid rgba(255,255,255,0.05)' }}
                   >
                     <div 
-                      className="flex-1 flex items-center cursor-pointer"
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                       onClick={() => onSelect(childBody)}
                     >
                       <div 
@@ -135,4 +137,4 @@ export function ObjectList({
       </ul>
     </>
   );
-}
+});
