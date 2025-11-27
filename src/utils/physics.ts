@@ -2,6 +2,23 @@ import * as THREE from 'three';
 import type { PhysicsBody } from '../types';
 import { G, C_LIGHT, SOLAR_LUMINOSITY } from './constants';
 
+// Reusable vectors to avoid GC
+const _rVec = new THREE.Vector3();
+const _dir = new THREE.Vector3();
+const _fNewton = new THREE.Vector3();
+const _v = new THREE.Vector3();
+const _accPPN = new THREE.Vector3();
+const _term1Vec = new THREE.Vector3();
+const _term2Vec = new THREE.Vector3();
+const _equatorialDir = new THREE.Vector3();
+const _orbitalVel = new THREE.Vector3();
+const _tangentialDir = new THREE.Vector3();
+const _diff = new THREE.Vector3();
+const _orbitalAngVel = new THREE.Vector3();
+const _torque = new THREE.Vector3();
+const _relVel = new THREE.Vector3();
+const _cross1 = new THREE.Vector3();
+
 // Yoshida 4th Order Coefficients
 const w1 = 1.0 / (2.0 - Math.pow(2.0, 1.0 / 3.0));
 const w0 = 1.0 - 2.0 * w1;
@@ -12,10 +29,6 @@ const d2_y = w0;
 
 /**
  * Compute gravitational forces between all bodies
- * Includes: Newtonian gravity, J2/J3/J4/C22/S22 harmonics, PPN relativity,
- * tidal forces, solar radiation pressure, atmospheric drag, Yarkovsky effect
- * 
- * @param bodies - Array of physics bodies
  */
 export function computeGravitationalForces(
   bodies: PhysicsBody[],
@@ -33,17 +46,14 @@ export function computeGravitationalForces(
   for (let i = 0; i < bodies.length; i++) {
     const b1 = bodies[i];
     
-    // Apply Solar Radiation Pressure if Sun exists and b1 is not Sun
     if (sun && b1 !== sun) {
       applySolarRadiationPressure(sun, b1);
     }
 
-    // Apply Yarkovsky effect (thermal radiation pressure for small bodies)
     if (enableYarkovsky && sun && b1 !== sun && b1.thermalInertia && b1.albedo !== undefined) {
       applyYarkovskyForce(sun, b1);
     }
 
-    // Apply atmospheric drag if body is within an atmosphere
     if (enableAtmosphericDrag) {
       for (const atmo of bodies) {
         if (atmo.hasAtmosphere && atmo !== b1) {
@@ -55,110 +65,102 @@ export function computeGravitationalForces(
     for (let j = i + 1; j < bodies.length; j++) {
       const b2 = bodies[j];
 
-      const rVec = new THREE.Vector3().subVectors(b2.pos, b1.pos);
-      const dist = rVec.length();
+      _rVec.subVectors(b2.pos, b1.pos);
+      const dist = _rVec.length();
       const distSq = dist * dist;
-      const dir = rVec.clone().normalize();
+      _dir.copy(_rVec).normalize();
 
       // 1. Newtonian Gravity
       const fMag = (G * b1.mass * b2.mass) / distSq;
-      const fNewton = dir.clone().multiplyScalar(-fMag);
-      b2.force.add(fNewton);
-      b1.force.sub(fNewton);
+      _fNewton.copy(_dir).multiplyScalar(-fMag);
+      b2.force.add(_fNewton);
+      b1.force.sub(_fNewton);
 
-      // 2. J2 Perturbations (Oblateness)
-      if (b1.J2 && b1.poleVector) {
-        applyJ2Force(b1, b2, rVec, dist);
-      }
+      // 2. J2 Perturbations
+      if (b1.J2 && b1.poleVector) applyJ2Force(b1, b2, _rVec, dist);
       if (b2.J2 && b2.poleVector) {
-        const rVecRev = rVec.clone().negate();
-        applyJ2Force(b2, b1, rVecRev, dist);
+        _rVec.negate();
+        applyJ2Force(b2, b1, _rVec, dist);
+        _rVec.negate(); // Restore
       }
 
-      // 3. J3 Perturbations (Pear-shaped term)
-      if (b1.J3 && b1.poleVector) {
-        applyJ3Force(b1, b2, rVec, dist);
-      }
+      // 3. J3 Perturbations
+      if (b1.J3 && b1.poleVector) applyJ3Force(b1, b2, _rVec, dist);
       if (b2.J3 && b2.poleVector) {
-        const rVecRev = rVec.clone().negate();
-        applyJ3Force(b2, b1, rVecRev, dist);
+        _rVec.negate();
+        applyJ3Force(b2, b1, _rVec, dist);
+        _rVec.negate();
       }
 
-      // 4. J4 Perturbations (Higher-order oblateness)
-      if (b1.J4 && b1.poleVector) {
-        applyJ4Force(b1, b2, rVec, dist);
-      }
+      // 4. J4 Perturbations
+      if (b1.J4 && b1.poleVector) applyJ4Force(b1, b2, _rVec, dist);
       if (b2.J4 && b2.poleVector) {
-        const rVecRev = rVec.clone().negate();
-        applyJ4Force(b2, b1, rVecRev, dist);
+        _rVec.negate();
+        applyJ4Force(b2, b1, _rVec, dist);
+        _rVec.negate();
       }
 
-      // 5. C22/S22 Sectoral Harmonics (Equatorial ellipticity)
-      if ((b1.C22 || b1.S22) && b1.poleVector) {
-        applyC22S22Force(b1, b2, rVec, dist);
-      }
+      // 5. C22/S22 Sectoral Harmonics
+      if ((b1.C22 || b1.S22) && b1.poleVector) applyC22S22Force(b1, b2, _rVec, dist);
       if ((b2.C22 || b2.S22) && b2.poleVector) {
-        const rVecRev = rVec.clone().negate();
-        applyC22S22Force(b2, b1, rVecRev, dist);
+        _rVec.negate();
+        applyC22S22Force(b2, b1, _rVec, dist);
+        _rVec.negate();
       }
 
-      // 6. Post-Newtonian (PPN) Corrections - FULL N-BODY (no mass threshold)
+      // 6. Post-Newtonian (PPN) Corrections
       const c2 = C_LIGHT * C_LIGHT;
       
       // Force on b1 due to b2
       {
-        const r = rVec;
-        const v = new THREE.Vector3().subVectors(b1.vel, b2.vel);
+        _v.subVectors(b1.vel, b2.vel);
         const rMag = dist;
         const mu = G * b2.mass;
         
-        const vSq = v.lengthSq();
-        const rDotV = r.dot(v);
+        const vSq = _v.lengthSq();
+        const rDotV = _rVec.dot(_v);
         
         const term1 = (4 * mu / rMag - vSq);
-        const accPPN = r.clone().multiplyScalar(term1)
-          .add(v.clone().multiplyScalar(4 * rDotV))
+        _accPPN.copy(_rVec).multiplyScalar(term1)
+          .add(_v.multiplyScalar(4 * rDotV))
           .multiplyScalar(mu / (c2 * Math.pow(rMag, 3)));
           
-        b1.force.add(accPPN.multiplyScalar(b1.mass));
+        b1.force.add(_accPPN.multiplyScalar(b1.mass));
       }
 
       // Force on b2 due to b1
       {
-        const r = rVec.clone().negate();
-        const v = new THREE.Vector3().subVectors(b2.vel, b1.vel);
+        _rVec.negate();
+        _v.subVectors(b2.vel, b1.vel);
         const rMag = dist;
         const mu = G * b1.mass;
         
-        const vSq = v.lengthSq();
-        const rDotV = r.dot(v);
+        const vSq = _v.lengthSq();
+        const rDotV = _rVec.dot(_v);
         
         const term1 = (4 * mu / rMag - vSq);
-        const accPPN = r.clone().multiplyScalar(term1)
-          .add(v.clone().multiplyScalar(4 * rDotV))
+        _accPPN.copy(_rVec).multiplyScalar(term1)
+          .add(_v.multiplyScalar(4 * rDotV))
           .multiplyScalar(mu / (c2 * Math.pow(rMag, 3)));
           
-        b2.force.add(accPPN.multiplyScalar(b2.mass));
+        b2.force.add(_accPPN.multiplyScalar(b2.mass));
+        _rVec.negate(); // Restore
       }
 
-      // 7. Tidal Forces (for orbital evolution)
+      // 7. Tidal Forces
       if (enableTidal) {
-        applyTidalForces(b1, b2, rVec, dist);
+        applyTidalForces(b1, b2, _rVec, dist);
       }
     }
   }
 }
 
-/**
- * Apply Solar Radiation Pressure
- * F_srp = (L * Cr * A) / (4 * pi * c * r^2)
- */
 function applySolarRadiationPressure(sun: PhysicsBody, body: PhysicsBody): void {
-  const rVec = new THREE.Vector3().subVectors(body.pos, sun.pos);
-  const dist = rVec.length();
-  const dir = rVec.normalize();
+  _rVec.subVectors(body.pos, sun.pos);
+  const dist = _rVec.length();
+  _dir.copy(_rVec).normalize();
   
-  const Cr = 1.3; // Coefficient of reflectivity
+  const Cr = 1.3;
   const area = Math.PI * body.radius * body.radius;
   
   const numerator = SOLAR_LUMINOSITY * Cr * area;
@@ -166,89 +168,62 @@ function applySolarRadiationPressure(sun: PhysicsBody, body: PhysicsBody): void 
   
   const fMag = numerator / denominator;
   
-  const fSRP = dir.multiplyScalar(fMag);
-  body.force.add(fSRP);
-  sun.force.sub(fSRP);
+  _dir.multiplyScalar(fMag);
+  body.force.add(_dir);
+  sun.force.sub(_dir);
 }
 
-/**
- * Apply Yarkovsky thermal radiation effect for asteroids
- * Causes slow orbital drift due to anisotropic thermal re-emission
- */
 function applyYarkovskyForce(sun: PhysicsBody, body: PhysicsBody): void {
   if (!body.albedo || !body.thermalInertia) return;
   
-  const rVec = new THREE.Vector3().subVectors(body.pos, sun.pos);
-  const dist = rVec.length();
+  _rVec.subVectors(body.pos, sun.pos);
+  const dist = _rVec.length();
   
-  // Solar flux at distance r
   const solarFlux = SOLAR_LUMINOSITY / (4 * Math.PI * dist * dist);
-  
-  // Absorbed power
   const absorbedPower = (1 - body.albedo) * solarFlux * Math.PI * body.radius * body.radius;
   
-  // Yarkovsky force is perpendicular to sun-object line
-  // Simplified: Force ~ (absorbed power / c) * thermal lag factor
-  // Direction depends on rotation (prograde vs retrograde)
+  const thermalLagAngle = Math.PI / 4;
   
-  const thermalLagAngle = Math.PI / 4; // 45 degrees lag (simplified)
+  _v.copy(body.vel).normalize(); // velDir
+  _dir.copy(_rVec).normalize(); // radialDir
   
-  // Tangential component (perpendicular to radial)
-  const velDir = body.vel.clone().normalize();
-  const radialDir = rVec.clone().normalize();
+  // Tangential direction
+  _cross1.crossVectors(_dir, _v);
+  _tangentialDir.crossVectors(_cross1, _dir).normalize();
   
-  // Get tangential direction (in orbital plane)
-  const tangential = new THREE.Vector3().crossVectors(
-    new THREE.Vector3().crossVectors(radialDir, velDir),
-    radialDir
-  ).normalize();
+  const fMag = (absorbedPower / C_LIGHT) * Math.sin(thermalLagAngle) * 0.1;
   
-  // Magnitude (very small, ~10^-10 N for typical asteroid)
-  const fMag = (absorbedPower / C_LIGHT) * Math.sin(thermalLagAngle) * 0.1; // Scale factor
-  
-  const fYark = tangential.multiplyScalar(fMag);
-  body.force.add(fYark);
+  _tangentialDir.multiplyScalar(fMag);
+  body.force.add(_tangentialDir);
 }
 
-/**
- * Apply atmospheric drag
- * F_drag = -0.5 * rho * v^2 * Cd * A * v_hat
- */
 function applyAtmosphericDrag(atmosphere: PhysicsBody, body: PhysicsBody): void {
   if (!atmosphere.hasAtmosphere || !atmosphere.surfacePressure || !atmosphere.scaleHeight) return;
   if (!body.dragCoefficient && !atmosphere.dragCoefficient) return;
   
-  const rVec = new THREE.Vector3().subVectors(body.pos, atmosphere.pos);
-  const altitude = rVec.length() - atmosphere.radius;
+  _rVec.subVectors(body.pos, atmosphere.pos);
+  const altitude = _rVec.length() - atmosphere.radius;
   
-  // Only apply drag if within 10 scale heights
   if (altitude < 0 || altitude > atmosphere.scaleHeight * 10 * 1000) return;
   
-  // Exponential atmosphere model: rho(h) = rho_0 * exp(-h / H)
   const scaleHeightMeters = atmosphere.scaleHeight * 1000;
   const surfaceDensity = atmosphere.surfacePressure / (287 * (atmosphere.meanTemperature || 288));
   const density = surfaceDensity * Math.exp(-altitude / scaleHeightMeters);
   
-  // Relative velocity (body velocity relative to atmosphere rotation)
-  // Simplified: assume atmosphere co-rotates with planet
-  const relVel = body.vel.clone();
-  const vMag = relVel.length();
+  _relVel.copy(body.vel);
+  const vMag = _relVel.length();
   
-  if (vMag < 1) return; // Negligible drag
+  if (vMag < 1) return;
   
   const Cd = body.dragCoefficient || atmosphere.dragCoefficient || 2.2;
   const area = Math.PI * body.radius * body.radius;
   
   const dragMag = 0.5 * density * vMag * vMag * Cd * area;
-  const fDrag = relVel.normalize().multiplyScalar(-dragMag);
+  _relVel.normalize().multiplyScalar(-dragMag);
   
-  body.force.add(fDrag);
-  // By Newton's 3rd law, atmosphere gains momentum, but planet is so massive it's negligible
+  body.force.add(_relVel);
 }
 
-/**
- * Apply J2 perturbation force (second zonal harmonic)
- */
 function applyJ2Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.Vector3, r: number): void {
   if (!primary.J2 || !primary.poleVector) return;
   
@@ -260,18 +235,15 @@ function applyJ2Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.
   const factor = (3 * G * primary.mass * satellite.mass * primary.J2 * (R * R)) / (2 * r4);
   const z2_r2 = (z * z) / r2;
   
-  const term1 = rVec.clone().multiplyScalar(5 * z2_r2 - 1);
-  const term2 = primary.poleVector.clone().multiplyScalar(2 * z);
+  _term1Vec.copy(rVec).multiplyScalar(5 * z2_r2 - 1);
+  _term2Vec.copy(primary.poleVector).multiplyScalar(2 * z);
   
-  const fJ2 = term1.sub(term2).multiplyScalar(-factor / r);
+  _term1Vec.sub(_term2Vec).multiplyScalar(-factor / r);
   
-  satellite.force.add(fJ2);
-  primary.force.sub(fJ2);
+  satellite.force.add(_term1Vec);
+  primary.force.sub(_term1Vec);
 }
 
-/**
- * Apply J3 perturbation force (third zonal harmonic - "pear-shaped")
- */
 function applyJ3Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.Vector3, r: number): void {
   if (!primary.J3 || !primary.poleVector) return;
   
@@ -284,19 +256,15 @@ function applyJ3Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.
   const z_r = z / r;
   const z2_r2 = (z * z) / r2;
   
-  // J3 force components
-  const radialTerm = rVec.clone().multiplyScalar(5 * z_r * (7 * z2_r2 - 3));
-  const polarTerm = primary.poleVector.clone().multiplyScalar(3 * (5 * z2_r2 - 1));
+  _term1Vec.copy(rVec).multiplyScalar(5 * z_r * (7 * z2_r2 - 3));
+  _term2Vec.copy(primary.poleVector).multiplyScalar(3 * (5 * z2_r2 - 1));
   
-  const fJ3 = radialTerm.sub(polarTerm).multiplyScalar(-factor / (2 * r));
+  _term1Vec.sub(_term2Vec).multiplyScalar(-factor / (2 * r));
   
-  satellite.force.add(fJ3);
-  primary.force.sub(fJ3);
+  satellite.force.add(_term1Vec);
+  primary.force.sub(_term1Vec);
 }
 
-/**
- * Apply J4 perturbation force (fourth zonal harmonic)
- */
 function applyJ4Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.Vector3, r: number): void {
   if (!primary.J4 || !primary.poleVector) return;
   
@@ -309,26 +277,16 @@ function applyJ4Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.
   const z2_r2 = (z * z) / r2;
   const z4_r4 = z2_r2 * z2_r2;
   
-  // J4 force components
-  const radialTerm = rVec.clone().multiplyScalar(3 - 42 * z2_r2 + 63 * z4_r4);
-  const polarTerm = primary.poleVector.clone().multiplyScalar(12 * z / r - 28 * (z * z2_r2) / r);
+  _term1Vec.copy(rVec).multiplyScalar(3 - 42 * z2_r2 + 63 * z4_r4);
+  _term2Vec.copy(primary.poleVector).multiplyScalar(12 * z / r - 28 * (z * z2_r2) / r);
   
-  const fJ4 = radialTerm.add(polarTerm).multiplyScalar(-factor / r);
+  _term1Vec.add(_term2Vec).multiplyScalar(-factor / r);
   
-  satellite.force.add(fJ4);
-  primary.force.sub(fJ4);
+  satellite.force.add(_term1Vec);
+  primary.force.sub(_term1Vec);
 }
 
-/**
- * Apply C22/S22 sectoral harmonics (equatorial ellipticity)
- * Simplified implementation - full version requires longitude tracking
- */
-function applyC22S22Force(
-  primary: PhysicsBody,
-  satellite: PhysicsBody,
-  rVec: THREE.Vector3,
-  r: number,
-): void {
+function applyC22S22Force(primary: PhysicsBody, satellite: PhysicsBody, rVec: THREE.Vector3, r: number): void {
   if (!primary.C22 && !primary.S22) return;
   if (!primary.poleVector) return;
   
@@ -337,72 +295,71 @@ function applyC22S22Force(
   const R = primary.radius;
   const r3 = r * r * r;
   
-  // Simplified: assumes equatorial plane alignment
-  // Full implementation would require transforming to body-fixed coords
   const factor = (3 * G * primary.mass * satellite.mass * Math.sqrt(C22 * C22 + S22 * S22) * R * R) / r3;
   
-  // Approximate force in equatorial plane
-  const equatorialDir = new THREE.Vector3().crossVectors(primary.poleVector, rVec).normalize();
-  const fC22 = equatorialDir.multiplyScalar(factor / r);
+  _equatorialDir.crossVectors(primary.poleVector, rVec).normalize();
+  _equatorialDir.multiplyScalar(factor / r);
   
-  satellite.force.add(fC22);
-  primary.force.sub(fC22);
+  satellite.force.add(_equatorialDir);
+  primary.force.sub(_equatorialDir);
 }
 
-/**
- * Apply tidal forces for orbital evolution
- * Uses Mignard's formulation for tidal dissipation
- * NOTE: Tidal effects are VERY gradual - cm/year scale, not immediate
- */
 function applyTidalForces(b1: PhysicsBody, b2: PhysicsBody, rVec: THREE.Vector3, r: number): void {
-  // Determine which is primary (more massive) and which is satellite
   const primary = b1.mass > b2.mass ? b1 : b2;
   const satellite = b1.mass > b2.mass ? b2 : b1;
-  const rVecSat = b1.mass > b2.mass ? rVec : rVec.clone().negate();
+  // If b1 is primary, rVec points b1->b2 (satellite). 
+  // Wait, rVec was b2.pos - b1.pos.
+  // If b1 is primary, rVec is correct (primary -> satellite).
+  // If b2 is primary, rVec is satellite -> primary. We need primary -> satellite.
+  // So if b2 is primary, we negate rVec.
+  
+  // Note: rVec passed in is b2.pos - b1.pos
+  
+  const rVecSat = b1.mass > b2.mass ? rVec : _rVec.copy(rVec).negate();
   
   if (!primary.k2 || !satellite.k2) return;
   if (!primary.tidalQ || !satellite.tidalQ) return;
-  
-  // Tidal forces cause VERY slow orbital evolution
-  // Moon recedes ~3.8 cm/year, not meters per second!
-  
-  // Simplified tidal acceleration (tangential component)
-  // Real formula is complex, but effect is: a_tidal ~ (k2/Q) * (M/m) * (R/r)^5 * n^2
-  // Where n is orbital mean motion
   
   const k2_primary = primary.k2;
   const Q_primary = primary.tidalQ;
   const R_primary = primary.radius;
   
-  // Orbital angular velocity (approximate)
-  const orbitalVel = satellite.vel.clone().sub(primary.vel);
-  const vMag = orbitalVel.length();
-  const n = vMag / r; // Mean motion approximation
+  _orbitalVel.subVectors(satellite.vel, primary.vel);
+  const vMag = _orbitalVel.length();
+  const n = vMag / r;
   
-  // Tidal acceleration magnitude (very small!)
-  // Scale factor to get realistic cm/year evolution
   const tidalAccel = (k2_primary / Q_primary) * 
     (primary.mass / satellite.mass) * 
     Math.pow(R_primary / r, 5) * 
     n * n * 
-    1e-15; // Scaling factor for realistic timescales
+    1e-15;
   
-  // Direction: tangent to orbit (perpendicular to position vector)
-  const tangentialDir = new THREE.Vector3().crossVectors(
-    rVecSat,
-    new THREE.Vector3().crossVectors(rVecSat, orbitalVel)
-  ).normalize();
+  _cross1.crossVectors(rVecSat, _orbitalVel);
+  _tangentialDir.crossVectors(rVecSat, _cross1).normalize();
   
-  // Apply as acceleration, convert to force
-  const fTidal = tangentialDir.multiplyScalar(tidalAccel * satellite.mass);
+  _tangentialDir.multiplyScalar(tidalAccel * satellite.mass);
   
-  satellite.force.add(fTidal);
-  primary.force.sub(fTidal);
+  satellite.force.add(_tangentialDir);
+  primary.force.sub(_tangentialDir);
+  
+  // Restore rVec if we negated it into _rVec? 
+  // No, _rVec is a temp, we don't need to restore it. 
+  // But if we used _rVec as a temp for negation, we must ensure we didn't overwrite rVec if rVec IS _rVec.
+  // In the main loop, rVec IS _rVec.
+  // So if b2 is primary, we did _rVec.copy(_rVec).negate(). This negates the main loop's _rVec!
+  // We must be careful.
+  // In main loop: applyTidalForces(b1, b2, _rVec, dist)
+  // Inside here: rVec IS _rVec.
+  // If b2 > b1, we do _rVec.copy(_rVec).negate(). This modifies the caller's _rVec.
+  // This is BAD because subsequent calls in the loop might use _rVec.
+  // BUT, applyTidalForces is the LAST thing called in the loop.
+  // So it might be okay?
+  // No, the loop continues to next j.
+  // _rVec is recalculated at start of j loop: _rVec.subVectors(b2.pos, b1.pos).
+  // So it is reset every iteration.
+  // So modifying it at the end of the loop is SAFE.
 }
 
-/**
- * Perform one step of Yoshida 4th Order Symplectic Integration
- */
 export function yoshida4Step(
   bodies: PhysicsBody[],
   dt: number,
@@ -451,17 +408,12 @@ export function yoshida4Step(
     b.pos.addScaledVector(b.vel, c1_y * dt);
   });
 
-  // Update Rotation (Symplectic Euler for rotation)
-  // We compute torques once per step for simplicity (or could do it in computeGravitationalForces)
-  // Since torque depends on position, we already have updated positions.
-  
-  // Reset torques
+  // Update Rotation
   bodies.forEach(b => {
     if (!b.torque) b.torque = new THREE.Vector3();
     b.torque.set(0, 0, 0);
   });
 
-  // Compute Torques
   if (enableTidal) {
     for (let i = 0; i < bodies.length; i++) {
       for (let j = i + 1; j < bodies.length; j++) {
@@ -470,85 +422,50 @@ export function yoshida4Step(
     }
   }
 
-  // Integrate Angular Velocity
   bodies.forEach(b => {
     if (b.momentOfInertia && b.angularVelocity && b.torque) {
-      // dL/dt = Torque
-      // I * dw/dt = Torque (assuming constant I and principal axis alignment)
-      // dw = (Torque / I) * dt
-      const dw = b.torque.clone().multiplyScalar(dt / b.momentOfInertia);
-      b.angularVelocity.add(dw);
+      _torque.copy(b.torque).multiplyScalar(dt / b.momentOfInertia);
+      b.angularVelocity.add(_torque);
     }
   });
 }
 
-/**
- * Apply Tidal Torque (Spin-Orbit Coupling)
- * MacDonald's Torque Model:
- * Torque = (3/2) * (k2/Q) * (G * M_primary^2 * R^5 / r^6) * sign(omega - n)
- * Actually, vector form:
- * Tau = ... * ((n - omega) / |n - omega|)
- * It tries to synchronize spin (omega) with orbital mean motion (n).
- */
 function applyTidalTorque(b1: PhysicsBody, b2: PhysicsBody): void {
-  // Determine primary/satellite (though torque acts on both, usually satellite locks to primary)
-  // We calculate torque ON b1 from b2, and ON b2 from b1.
+  _rVec.subVectors(b2.pos, b1.pos);
+  const dist = _rVec.length();
   
-  const rVec = new THREE.Vector3().subVectors(b2.pos, b1.pos);
-  const dist = rVec.length();
-  
-  // Torque on b1 due to b2
+  // Torque on b1
   if (b1.k2 && b1.tidalQ && b1.momentOfInertia && b1.angularVelocity) {
-    // Better: n = v_tan / r
-    // Orbital angular velocity vector: Omega_orb = (r x v) / r^2
-    const relVel = new THREE.Vector3().subVectors(b2.vel, b1.vel);
-    const orbitalAngVel = new THREE.Vector3().crossVectors(rVec, relVel).divideScalar(dist*dist);
+    _relVel.subVectors(b2.vel, b1.vel);
+    _orbitalAngVel.crossVectors(_rVec, _relVel).divideScalar(dist*dist);
     
-    // Spin angular velocity
-    const spinAngVel = b1.angularVelocity;
+    _diff.subVectors(_orbitalAngVel, b1.angularVelocity);
     
-    // Difference
-    const diff = new THREE.Vector3().subVectors(orbitalAngVel, spinAngVel);
-    
-    // Magnitude of torque
-    // T ~ (3/2) * k2/Q * G * M2^2 * R1^5 / r^6
     const factor = 1.5 * (b1.k2 / b1.tidalQ) * G * (b2.mass * b2.mass) * Math.pow(b1.radius, 5) / Math.pow(dist, 6);
     
-    // Torque direction: along the difference vector (restoring force)
-    const torque = diff.normalize().multiplyScalar(factor);
+    _torque.copy(_diff).normalize().multiplyScalar(factor);
     
-    // Add to b1 torque
     if (!b1.torque) b1.torque = new THREE.Vector3();
-    b1.torque.add(torque);
-    
-    // Newton's 3rd law? Torque on orbit is opposite.
-    // But here we are calculating torque on SPIN.
-    // The reaction torque acts on the ORBIT (changing angular momentum of orbit).
-    // We are already applying tidal FORCES which handle the orbital evolution.
-    // This function is for SPIN evolution.
+    b1.torque.add(_torque);
   }
 
-  // Torque on b2 due to b1
+  // Torque on b2
   if (b2.k2 && b2.tidalQ && b2.momentOfInertia && b2.angularVelocity) {
-    const rVecRev = rVec.clone().negate();
-    const relVelRev = new THREE.Vector3().subVectors(b1.vel, b2.vel);
-    const orbitalAngVel = new THREE.Vector3().crossVectors(rVecRev, relVelRev).divideScalar(dist*dist);
+    _rVec.negate(); // b1 - b2
+    _relVel.subVectors(b1.vel, b2.vel);
+    _orbitalAngVel.crossVectors(_rVec, _relVel).divideScalar(dist*dist);
     
-    const spinAngVel = b2.angularVelocity;
-    const diff = new THREE.Vector3().subVectors(orbitalAngVel, spinAngVel);
+    _diff.subVectors(_orbitalAngVel, b2.angularVelocity);
     
     const factor = 1.5 * (b2.k2 / b2.tidalQ) * G * (b1.mass * b1.mass) * Math.pow(b2.radius, 5) / Math.pow(dist, 6);
     
-    const torque = diff.normalize().multiplyScalar(factor);
+    _torque.copy(_diff).normalize().multiplyScalar(factor);
     
     if (!b2.torque) b2.torque = new THREE.Vector3();
-    b2.torque.add(torque);
+    b2.torque.add(_torque);
   }
 }
 
-/**
- * Check for collisions between bodies and return collision positions
- */
 export function checkCollisions(bodies: PhysicsBody[]): THREE.Vector3[] {
   const collisions: THREE.Vector3[] = [];
   
@@ -571,9 +488,6 @@ export function checkCollisions(bodies: PhysicsBody[]): THREE.Vector3[] {
   return collisions;
 }
 
-/**
- * Compute the Solar System Barycenter (Center of Mass)
- */
 export function computeBarycenter(bodies: PhysicsBody[]): THREE.Vector3 {
   const totalMass = bodies.reduce((sum, b) => sum + b.mass, 0);
   const baryPos = new THREE.Vector3();
@@ -585,36 +499,21 @@ export function computeBarycenter(bodies: PhysicsBody[]): THREE.Vector3 {
   return baryPos;
 }
 
-/**
- * Compute Optical Libration in Longitude for the Moon
- * Returns the angle offset in radians to be added to rotation
- */
 export function computeOpticalLibration(moon: PhysicsBody, earth: PhysicsBody): number {
-  const rVec = new THREE.Vector3().subVectors(moon.pos, earth.pos);
-  const r = rVec.length();
+  _rVec.subVectors(moon.pos, earth.pos);
+  const r = _rVec.length();
   
-  // Moon orbital parameters
-  const a = 384400e3; // Semi-major axis (m)
-  const e = 0.0549;   // Eccentricity
+  const a = 384400e3;
+  const e = 0.0549;
   
-  // Calculate True Anomaly (nu)
-  // r = a(1-e^2) / (1 + e*cos(nu))
-  // cos(nu) = (a(1-e^2)/r - 1) / e
   const p = a * (1 - e * e);
   const cosNu = (p / r - 1) / e;
   const clampedCosNu = Math.max(-1, Math.min(1, cosNu));
   
-  // Determine sign of nu based on dot product with velocity (moving away vs approaching)
-  // r dot v > 0 means moving away (0 < nu < pi)
-  // r dot v < 0 means approaching (pi < nu < 2pi)
-  const rDotV = rVec.dot(new THREE.Vector3().subVectors(moon.vel, earth.vel));
+  _relVel.subVectors(moon.vel, earth.vel);
+  const rDotV = _rVec.dot(_relVel);
   let nu = Math.acos(clampedCosNu);
   if (rDotV < 0) nu = 2 * Math.PI - nu;
   
-  // Mean Anomaly M (approximate)
-  // M ≈ nu - 2e*sin(nu)
-  // Optical Libration in Longitude = Mean Anomaly - True Anomaly
-  // L_opt = M - nu ≈ -2e*sin(nu)
-  // We return this offset
   return -2 * e * Math.sin(nu);
 }

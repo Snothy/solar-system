@@ -149,11 +149,7 @@ export function App() {
         />
 
         <PerformanceSettings
-          computeMode={physicsCompute.computeMode}
-          setComputeMode={physicsCompute.setComputeMode}
           metrics={physicsCompute.getPerformanceMetrics()}
-          workerAvailable={physicsCompute.workerReady}
-          gpuAvailable={physicsCompute.gpuReady}
         />
 
         <TimeControls

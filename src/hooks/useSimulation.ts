@@ -7,7 +7,6 @@ import { yoshida4Step, checkCollisions, computeBarycenter, computeOpticalLibrati
 import { utcToTDB } from '../utils/timeUtils';
 import { computePoleVector, updatePoleOrientation } from '../utils/precession';
 import { usePhysicsCompute } from './usePhysicsCompute';
-import type { PhysicsConfig } from '../workers/workerTypes';
 
 export function useSimulation(initialData: any[] | null = null, startDate: Date = START_DATE) {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
@@ -150,36 +149,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     initSimulation();
   }, [initialData]);
 
-  // Initialize physics worker when bodies are ready
-  useEffect(() => {
-    if (bodies.length > 0 && physicsCompute.workerReady) {
-      const config: PhysicsConfig = {
-        enableTidal: enableTidalEvolution,
-        enableAtmosphericDrag,
-        enableYarkovsky,
-        enablePrecession,
-        enableNutation,
-        useTDBTime
-      };
-      physicsCompute.initializeBodies(bodies, config);
-    }
-  }, [bodies.length, physicsCompute.workerReady]); // Only depends on length to avoid re-init
-
-  // Update worker config when physics toggles change
-  useEffect(() => {
-    if (physicsCompute.workerReady) {
-      physicsCompute.updateConfig({
-        enableTidal: enableTidalEvolution,
-        enableAtmosphericDrag,
-        enableYarkovsky,
-        enablePrecession,
-        enableNutation,
-        useTDBTime
-      });
-    }
-  }, [enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, 
-      enablePrecession, enableNutation, useTDBTime, physicsCompute]);
-
+ 
   const removeParticle = (index: number) => {
     setParticles(prev => prev.filter((_, i) => i !== index));
   };
@@ -213,6 +183,125 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     physicsCompute.performanceMonitor.endPhysics();
   };
 
+  const updateVisuals = (dt: number) => {
+    // Main thread always used now
+    // Barycentric Correction
+    const barycenter = computeBarycenter(bodies);
+    bodies.forEach(b => {
+      b.pos.sub(barycenter);
+    });
+
+    // Update visual bodies
+    visualBodies.forEach(vb => {
+      // Update position
+      let visualPos = new THREE.Vector3(
+        vb.body.pos.x * SCALE,
+        vb.body.pos.y * SCALE,
+        vb.body.pos.z * SCALE
+      );
+
+      // Calculate Moon Libration
+      if (vb.body.name === 'Moon') {
+        const earth = bodies.find(b => b.name === 'Earth');
+        if (earth) {
+          vb.libration = computeOpticalLibration(vb.body, earth);
+        }
+      }
+
+      // Light Time Delay Correction
+      if (useLightTimeDelay) {
+        const dist = observerPos.current.distanceTo(visualPos);
+        const distMeters = dist / SCALE;
+        const C = 299792458;
+        const delay = distMeters / C;
+        const correction = vb.body.vel.clone().multiplyScalar(delay * SCALE).negate();
+        visualPos.add(correction);
+      }
+
+      // Light Aberration Correction
+      if (enableLightAberration) {
+        let observerVel = new THREE.Vector3(0, 0, 0);
+        if (focusedObject) {
+          observerVel = focusedObject.vel.clone();
+        }
+        
+        const toObject = new THREE.Vector3().subVectors(visualPos, observerPos.current).normalize();
+        const C = 299792458;
+        const vCross = new THREE.Vector3().crossVectors(observerVel, toObject);
+        const aberrationAngle = vCross.length() / C;
+        
+        if (aberrationAngle > 1e-12) {
+          const perpDirection = vCross.normalize();
+          const dist = observerPos.current.distanceTo(visualPos);
+          const shift = perpDirection.multiplyScalar(dist * Math.sin(aberrationAngle));
+          visualPos.add(shift.multiplyScalar(SCALE));
+        }
+      }
+
+      // Moon visibility fix
+      if (useVisualScale && vb.body.parentName) {
+        const parentVb = visualBodies.find(p => p.body.name === vb.body.parentName);
+        if (parentVb) {
+          const parentPos = new THREE.Vector3(
+            parentVb.body.pos.x * SCALE,
+            parentVb.body.pos.y * SCALE,
+            parentVb.body.pos.z * SCALE
+          );
+          
+          if (useLightTimeDelay) {
+             const pDist = observerPos.current.distanceTo(parentPos);
+             const pDelay = (pDist / SCALE) / 299792458;
+             const pCorrection = parentVb.body.vel.clone().multiplyScalar(pDelay * SCALE).negate();
+             parentPos.add(pCorrection);
+          }
+
+          const parentRadius = parentVb.baseRadius * visualScale;
+          const childRadius = vb.baseRadius * visualScale;
+
+          const dir = new THREE.Vector3().subVectors(visualPos, parentPos);
+          const dist = dir.length();
+          const minDistance = parentRadius * 1.2 + childRadius;
+
+          if (dist < minDistance) {
+            dir.normalize();
+            visualPos.copy(parentPos).add(dir.multiplyScalar(minDistance));
+          }
+        }
+      }
+
+      vb.mesh.position.copy(visualPos);
+
+      // Update rotation
+      if (vb.body.angularVelocity) {
+        const pole = vb.body.poleVector || new THREE.Vector3(0, 1, 0);
+        const spinSpeed = vb.body.angularVelocity.dot(pole);
+        vb.mesh.rotation.y += spinSpeed * dt;
+      } else if (vb.rotationSpeed !== 0) {
+        vb.mesh.rotation.y += vb.rotationSpeed * dt;
+      }
+
+      // Update trail
+      const positions = vb.trail.geometry.attributes.position.array as Float32Array;
+      
+      if (vb.trailCount >= TRAIL_LENGTH) {
+        positions.copyWithin(0, 3, TRAIL_LENGTH * 3);
+        const lastIdx = (TRAIL_LENGTH - 1) * 3;
+        positions[lastIdx] = vb.mesh.position.x;
+        positions[lastIdx + 1] = vb.mesh.position.y;
+        positions[lastIdx + 2] = vb.mesh.position.z;
+      } else {
+        const idx = vb.trailCount * 3;
+        positions[idx] = vb.mesh.position.x;
+        positions[idx + 1] = vb.mesh.position.y;
+        positions[idx + 2] = vb.mesh.position.z;
+        vb.trailCount++;
+      }
+
+      vb.trail.geometry.setDrawRange(0, vb.trailCount);
+      vb.trail.geometry.attributes.position.needsUpdate = true;
+    });
+  };
+
   const updatePhysics = () => {
     const dt = (!isPaused && timeStep > 0) ? (timeStep / 60) : 0;
 
@@ -241,21 +330,8 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
         });
       }
       
-      // Use worker/GPU if active mode is not main thread
-      if (physicsCompute.activeMode !== 'main') {
-        // Worker/GPU handles physics computation
-        // The worker is already initialized and receives step commands
-        // For now, we'll still use main thread but the infrastructure is ready
-        // TODO: Implement async worker/GPU execution with state sync
-        
-        // Fallback to main thread for now
-        runMainThreadPhysics(dt);
-      } else {
-        // Main thread physics
-        runMainThreadPhysics(dt);
-      }
-
-      setSimTime(prev => prev + dt * 1000);
+      // Main thread physics
+      runMainThreadPhysics(dt);
 
       // Check collisions
       const collisionPositions = checkCollisions(bodies);
@@ -282,175 +358,8 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
         setParticles(prev => [...prev, ...newParticles]);
       }
 
-      // Barycentric Correction (Recenter system on Barycenter)
-      const barycenter = computeBarycenter(bodies);
-      // Apply correction to all bodies (position only)
-      bodies.forEach(b => {
-        b.pos.sub(barycenter);
-      });
-
-      // Update visual bodies
-      visualBodies.forEach(vb => {
-        // Update position
-        let visualPos = new THREE.Vector3(
-          vb.body.pos.x * SCALE,
-          vb.body.pos.y * SCALE,
-          vb.body.pos.z * SCALE
-        );
-
-        // Calculate Moon Libration
-        if (vb.body.name === 'Moon') {
-          const earth = bodies.find(b => b.name === 'Earth');
-          if (earth) {
-            vb.libration = computeOpticalLibration(vb.body, earth);
-          }
-        }
-
-        // Light Time Delay Correction
-        if (useLightTimeDelay) {
-          // Calculate distance from observer to the object's TRUE position
-          // Note: observerPos is in Scene Coordinates (scaled)
-          // visualPos is also in Scene Coordinates (scaled)
-          const dist = observerPos.current.distanceTo(visualPos);
-          
-          // Convert distance to meters for time calculation
-          const distMeters = dist / SCALE;
-          
-          // Speed of light in m/s
-          const C = 299792458;
-          
-          // Time delay in seconds
-          const delay = distMeters / C;
-          
-          // Backtrack position: pos_visual = pos_true - vel * delay
-          // vel is in m/s, need to convert to SceneUnits/s
-          // body.vel is m/s.
-          // visualPos change = vel * delay * SCALE
-          const correction = vb.body.vel.clone().multiplyScalar(delay * SCALE).negate();
-          visualPos.add(correction);
-        }
-
-        // Light Aberration Correction
-        if (enableLightAberration) {
-        // Accounts for apparent shift due to observer motion
-        // Classical aberration: tan(θ) ≈ v⊥/c for v << c
-        // Observer velocity is from camera/spacecraft motion
-        
-        // For Earth observer, use Earth's orbital velocity around Sun
-        // For spacecraft, would use vehicle velocity
-        // Here we approximate using the observer's reference frame velocity
-        
-        // Get observer velocity (if tracking a body, use that body's velocity)
-        let observerVel = new THREE.Vector3(0, 0, 0);
-        
-        if (focusedObject) {
-          // If camera is following a body, use that body's velocity
-          observerVel = focusedObject.vel.clone();
-        }
-        
-        // Direction from observer to object (at light-time corrected position)
-        const toObject = new THREE.Vector3().subVectors(visualPos, observerPos.current).normalize();
-        
-        // Compute aberration correction
-        // Δθ ≈ (v × n) / c, where v is observer velocity, n is direction to object
-        // This gives the perpendicular component causing the shift
-        
-        const C = 299792458; // m/s
-        const vCross = new THREE.Vector3().crossVectors(observerVel, toObject);
-        const aberrationAngle = vCross.length() / C; // radians (very small)
-        
-        // Apply correction (shift position perpendicular to line of sight)
-        if (aberrationAngle > 1e-12) { // Only if significant
-          const perpDirection = vCross.normalize();
-          const dist = observerPos.current.distanceTo(visualPos);
-          const shift = perpDirection.multiplyScalar(dist * Math.sin(aberrationAngle));
-          visualPos.add(shift.multiplyScalar(SCALE)); //Convert to scene units
-        }
-        }
-
-        // Moon visibility fix
-        if (useVisualScale && vb.body.parentName) {
-          const parentVb = visualBodies.find(p => p.body.name === vb.body.parentName);
-          if (parentVb) {
-            const parentPos = new THREE.Vector3(
-              parentVb.body.pos.x * SCALE,
-              parentVb.body.pos.y * SCALE,
-              parentVb.body.pos.z * SCALE
-            );
-            
-            // Apply LTD to parent pos as well for consistent relative check?
-            // If we delay the moon, we should delay the parent too.
-            // But parentVb.mesh.position is ALREADY updated in this loop?
-            // No, forEach order matters. If parent is processed before child, mesh.position is updated.
-            // If after, it's old.
-            // Ideally we should use the calculated visualPos of the parent.
-            // But for this "pop-out" fix, using the mesh position is "okay" but might jitter.
-            // Let's re-calculate parent visual pos with LTD for this check to be safe.
-            
-            if (useLightTimeDelay) {
-               const pDist = observerPos.current.distanceTo(parentPos);
-               const pDelay = (pDist / SCALE) / 299792458;
-               const pCorrection = parentVb.body.vel.clone().multiplyScalar(pDelay * SCALE).negate();
-               parentPos.add(pCorrection);
-            }
-
-            const parentRadius = parentVb.baseRadius * visualScale;
-            const childRadius = vb.baseRadius * visualScale;
-
-            const dir = new THREE.Vector3().subVectors(visualPos, parentPos);
-            const dist = dir.length();
-            // Use 1.2x parent radius to ensure moon is clearly above surface/atmosphere
-            const minDistance = parentRadius * 1.2 + childRadius;
-
-            if (dist < minDistance) {
-              dir.normalize();
-              visualPos.copy(parentPos).add(dir.multiplyScalar(minDistance));
-            }
-          }
-        }
-
-        vb.mesh.position.copy(visualPos);
-
-        // Update rotation
-        if (vb.body.angularVelocity) {
-          // Use physics angular velocity (magnitude around pole)
-          // We assume angularVelocity is roughly aligned with pole for now, 
-          // or we just take the magnitude if it's a simple spin.
-          // Dot product with pole vector gives the component along the axis.
-          const pole = vb.body.poleVector || new THREE.Vector3(0, 1, 0);
-          const spinSpeed = vb.body.angularVelocity.dot(pole);
-          vb.mesh.rotation.y += spinSpeed * dt;
-        } else if (vb.rotationSpeed !== 0) {
-          vb.mesh.rotation.y += vb.rotationSpeed * dt;
-        }
-
-        // Update trail
-        const positions = vb.trail.geometry.attributes.position.array as Float32Array;
-        
-        // If trail is full, shift everything back by one position
-        if (vb.trailCount >= TRAIL_LENGTH) {
-          // Shift existing points: copy from index 3 to 0, length is (TRAIL_LENGTH-1)*3
-          positions.copyWithin(0, 3, TRAIL_LENGTH * 3);
-          
-          // Add new point at the end
-          const lastIdx = (TRAIL_LENGTH - 1) * 3;
-          positions[lastIdx] = vb.mesh.position.x;
-          positions[lastIdx + 1] = vb.mesh.position.y;
-          positions[lastIdx + 2] = vb.mesh.position.z;
-        } else {
-          // Append new point
-          const idx = vb.trailCount * 3;
-          positions[idx] = vb.mesh.position.x;
-          positions[idx + 1] = vb.mesh.position.y;
-          positions[idx + 2] = vb.mesh.position.z;
-          vb.trailCount++;
-        }
-
-        vb.trail.geometry.setDrawRange(0, vb.trailCount);
-        vb.trail.geometry.attributes.position.needsUpdate = true;
-      });
-      
-      // End performance tracking
+      updateVisuals(dt);
+      setSimTime(prev => prev + dt * 1000);
       physicsCompute.performanceMonitor.endFrame();
     }
   };
@@ -576,13 +485,6 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     };
 
     setVisualBodies(prev => [...prev, newVisualBody]);
-    
-    // Also add to physics worker if ready
-    if (physicsCompute.workerReady) {
-       // The useEffect hook listening to [bodies.length] will automatically 
-       // re-initialize the worker with the new list of bodies.
-       // No explicit action needed here.
-    }
   };
 
   const [orbitVisibility, setOrbitVisibility] = useState<Record<string, boolean>>({});
