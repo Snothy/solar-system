@@ -29,13 +29,19 @@ export interface CelestialBodyData {
   type?: 'star' | 'planet' | 'moon' | 'dwarf planet' | 'asteroid' | 'comet';
   elements?: OrbitalElements | null;
   parent?: string;
-  rel_a?: number;           // Relative semi-major axis (m) for moons
   rel_v?: number;           // Relative orbital velocity (m/s) for moons
   rotationPeriod?: number;  // Hours
   axialTilt?: number;       // Degrees
   meanTemperature?: number; // Kelvin
   surfaceGravity?: number;  // m/s^2
   jplId?: string;
+  // Orbital Elements (J2000)
+  rel_a?: number;           // Semi-major axis (m)
+  rel_e?: number;           // Eccentricity
+  rel_i?: number;           // Inclination (deg)
+  rel_node?: number;        // Longitude of Ascending Node (deg)
+  rel_peri?: number;        // Argument of Periapsis (deg)
+  rel_M?: number;           // Mean Anomaly (deg)
   J2?: number;              // J2 spherical harmonic coefficient
   poleRA?: number;          // Right Ascension of North Pole (degrees)
   poleDec?: number;         // Declination of North Pole (degrees)

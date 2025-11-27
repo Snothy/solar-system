@@ -57,28 +57,32 @@ impl PhysicsEngine {
         enable_nutation: bool,
         enable_solar_mass_loss: bool,
         enable_pr_drag: bool,
-        use_adaptive: bool
+        use_adaptive: bool,
+        adaptive_quality: u8 // 0=Low, 1=Medium, 2=High, 3=Ultra
     ) -> f64 {
         // Update Pole Orientation (Precession/Nutation)
         self.update_pole_orientation(sim_time, enable_precession, enable_nutation);
 
-        // Apply Solar Mass Loss (once per step is fine, or per substep?)
-        // Mass loss is slow, once per full step is sufficient.
+        // Apply Solar Mass Loss
         if enable_solar_mass_loss {
             if let Some(sun_idx) = self.bodies.iter().position(|b| b.name == "Sun") {
                 self.bodies[sun_idx].mass -= SOLAR_MASS_LOSS * dt;
             }
         }
 
-        // Calculate Moon Libration
-        self.update_moon_libration();
-
         // Adaptive Sub-stepping Logic
         // We want to break 'dt' into smaller chunks 'sub_dt'
-        // Max substep size: 60 seconds (1 minute) for stability
         
         if use_adaptive {
-            let max_substep = 60.0; // seconds
+            // Map quality to max substep size (seconds)
+            let max_substep = match adaptive_quality {
+                0 => 60.0,  // Low
+                1 => 30.0,  // Medium
+                2 => 10.0,  // High (Default)
+                3 => 1.0,   // Ultra
+                _ => 10.0,
+            };
+            
             let mut time_remaining = dt;
             
             while time_remaining > 0.0 {
@@ -99,13 +103,19 @@ impl PhysicsEngine {
                     use_eih, 
                     enable_pr_drag
                 );
+
+                // Apply Tidal Torque per substep
+                if enable_tidal {
+                    self.apply_tidal_torque(sub_dt);
+                }
+                
+                // Update Libration per substep
+                self.update_moon_libration();
                 
                 time_remaining -= sub_dt;
             }
         } else {
             // Single step (Fast Mode)
-            // Still use Symplectic for energy conservation, but one giant step
-            // This might be unstable for moons at high speeds, but user asked for "Fast" vs "Stable"
             self.step_symplectic_4(
                 dt, 
                 enable_relativity, 
@@ -117,21 +127,16 @@ impl PhysicsEngine {
                 use_eih, 
                 enable_pr_drag
             );
-        }
-
-        // Update Rotation (Torque) - Apply once for total dt? 
-        // Or per substep? Torque is force-dependent. 
-        // For accuracy, torque integration should also be sub-stepped, 
-        // but for now let's apply it once at the end or assume it's slow.
-        // Better: Apply it inside the symplectic step or just once here if it's slow.
-        // Tidal torque is slow. Once per frame is probably fine, but let's be safe.
-        // Actually, let's keep it simple: Apply tidal torque once per full step for now.
-        if enable_tidal {
-             self.apply_tidal_torque(dt);
+            
+            if enable_tidal {
+                self.apply_tidal_torque(dt);
+            }
+            self.update_moon_libration();
         }
 
         // Recenter System (Barycenter Correction) to prevent drift
-        self.recenter_system();
+        // Disabled for debugging Phobos instability - might be introducing energy drift
+        // self.recenter_system();
 
         dt
     }

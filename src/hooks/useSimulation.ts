@@ -80,12 +80,123 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
       try {
         // Build bodies from initialData
         initialData.forEach(data => {
+          // Calculate initial state from orbital elements if pos/vel are missing
+          let initialPos = data.pos;
+          let initialVel = data.vel;
+
+          if ((!initialPos || !initialVel) && data.rel_a && data.parent) {
+             const parentBody = newBodies.find(b => b.name === data.parent);
+             if (parentBody) {
+                 const mu = 6.67430e-11 * parentBody.mass;
+                 const a = data.rel_a;
+                 const e = data.rel_e || 0;
+                 const i = THREE.MathUtils.degToRad(data.rel_i || 0);
+                 const node = THREE.MathUtils.degToRad(data.rel_node || 0);
+                 const peri = THREE.MathUtils.degToRad(data.rel_peri || 0);
+                 const M = THREE.MathUtils.degToRad(data.rel_M || 0);
+
+                 // Solve Kepler's Equation for Eccentric Anomaly (E)
+                 let E = M;
+                 for (let iter = 0; iter < 10; iter++) {
+                     E = M + e * Math.sin(E);
+                 }
+                 
+                 const nu = 2 * Math.atan(Math.sqrt((1 + e) / (1 - e)) * Math.tan(E / 2));
+                 const r = a * (1 - e * Math.cos(E));
+                 
+                 // Position in orbital plane (relative to periapsis)
+                 const x_orb = r * Math.cos(nu);
+                 const y_orb = r * Math.sin(nu);
+
+                 // Velocity in orbital plane
+                 const v_factor = Math.sqrt(mu * a) / r;
+                 const vx_orb = -v_factor * Math.sin(E);
+                 const vy_orb = v_factor * Math.sqrt(1 - e*e) * Math.cos(E);
+
+                 // We need to rotate from the Orbital Frame to the Ecliptic Frame.
+                 // If the elements are "Equatorial" (relative to parent's equator), we first rotate to the Parent's Equatorial Frame,
+                 // then from Parent's Equatorial Frame to Ecliptic.
+                 
+                 // However, the standard Keplerian rotation matrix (using node, peri, i) rotates from the "Reference Plane" to the Orbit.
+                 // If we assume the inputs (rel_i, rel_node, rel_peri) are relative to the PARENT'S EQUATOR:
+                 // 1. Rotate Orbit -> Parent Equator
+                 // 2. Rotate Parent Equator -> Ecliptic
+                 
+                 // Step 1: Orbit -> Reference Frame (Parent Equator)
+                 const cos_node = Math.cos(node);
+                 const sin_node = Math.sin(node);
+                 const cos_peri = Math.cos(peri);
+                 const sin_peri = Math.sin(peri);
+                 const cos_i = Math.cos(i);
+                 const sin_i = Math.sin(i);
+
+                 const x_ref = x_orb * (cos_node * cos_peri - sin_node * sin_peri * cos_i) - y_orb * (cos_node * sin_peri + sin_node * cos_peri * cos_i);
+                 const y_ref = x_orb * (sin_node * cos_peri + cos_node * sin_peri * cos_i) + y_orb * (sin_node * sin_peri - cos_node * cos_peri * cos_i);
+                 const z_ref = x_orb * (sin_peri * sin_i) + y_orb * (cos_peri * sin_i);
+
+                 const vx_ref = vx_orb * (cos_node * cos_peri - sin_node * sin_peri * cos_i) - vy_orb * (cos_node * sin_peri + sin_node * cos_peri * cos_i);
+                 const vy_ref = vx_orb * (sin_node * cos_peri + cos_node * sin_peri * cos_i) + vy_orb * (sin_node * sin_peri - cos_node * cos_peri * cos_i);
+                 const vz_ref = vx_orb * (sin_peri * sin_i) + vy_orb * (cos_peri * sin_i);
+
+                 // Step 2: Parent Equator -> Ecliptic
+                 // We need a basis for the Parent Equator in Ecliptic coordinates.
+                 // Z_eq = parentBody.poleVector
+                 // X_eq = Node vector of parent equator on ecliptic? Or just an arbitrary vector in the equator plane?
+                 // Usually, we define the reference frame by the parent's pole.
+                 // Let's construct a rotation matrix that maps (0,0,1) to poleVector.
+                 
+                 // Parent Pole (Z axis of equatorial frame)
+                 const pole = parentBody.poleVector || new THREE.Vector3(0, 1, 0);
+                 const Z_eq = pole.clone().normalize();
+                 
+                 // We need an X axis for the equatorial frame.
+                 // Typically, the "Prime Meridian" or the Ascending Node of the equator on the Ecliptic.
+                 // For simplicity, let's assume the "Reference X" for the orbital elements (where node is measured from)
+                 // is the Ascending Node of the Equator on the Ecliptic.
+                 // X_eq = Z_ecliptic x Z_eq
+                 
+                 const Y_scene = new THREE.Vector3(0, 1, 0); // Ecliptic North
+                 let X_eq = new THREE.Vector3().crossVectors(Y_scene, Z_eq);
+                 
+                 if (X_eq.lengthSq() < 1e-6) {
+                     // Pole is aligned with Ecliptic North (zero tilt)
+                     X_eq = new THREE.Vector3(1, 0, 0);
+                 } else {
+                     X_eq.normalize();
+                 }
+                 
+                 const Y_eq = new THREE.Vector3().crossVectors(Z_eq, X_eq);
+                 
+                 // Transform (x_ref, y_ref, z_ref) using basis (X_eq, Y_eq, Z_eq)
+                 const pos_final = X_eq.clone().multiplyScalar(x_ref)
+                     .add(Y_eq.clone().multiplyScalar(y_ref))
+                     .add(Z_eq.clone().multiplyScalar(z_ref));
+                     
+                 const vel_final = X_eq.clone().multiplyScalar(vx_ref)
+                     .add(Y_eq.clone().multiplyScalar(vy_ref))
+                     .add(Z_eq.clone().multiplyScalar(vz_ref));
+
+                 initialPos = pos_final.add(parentBody.pos);
+                 initialVel = vel_final.add(parentBody.vel);
+                 
+                 if (data.name === "Phobos") {
+                     console.log("Phobos Initialized from Elements:", {
+                         a, e, i: THREE.MathUtils.radToDeg(i),
+                         pos: initialPos,
+                         vel: initialVel,
+                         parentPos: parentBody.pos,
+                         dist: initialPos.distanceTo(parentBody.pos)
+                     });
+                 }
+             }
+          }
+
           const body: PhysicsBody = {
             name: data.name,
             mass: data.mass,
             radius: data.radius,
-            pos: data.pos,
-            vel: data.vel,
+            pos: initialPos || new THREE.Vector3(), // Fallback to zero if still missing
+            vel: initialVel || new THREE.Vector3(),
             force: new THREE.Vector3(),
             parentName: data.parent,
             J2: data.J2,
@@ -397,6 +508,8 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setUseTDBTime: physics.setUseTDBTime,
     setEnableRelativity: physics.setEnableRelativity,
     setUseAdaptiveTimeStep: physics.setUseAdaptiveTimeStep,
+    adaptiveQuality: physics.adaptiveQuality,
+    setAdaptiveQuality: physics.setAdaptiveQuality,
     
     // New Toggles
     enableSolarMassLoss: physics.enableSolarMassLoss,

@@ -1,25 +1,3 @@
-export interface PhysicsSettingsProps {
-  enableTidalEvolution: boolean;
-  enableAtmosphericDrag: boolean;
-  enableYarkovsky: boolean;
-  enablePrecession: boolean;
-  enableNutation: boolean;
-  useTDBTime: boolean;
-  enableLightAberration: boolean;
-  useLightTimeDelay: boolean;
-  onToggleTidalEvolution: (enabled: boolean) => void;
-  onToggleAtmosphericDrag: (enabled: boolean) => void;
-  onToggleYarkovsky: (enabled: boolean) => void;
-  onTogglePrecession: (enabled: boolean) => void;
-  onToggleNutation: (enabled: boolean) => void;
-  onToggleTDBTime: (enabled: boolean) => void;
-  onToggleLightAberration: (enabled: boolean) => void;
-  onToggleLightTimeDelay: (enabled: boolean) => void;
-  enableRelativity: boolean;
-  useAdaptiveTimeStep: boolean;
-  onToggleRelativity: (enabled: boolean) => void;
-  onToggleAdaptiveTimeStep: (enabled: boolean) => void;
-}
 
 export interface PhysicsSettingsProps {
   enableTidalEvolution: boolean;
@@ -42,6 +20,8 @@ export interface PhysicsSettingsProps {
   useAdaptiveTimeStep: boolean;
   onToggleRelativity: (enabled: boolean) => void;
   onToggleAdaptiveTimeStep: (enabled: boolean) => void;
+  adaptiveQuality: number;
+  onSetAdaptiveQuality: (quality: number) => void;
   
   // New Props
   enableSolarMassLoss: boolean;
@@ -192,6 +172,8 @@ export function PhysicsSettings({
   useAdaptiveTimeStep,
   onToggleRelativity,
   onToggleAdaptiveTimeStep,
+  adaptiveQuality,
+  onSetAdaptiveQuality,
   
   // New Props
   enableSolarMassLoss,
@@ -350,6 +332,42 @@ export function PhysicsSettings({
             onChange={onToggleAdaptiveTimeStep}
             tag={useAdaptiveTimeStep ? "STABLE" : "FAST"}
           />
+          {useAdaptiveTimeStep && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+              <div style={{ padding: '8px 0' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+                  Adaptive Quality (Max Substep)
+                </label>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[
+                    { l: 'Low', v: 0, d: '60s' },
+                    { l: 'Med', v: 1, d: '30s' },
+                    { l: 'High', v: 2, d: '10s' },
+                    { l: 'Ultra', v: 3, d: '1s' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onSetAdaptiveQuality(opt.v)}
+                      style={{
+                        flex: 1,
+                        padding: '4px',
+                        fontSize: '10px',
+                        backgroundColor: adaptiveQuality === opt.v ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                        color: adaptiveQuality === opt.v ? 'white' : '#9ca3af',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      title={`Max Substep: ${opt.d}`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           <ToggleItem
             label="Axial Precession"
             description={enablePrecession

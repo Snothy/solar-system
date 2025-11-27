@@ -37,4 +37,12 @@ export interface SolarSystemData {
   thermalInertia?: number;
   precessionRate?: number;
   nutationAmplitude?: number;
+
+  // Orbital Elements (J2000)
+  rel_a?: number;           // Semi-major axis (m)
+  rel_e?: number;           // Eccentricity
+  rel_i?: number;           // Inclination (deg)
+  rel_node?: number;        // Longitude of Ascending Node (deg)
+  rel_peri?: number;        // Argument of Periapsis (deg)
+  rel_M?: number;           // Mean Anomaly (deg)
 }

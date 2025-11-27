@@ -66,6 +66,8 @@ export interface PhysicsEngine {
   setEnableRelativity: React.Dispatch<React.SetStateAction<boolean>>;
   useAdaptiveTimeStep: boolean;
   setUseAdaptiveTimeStep: React.Dispatch<React.SetStateAction<boolean>>;
+  adaptiveQuality: number;
+  setAdaptiveQuality: React.Dispatch<React.SetStateAction<number>>;
   useEIH: boolean;
   setUseEIH: React.Dispatch<React.SetStateAction<boolean>>;
   enableSolarMassLoss: boolean;
@@ -117,6 +119,7 @@ export function usePhysicsEngine(
   const [enableYarkovsky, setEnableYarkovsky] = useState(true);
   const [enableRelativity, setEnableRelativity] = useState(true);
   const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(true); // Adaptive timestep enabled by default
+  const [adaptiveQuality, setAdaptiveQuality] = useState(2); // 0=Low, 1=Medium, 2=High (Default), 3=Ultra
   const [useEIH, setUseEIH] = useState(true); // Default to Maximum Accuracy
   
   // New Toggles
@@ -252,7 +255,7 @@ export function usePhysicsEngine(
                 dt,
                 currentTime, // Pass sim_time for pole updates
                 enableRelativity, 
-                enablePrecession, // enable_j2 (proxy for J2 force)
+                true, // enable_j2 (Always on for high fidelity, or use a setting)
                 enableTidalEvolution,
                 true, // enable_srp
                 enableYarkovsky,
@@ -262,7 +265,8 @@ export function usePhysicsEngine(
                 enableNutation,    // enable_nutation
                 enableSolarMassLoss,
                 enablePRDrag,
-                useAdaptiveTimeStep
+                useAdaptiveTimeStep,
+                adaptiveQuality // 0=Low, 1=Medium, 2=High, 3=Ultra
             );
             
             // Sync back bodies
@@ -409,6 +413,8 @@ export function usePhysicsEngine(
     setEnableRelativity,
     useAdaptiveTimeStep,
     setUseAdaptiveTimeStep,
+    adaptiveQuality,
+    setAdaptiveQuality,
     useEIH,
     setUseEIH,
     enableSolarMassLoss,

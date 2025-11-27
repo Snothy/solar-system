@@ -66,6 +66,8 @@ export function App() {
     setEnableRelativity,
     useAdaptiveTimeStep,
     setUseAdaptiveTimeStep,
+    adaptiveQuality,
+    setAdaptiveQuality,
     // New Toggles
     enableSolarMassLoss,
     setEnableSolarMassLoss,
@@ -244,6 +246,8 @@ export function App() {
         useAdaptiveTimeStep={useAdaptiveTimeStep}
         onToggleRelativity={(val) => { console.log('App: Setting Relativity to', val); setEnableRelativity(val); }}
         onToggleAdaptiveTimeStep={setUseAdaptiveTimeStep}
+        adaptiveQuality={adaptiveQuality}
+        onSetAdaptiveQuality={setAdaptiveQuality}
         
         // New Props
         enableSolarMassLoss={enableSolarMassLoss}

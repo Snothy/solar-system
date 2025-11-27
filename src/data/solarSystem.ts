@@ -182,7 +182,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     poleRA: 317.68,
     poleDec: 52.90,
     albedo: 0.071,    // Very dark
-    thermalInertia: 25 // For Yarkovsky effect
+    thermalInertia: 25, // For Yarkovsky effect
+    // Orbital Elements (J2000)
+    rel_a: 9376e3,    // Semi-major axis (m)
+    rel_e: 0.0151,    // Eccentricity
+    rel_i: 1.093,     // Inclination (deg)
+    rel_node: 0,      // Longitude of Ascending Node (deg) - approximate/variable
+    rel_peri: 0,      // Argument of Periapsis (deg) - approximate/variable
+    rel_M: 0          // Mean Anomaly (deg) - random start
   },
   {
     name: "Deimos",
@@ -202,7 +209,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     poleRA: 316.65,
     poleDec: 53.52,
     albedo: 0.068,
-    thermalInertia: 25
+    thermalInertia: 25,
+    // Orbital Elements (J2000)
+    rel_a: 23463.2e3, // Semi-major axis (m)
+    rel_e: 0.0002,    // Eccentricity
+    rel_i: 0.93,      // Inclination (deg)
+    rel_node: 0,
+    rel_peri: 0,
+    rel_M: 0
   },
   {
     name: "Jupiter",
