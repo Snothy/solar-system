@@ -100,7 +100,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfacePressure: 101325, // 1 atm in Pa
     scaleHeight: 8.5,
     dragCoefficient: 2.2,
-    albedo: 0.306
+    albedo: 0.306,
+    // Advanced Visuals
+    normalMap: "/EarthNormal.jpg",
+    roughnessMap: "/EarthRoughness.jpg", // Water is smooth (0), land is rough (1)
+    metalnessMap: "/EarthMask.jpg",      // Water is reflective (1), land is matte (0)
+    emissiveMap: "/EarthNight.jpg",      // City lights
+    cloudMap: "/EarthClouds.png",
+    cloudTransparency: 0.8
   },
   {
     name: "Moon",

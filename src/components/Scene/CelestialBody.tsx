@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Atmosphere } from './Atmosphere';
+import { CloudLayer } from './CloudLayer';
 import type { CelestialBodyData, VisualBody } from '../../types';
 import { SCALE } from '../../utils/constants';
 
@@ -50,6 +51,10 @@ export function CelestialBody({
   // Only load texture if we are NOT using a model (or if model needs it, but usually model has its own)
   const shouldLoadTexture = !data.shape || data.shape === 'sphere';
   const texture = (data.texture && shouldLoadTexture) ? useTexture(data.texture) : null;
+  const normalMap = (data.normalMap && shouldLoadTexture) ? useTexture(data.normalMap) : null;
+  const roughnessMap = (data.roughnessMap && shouldLoadTexture) ? useTexture(data.roughnessMap) : null;
+  const metalnessMap = (data.metalnessMap && shouldLoadTexture) ? useTexture(data.metalnessMap) : null;
+  const emissiveMap = (data.emissiveMap && shouldLoadTexture) ? useTexture(data.emissiveMap) : null;
   
   // Set color space for texture
   useMemo(() => {
@@ -132,13 +137,18 @@ export function CelestialBody({
       return (
         <meshStandardMaterial 
           map={texture} 
-          roughness={1.0} 
-          metalness={0.0}
+          normalMap={normalMap}
+          roughnessMap={roughnessMap}
+          metalnessMap={metalnessMap}
+          emissiveMap={emissiveMap}
+          emissive={emissiveMap ? new THREE.Color(0xffffff) : new THREE.Color(0x000000)}
+          roughness={data.roughnessMap ? 1.0 : 1.0} 
+          metalness={data.metalnessMap ? 1.0 : 0.0}
           color={!texture ? data.color : 0xffffff}
         />
       );
     }
-  }, [data.type, texture, shouldLoadTexture, data.color]);
+  }, [data.type, texture, normalMap, roughnessMap, metalnessMap, emissiveMap, shouldLoadTexture, data.color]);
   
   // Axial tilt rotation - REMOVED in favor of Pole Vector Quaternion
   // const rotationX = useMemo(() => {
@@ -184,6 +194,15 @@ export function CelestialBody({
           color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
           density={data.name === 'Venus' ? 2.0 : 1.0}
           sunPosition={sunPosition}
+        />
+      )}
+
+      {/* Cloud Layer */}
+      {shouldLoadTexture && data.cloudMap && (
+        <CloudLayer 
+          radius={scaleVec[0] * 1.01} // Slightly larger than planet
+          textureUrl={data.cloudMap}
+          opacity={data.cloudTransparency || 0.8}
         />
       )}
 

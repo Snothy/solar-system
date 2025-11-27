@@ -11,6 +11,7 @@ import { Minimap } from './components/UI/Minimap';
 import { SetupScreen } from './components/UI/SetupScreen';
 import { PhysicsSettings } from './components/UI/PhysicsSettings';
 import { PerformanceSettings } from './components/UI/PerformanceSettings';
+import { SearchPanel } from './components/UI/SearchPanel';
 import { useSimulation } from './hooks/useSimulation';
 import './index.css';
 
@@ -60,7 +61,8 @@ export function App() {
     setEnableNutation,
     setUseTDBTime,
     setEnableLightAberration,
-    physicsCompute // GPU/Worker compute interface
+    physicsCompute, // GPU/Worker compute interface
+    addBody
   } = useSimulation(simulationData, simulationStartDate);
 
   const handleObjectSelect = (index: number) => {
@@ -160,6 +162,8 @@ export function App() {
           onTimeStepChange={setTimeStep}
           onPauseToggle={handlePauseToggle}
         />
+
+        <SearchPanel onAddBody={addBody} />
 
         <ObjectList
           bodies={bodies}

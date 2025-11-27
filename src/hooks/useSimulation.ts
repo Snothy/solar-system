@@ -504,6 +504,87 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     }
   };
 
+  const addBody = (data: any) => {
+    const newBody: PhysicsBody = {
+      name: data.name,
+      mass: data.mass,
+      radius: data.radius,
+      pos: data.pos,
+      vel: data.vel,
+      force: new THREE.Vector3(),
+      parentName: data.parent,
+      J2: data.J2,
+      J3: data.J3,
+      J4: data.J4,
+      C22: data.C22,
+      S22: data.S22,
+      k2: data.k2,
+      tidalQ: data.tidalQ,
+      hasAtmosphere: data.hasAtmosphere,
+      surfacePressure: data.surfacePressure,
+      scaleHeight: data.scaleHeight,
+      dragCoefficient: data.dragCoefficient,
+      albedo: data.albedo,
+      thermalInertia: data.thermalInertia,
+      poleRA0: data.poleRA,
+      poleDec0: data.poleDec,
+      precessionRate: data.precessionRate,
+      nutationAmplitude: data.nutationAmplitude,
+      meanTemperature: data.meanTemperature,
+      poleVector: (data.poleRA !== undefined && data.poleDec !== undefined) 
+        ? computePoleVector(data.poleRA, data.poleDec)
+        : new THREE.Vector3(0, 1, 0),
+      momentOfInertia: 0.4 * data.mass * data.radius * data.radius,
+      angularVelocity: (data.rotationPeriod) 
+        ? ((data.poleRA !== undefined && data.poleDec !== undefined) 
+            ? computePoleVector(data.poleRA, data.poleDec) 
+            : new THREE.Vector3(0, 1, 0)
+          ).multiplyScalar((2 * Math.PI) / (data.rotationPeriod * 3600))
+        : new THREE.Vector3(0, 0, 0)
+    };
+
+    setBodies(prev => [...prev, newBody]);
+
+    // Create visual body
+    const trailGeo = new THREE.BufferGeometry();
+    const trailPositions = new Float32Array(TRAIL_LENGTH * 3);
+    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+    const trailMat = new THREE.LineBasicMaterial({
+      color: data.color || 0xffffff,
+      transparent: true,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending
+    });
+    const trail = new THREE.Line(trailGeo, trailMat);
+
+    let rotationSpeed = 0;
+    if (data.rotationPeriod) {
+      const periodSeconds = data.rotationPeriod * 3600;
+      rotationSpeed = (2 * Math.PI) / periodSeconds;
+    }
+
+    const newVisualBody: VisualBody = {
+      body: newBody,
+      mesh: new THREE.Mesh(),
+      trail: trail,
+      trailIdx: 0,
+      trailCount: 0,
+      baseRadius: data.radius * SCALE,
+      type: data.type || 'asteroid',
+      rotationSpeed: rotationSpeed,
+      textureUrl: data.texture
+    };
+
+    setVisualBodies(prev => [...prev, newVisualBody]);
+    
+    // Also add to physics worker if ready
+    if (physicsCompute.workerReady) {
+       // The useEffect hook listening to [bodies.length] will automatically 
+       // re-initialize the worker with the new list of bodies.
+       // No explicit action needed here.
+    }
+  };
+
   const [orbitVisibility, setOrbitVisibility] = useState<Record<string, boolean>>({});
 
   const toggleOrbitVisibility = (name: string, includeChildren: boolean = false) => {
@@ -563,6 +644,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     removeParticle,
     updatePhysics,
     updateBody,
+    addBody,
     toggleOrbitVisibility,
     setAllOrbitVisibility,
     setObserverPosition,

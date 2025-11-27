@@ -18,6 +18,12 @@ export interface CelestialBodyData {
   color: number;
   emissive?: number; // For stars
   texture?: string;
+  normalMap?: string;       // Path to normal map
+  roughnessMap?: string;    // Path to roughness map
+  metalnessMap?: string;    // Path to metalness map
+  emissiveMap?: string;     // Path to emissive map (night lights)
+  cloudMap?: string;        // Path to cloud texture
+  cloudTransparency?: number; // Opacity of clouds
   ringColor?: number;
   hasRings?: boolean;
   type?: 'star' | 'planet' | 'moon' | 'dwarf planet' | 'asteroid' | 'comet';
