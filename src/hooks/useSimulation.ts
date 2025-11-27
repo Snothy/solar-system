@@ -6,6 +6,8 @@ import { START_DATE, SCALE, TRAIL_LENGTH } from '../utils/constants';
 import { yoshida4Step, checkCollisions, computeBarycenter, computeOpticalLibration } from '../utils/physics';
 import { utcToTDB } from '../utils/timeUtils';
 import { computePoleVector, updatePoleOrientation } from '../utils/precession';
+import { usePhysicsCompute } from './usePhysicsCompute';
+import type { PhysicsConfig } from '../workers/workerTypes';
 
 export function useSimulation(initialData: any[] | null = null, startDate: Date = START_DATE) {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
@@ -30,6 +32,9 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
   const [enableNutation, setEnableNutation] = useState(true);
   const [useTDBTime, setUseTDBTime] = useState(true);
   const [enableLightAberration, setEnableLightAberration] = useState(true);
+
+  // Physics compute (worker/GPU) integration
+  const physicsCompute = usePhysicsCompute();
 
   // Initialize bodies from passed data
   useEffect(() => {
@@ -145,6 +150,36 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     initSimulation();
   }, [initialData]);
 
+  // Initialize physics worker when bodies are ready
+  useEffect(() => {
+    if (bodies.length > 0 && physicsCompute.workerReady) {
+      const config: PhysicsConfig = {
+        enableTidal: enableTidalEvolution,
+        enableAtmosphericDrag,
+        enableYarkovsky,
+        enablePrecession,
+        enableNutation,
+        useTDBTime
+      };
+      physicsCompute.initializeBodies(bodies, config);
+    }
+  }, [bodies.length, physicsCompute.workerReady]); // Only depends on length to avoid re-init
+
+  // Update worker config when physics toggles change
+  useEffect(() => {
+    if (physicsCompute.workerReady) {
+      physicsCompute.updateConfig({
+        enableTidal: enableTidalEvolution,
+        enableAtmosphericDrag,
+        enableYarkovsky,
+        enablePrecession,
+        enableNutation,
+        useTDBTime
+      });
+    }
+  }, [enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, 
+      enablePrecession, enableNutation, useTDBTime, physicsCompute]);
+
   const removeParticle = (index: number) => {
     setParticles(prev => prev.filter((_, i) => i !== index));
   };
@@ -156,10 +191,36 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     observerPos.current.set(x, y, z);
   };
 
+  // Helper: Run physics on main thread with sub-stepping
+  const runMainThreadPhysics = (dt: number) => {
+    physicsCompute.performanceMonitor.startPhysics();
+    
+    const MAX_SUB_STEP = 600;
+    let remainingDt = dt;
+
+    while (remainingDt > 0) {
+      const step = Math.min(remainingDt, MAX_SUB_STEP);
+      yoshida4Step(
+        bodies,
+        step,
+        enableTidalEvolution,
+        enableAtmosphericDrag,
+        enableYarkovsky
+      );
+      remainingDt -= step;
+    }
+    
+    physicsCompute.performanceMonitor.endPhysics();
+  };
+
   const updatePhysics = () => {
     const dt = (!isPaused && timeStep > 0) ? (timeStep / 60) : 0;
 
     if (dt > 0) {
+      // Start performance tracking
+      physicsCompute.performanceMonitor.startFrame();
+      physicsCompute.performanceMonitor.setBodyCount(bodies.length);
+      
       // Get current time in TDB if enabled
       const currentTime = useTDBTime ? utcToTDB(simTime) : simTime;
       
@@ -180,20 +241,18 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
         });
       }
       
-      // Update physics with sub-stepping for stability
-      const MAX_SUB_STEP = 600;
-      let remainingDt = dt;
-
-      while (remainingDt > 0) {
-        const step = Math.min(remainingDt, MAX_SUB_STEP);
-        yoshida4Step(
-          bodies,
-          step,
-          enableTidalEvolution,
-          enableAtmosphericDrag,
-          enableYarkovsky
-        );
-        remainingDt -= step;
+      // Use worker/GPU if active mode is not main thread
+      if (physicsCompute.activeMode !== 'main') {
+        // Worker/GPU handles physics computation
+        // The worker is already initialized and receives step commands
+        // For now, we'll still use main thread but the infrastructure is ready
+        // TODO: Implement async worker/GPU execution with state sync
+        
+        // Fallback to main thread for now
+        runMainThreadPhysics(dt);
+      } else {
+        // Main thread physics
+        runMainThreadPhysics(dt);
       }
 
       setSimTime(prev => prev + dt * 1000);
@@ -390,6 +449,9 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
         vb.trail.geometry.setDrawRange(0, vb.trailCount);
         vb.trail.geometry.attributes.position.needsUpdate = true;
       });
+      
+      // End performance tracking
+      physicsCompute.performanceMonitor.endFrame();
     }
   };
 
@@ -491,6 +553,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
     enableNutation,
     useTDBTime,
     enableLightAberration,
+    physicsCompute, // Expose GPU/Worker compute interface
     setTimeStep,
     setIsPaused,
     setVisualScale,

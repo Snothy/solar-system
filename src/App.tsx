@@ -10,6 +10,7 @@ import { PropertyEditor } from './components/UI/PropertyEditor';
 import { Minimap } from './components/UI/Minimap';
 import { SetupScreen } from './components/UI/SetupScreen';
 import { PhysicsSettings } from './components/UI/PhysicsSettings';
+import { PerformanceSettings } from './components/UI/PerformanceSettings';
 import { useSimulation } from './hooks/useSimulation';
 import './index.css';
 
@@ -58,7 +59,8 @@ export function App() {
     setEnablePrecession,
     setEnableNutation,
     setUseTDBTime,
-    setEnableLightAberration
+    setEnableLightAberration,
+    physicsCompute // GPU/Worker compute interface
   } = useSimulation(simulationData, simulationStartDate);
 
   const handleObjectSelect = (index: number) => {
@@ -142,6 +144,14 @@ export function App() {
           onToggleTDBTime={setUseTDBTime}
           onToggleLightAberration={setEnableLightAberration}
           onToggleLightTimeDelay={setUseLightTimeDelay}
+        />
+
+        <PerformanceSettings
+          computeMode={physicsCompute.computeMode}
+          setComputeMode={physicsCompute.setComputeMode}
+          metrics={physicsCompute.getPerformanceMetrics()}
+          workerAvailable={physicsCompute.workerReady}
+          gpuAvailable={physicsCompute.gpuReady}
         />
 
         <TimeControls

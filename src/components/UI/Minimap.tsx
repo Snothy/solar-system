@@ -50,7 +50,8 @@ export const Minimap: React.FC<MinimapProps> = ({ visualBodies, focusedObject, o
     return focusedObject.name;
   }, [focusedObject, showMoons]);
 
-  console.log('Minimap rendering', { visualBodiesCount: visualBodies.length, filteredCount: filteredBodies.length, maxDistance, scale });
+  // Debug: Uncomment to track minimap rendering
+  // console.log('Minimap rendering', { visualBodiesCount: visualBodies.length, filteredCount: filteredBodies.length, maxDistance, scale });
 
   return (
     <div style={{
