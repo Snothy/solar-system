@@ -33,7 +33,16 @@ export function useVisualUpdates(
   bodies: PhysicsBody[],
   visualBodies: VisualBody[],
   observerPos: React.MutableRefObject<THREE.Vector3>,
-  focusedObject: PhysicsBody | null
+  focusedObject: PhysicsBody | null,
+  getVisualState?: (
+    observerPos: THREE.Vector3,
+    visualScale: number,
+    useVisualScale: boolean,
+    useLightTimeDelay: boolean,
+    enableLightAberration: boolean,
+    focusedBodyIdx: number,
+    scaleFactor: number
+  ) => any
 ): VisualUpdates {
   const [visualScale, setVisualScale] = useState(1);
   const [useVisualScale, setUseVisualScale] = useState(false);
@@ -41,7 +50,75 @@ export function useVisualUpdates(
   const [enableLightAberration, setEnableLightAberration] = useState(true);
 
   const updateVisuals = useCallback((dt: number) => {
-    // Update visual bodies (heliocentric frame - Sun at origin)
+    // Try WASM first
+    if (getVisualState) {
+        const focusedIdx = focusedObject ? bodies.findIndex(b => b.name === focusedObject.name) : -1;
+        const visualState = getVisualState(
+            observerPos.current,
+            visualScale,
+            useVisualScale,
+            useLightTimeDelay,
+            enableLightAberration,
+            focusedIdx,
+            SCALE
+        );
+
+        if (visualState && visualState.positions) {
+            const positions = visualState.positions; // Float32Array [x, y, z, x, y, z...]
+            
+            visualBodies.forEach((vb, i) => {
+                // Update Position
+                const idx = i * 3;
+                _visualPos.set(positions[idx], positions[idx+1], positions[idx+2]);
+                vb.mesh.position.copy(_visualPos);
+
+                // Update Rotation (still in JS for now, or move to WASM later)
+                if (vb.body.angularVelocity) {
+                    _pole.copy(vb.body.poleVector || new THREE.Vector3(0, 1, 0));
+                    const spinSpeed = vb.body.angularVelocity.dot(_pole);
+                    vb.mesh.rotation.y += spinSpeed * dt;
+                } else if (vb.rotationSpeed !== 0) {
+                    vb.mesh.rotation.y += vb.rotationSpeed * dt;
+                }
+                
+                // Update Trails (WASM should handle this, but for now we just get positions)
+                // If we want WASM trails, we need to get them from WASM.
+                // The plan said "Implement Trail History Buffer in Rust".
+                // And "Expose get_visual_state".
+                // I implemented `get_visual_state` to return positions.
+                // I also implemented `get_trail` in Rust but didn't expose it in `get_visual_state` return object yet.
+                // I should probably update trails in JS using the WASM-calculated position for this step, 
+                // to ensure visual correctness first.
+                
+                // Update trail (JS side using GEOMETRIC pos to avoid camera artifacts)
+                // _visualPos depends on camera position (Light Time Delay), causing trails to jump when camera moves.
+                // We must use the stable geometric position for trails.
+                const geoX = vb.body.pos.x * SCALE;
+                const geoY = vb.body.pos.y * SCALE;
+                const geoZ = vb.body.pos.z * SCALE;
+
+                const trailPositions = vb.trail.geometry.attributes.position.array as Float32Array;
+                if (vb.trailCount >= TRAIL_LENGTH) {
+                    trailPositions.copyWithin(0, 3, TRAIL_LENGTH * 3);
+                    const lastIdx = (TRAIL_LENGTH - 1) * 3;
+                    trailPositions[lastIdx] = geoX;
+                    trailPositions[lastIdx + 1] = geoY;
+                    trailPositions[lastIdx + 2] = geoZ;
+                } else {
+                    const idx = vb.trailCount * 3;
+                    trailPositions[idx] = geoX;
+                    trailPositions[idx + 1] = geoY;
+                    trailPositions[idx + 2] = geoZ;
+                    vb.trailCount++;
+                }
+                vb.trail.geometry.setDrawRange(0, vb.trailCount);
+                vb.trail.geometry.attributes.position.needsUpdate = true;
+            });
+            return;
+        }
+    }
+
+    // Fallback to JS (Original Logic)
     visualBodies.forEach(vb => {
       // Update position (simple heliocentric coordinates)
       _geometricPos.set(
@@ -149,7 +226,7 @@ export function useVisualUpdates(
       vb.trail.geometry.setDrawRange(0, vb.trailCount);
       vb.trail.geometry.attributes.position.needsUpdate = true;
     });
-  }, [bodies, visualBodies, observerPos, focusedObject, useLightTimeDelay, enableLightAberration, useVisualScale, visualScale]);
+  }, [bodies, visualBodies, observerPos, focusedObject, useLightTimeDelay, enableLightAberration, useVisualScale, visualScale, getVisualState]); // Added getVisualState to dependencies
 
   return {
     visualScale,

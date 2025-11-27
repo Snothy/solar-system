@@ -78,6 +78,15 @@ export interface PhysicsEngine {
   // Methods
   step: (dt: number) => number;
   syncBodiesToWasm: () => void;
+  getVisualState: (
+    observerPos: THREE.Vector3,
+    visualScale: number,
+    useVisualScale: boolean,
+    useLightTimeDelay: boolean,
+    enableLightAberration: boolean,
+    focusedBodyIdx: number,
+    scaleFactor: number
+  ) => any;
 }
 
 export function usePhysicsEngine(
@@ -241,7 +250,8 @@ export function usePhysicsEngine(
                 enablePrecession, // enable_precession
                 enableNutation,    // enable_nutation
                 enableSolarMassLoss,
-                enablePRDrag
+                enablePRDrag,
+                useAdaptiveTimeStep
             );
             
             // Sync back bodies
@@ -309,6 +319,36 @@ export function usePhysicsEngine(
 
   }, [bodies, simTime, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions]);
 
+  // Expose getVisualState for visual updates
+  const getVisualState = useCallback((
+    observerPos: THREE.Vector3,
+    visualScale: number,
+    useVisualScale: boolean,
+    useLightTimeDelay: boolean,
+    enableLightAberration: boolean,
+    focusedBodyIdx: number,
+    scaleFactor: number
+  ) => {
+    if (!wasmReady || !wasmEngineRef.current) return null;
+    
+    try {
+        return wasmEngineRef.current.get_visual_state(
+            observerPos.x,
+            observerPos.y,
+            observerPos.z,
+            visualScale,
+            useVisualScale,
+            useLightTimeDelay,
+            enableLightAberration,
+            focusedBodyIdx,
+            scaleFactor
+        );
+    } catch (e) {
+        console.error("WASM get_visual_state failed", e);
+        return null;
+    }
+  }, [wasmReady]);
+
   return {
     simTime,
     setSimTime,
@@ -342,6 +382,7 @@ export function usePhysicsEngine(
     setEnablePRDrag,
     particles,
     step,
-    syncBodiesToWasm
+    syncBodiesToWasm,
+    getVisualState
   };
 }

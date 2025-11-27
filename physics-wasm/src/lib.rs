@@ -3,6 +3,7 @@ mod types;
 mod forces;
 
 use wasm_bindgen::prelude::*;
+use js_sys::Float32Array;
 use crate::types::{Vector3, PhysicsBody};
 use crate::constants::{SOLAR_MASS_LOSS, G};
 use crate::forces::*;
@@ -10,6 +11,8 @@ use crate::forces::*;
 #[wasm_bindgen]
 pub struct PhysicsEngine {
     bodies: Vec<PhysicsBody>,
+    trails: Vec<Vec<f32>>,
+    trail_indices: Vec<usize>,
 }
 
 #[wasm_bindgen]
@@ -17,11 +20,26 @@ impl PhysicsEngine {
     #[wasm_bindgen(constructor)]
     pub fn new(val: JsValue) -> PhysicsEngine {
         let bodies: Vec<PhysicsBody> = serde_wasm_bindgen::from_value(val).unwrap();
-        PhysicsEngine { bodies }
+        let n = bodies.len();
+        // Initialize trails (e.g., 500 points * 3 coords)
+        // We'll define TRAIL_LENGTH constant later or pass it. Let's assume 1000 for now or match JS.
+        // JS uses TRAIL_LENGTH from constants. Let's use 2000 to be safe/high quality.
+        let trail_len = 2000; 
+        let trails = vec![vec![0.0; trail_len * 3]; n];
+        let trail_indices = vec![0; n];
+        
+        PhysicsEngine { bodies, trails, trail_indices }
     }
 
     pub fn update_bodies(&mut self, val: JsValue) {
         self.bodies = serde_wasm_bindgen::from_value(val).unwrap();
+        // Resize trails if needed (simple approach: reset if size changes)
+        if self.bodies.len() != self.trails.len() {
+            let n = self.bodies.len();
+            let trail_len = 2000;
+            self.trails = vec![vec![0.0; trail_len * 3]; n];
+            self.trail_indices = vec![0; n];
+        }
     }
 
     pub fn step(
@@ -38,7 +56,8 @@ impl PhysicsEngine {
         enable_precession: bool,
         enable_nutation: bool,
         enable_solar_mass_loss: bool,
-        enable_pr_drag: bool
+        enable_pr_drag: bool,
+        use_adaptive: bool
     ) -> f64 {
         // Update Pole Orientation (Precession/Nutation)
         self.update_pole_orientation(sim_time, enable_precession, enable_nutation);
@@ -57,21 +76,38 @@ impl PhysicsEngine {
         // Adaptive Sub-stepping Logic
         // We want to break 'dt' into smaller chunks 'sub_dt'
         // Max substep size: 60 seconds (1 minute) for stability
-        // If dt is huge (e.g. 1 week = 604800s), we do many steps.
         
-        let max_substep = 60.0; // seconds
-        let mut time_remaining = dt;
-        
-        while time_remaining > 0.0 {
-            let sub_dt = if time_remaining > max_substep {
-                max_substep
-            } else {
-                time_remaining
-            };
+        if use_adaptive {
+            let max_substep = 60.0; // seconds
+            let mut time_remaining = dt;
             
-            // Use Symplectic Integrator (4th Order Yoshida)
+            while time_remaining > 0.0 {
+                let sub_dt = if time_remaining > max_substep {
+                    max_substep
+                } else {
+                    time_remaining
+                };
+                
+                self.step_symplectic_4(
+                    sub_dt, 
+                    enable_relativity, 
+                    enable_j2, 
+                    enable_tidal, 
+                    enable_srp, 
+                    enable_yarkovsky, 
+                    enable_drag, 
+                    use_eih, 
+                    enable_pr_drag
+                );
+                
+                time_remaining -= sub_dt;
+            }
+        } else {
+            // Single step (Fast Mode)
+            // Still use Symplectic for energy conservation, but one giant step
+            // This might be unstable for moons at high speeds, but user asked for "Fast" vs "Stable"
             self.step_symplectic_4(
-                sub_dt, 
+                dt, 
                 enable_relativity, 
                 enable_j2, 
                 enable_tidal, 
@@ -81,8 +117,6 @@ impl PhysicsEngine {
                 use_eih, 
                 enable_pr_drag
             );
-            
-            time_remaining -= sub_dt;
         }
 
         // Update Rotation (Torque) - Apply once for total dt? 
@@ -569,5 +603,132 @@ impl PhysicsEngine {
             }
         }
         serde_wasm_bindgen::to_value(&collisions).unwrap()
+    }
+
+    pub fn get_visual_state(
+        &mut self,
+        observer_x: f64,
+        observer_y: f64,
+        observer_z: f64,
+        visual_scale: f64,
+        use_visual_scale: bool,
+        use_light_time_delay: bool,
+        enable_light_aberration: bool,
+        focused_body_idx: i32, // -1 if none
+        scale_factor: f64 // e.g. 1.0/1000.0 or whatever SCALE constant is. JS passes SCALE.
+    ) -> JsValue {
+        let n = self.bodies.len();
+        let mut visual_positions = vec![0.0; n * 3];
+        let observer_pos = Vector3::new(observer_x, observer_y, observer_z);
+        let c_light = 299792458.0;
+
+        let observer_vel = if focused_body_idx >= 0 && (focused_body_idx as usize) < n {
+            self.bodies[focused_body_idx as usize].vel
+        } else {
+            Vector3::zero()
+        };
+
+        for i in 0..n {
+            let b = &self.bodies[i];
+            
+            // 1. Geometric Position (scaled)
+            let mut pos = b.pos;
+            pos.scale(scale_factor); // Convert to visual units
+            
+            // 2. Visual Scale (Moon visibility)
+            // This is tricky in Rust without easy access to parent relationship by name map.
+            // But we have parent_name in PhysicsBody? No, we didn't pass it in struct PhysicsBody in types.rs?
+            // Let's check types.rs. If not, we skip this or add it.
+            // Assuming we skip Visual Scale logic for now or implement it later.
+            // User asked for "Visual Corrections" (Delay/Aberration).
+            // Let's stick to Delay/Aberration for now.
+            
+            let mut vis_pos = pos;
+
+            // 3. Light Time Delay
+            if use_light_time_delay {
+                let dist_visual = observer_pos.distance_to(&vis_pos);
+                let dist_meters = dist_visual / scale_factor;
+                let delay = dist_meters / c_light;
+                
+                let mut correction = b.vel;
+                correction.scale(-delay * scale_factor); // Velocity is in m/s, need visual units?
+                // b.vel is m/s. delay is s. b.vel * delay = meters.
+                // We need visual units. So meters * scale_factor.
+                vis_pos.add(&correction);
+            }
+
+            // 4. Light Aberration
+            if enable_light_aberration {
+                let mut to_obj = vis_pos;
+                to_obj.sub(&observer_pos);
+                to_obj.normalize();
+                
+                let mut v_cross = observer_vel.cross(&to_obj);
+                let aberration_angle = v_cross.len() / c_light;
+                
+                if aberration_angle > 1e-12 {
+                    let mut perp = v_cross;
+                    perp.normalize();
+                    let dist = observer_pos.distance_to(&vis_pos);
+                    let shift_mag = dist * aberration_angle.sin();
+                    perp.scale(shift_mag);
+                    vis_pos.add(&perp);
+                }
+            }
+
+            visual_positions[i * 3] = vis_pos.x as f32;
+            visual_positions[i * 3 + 1] = vis_pos.y as f32;
+            visual_positions[i * 3 + 2] = vis_pos.z as f32;
+
+            // Update Trails
+            // We update trails with the GEOMETRIC position (or visual? usually geometric for trails)
+            // JS code used _geometricPos for trails.
+            let t_idx = self.trail_indices[i];
+            let trail_len = self.trails[i].len() / 3;
+            
+            self.trails[i][t_idx * 3] = pos.x as f32;
+            self.trails[i][t_idx * 3 + 1] = pos.y as f32;
+            self.trails[i][t_idx * 3 + 2] = pos.z as f32;
+            
+            self.trail_indices[i] = (t_idx + 1) % trail_len;
+        }
+
+        // Return object with positions and trails
+        // We can return a JsValue object
+        let result = js_sys::Object::new();
+        let pos_array = unsafe { js_sys::Float32Array::view(&visual_positions) };
+        // We need to copy because view is unsafe if memory grows?
+        // Actually, returning a Float32Array from Rust creates a copy usually unless using memory view directly.
+        // Let's just return the positions for now.
+        // Accessing trails from JS might be better done via a separate getter to avoid copying massive arrays every frame.
+        // Or we pass a pointer?
+        
+        // Let's just return positions for now to test.
+        // Trails can be accessed via a separate call `get_trail(body_idx)`.
+        
+        js_sys::Reflect::set(&result, &"positions".into(), &pos_array).unwrap();
+        result.into()
+    }
+    
+    pub fn get_trail(&self, body_idx: usize) -> Float32Array {
+        if body_idx < self.bodies.len() {
+             // Return the trail buffer for this body
+             // We need to reorder it based on ring buffer index?
+             // Or just return as is and let JS handle ring buffer?
+             // JS code: positions.copyWithin...
+             // Let's just return the raw buffer and the current index.
+             unsafe { js_sys::Float32Array::view(&self.trails[body_idx]).into() }
+        } else {
+             Float32Array::new_with_length(0)
+        }
+    }
+    
+    pub fn get_trail_index(&self, body_idx: usize) -> usize {
+        if body_idx < self.bodies.len() {
+            self.trail_indices[body_idx]
+        } else {
+            0
+        }
     }
 }

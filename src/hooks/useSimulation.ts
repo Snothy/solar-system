@@ -60,7 +60,13 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
   }, [bodies, physics]);
 
   // Visual Updates Hook
-  const visuals = useVisualUpdates(bodies, visualBodies, observerPos, focusedObject);
+  const visuals = useVisualUpdates(
+    bodies, 
+    visualBodies, 
+    observerPos, 
+    focusedObject,
+    physics.getVisualState
+  );
 
   // Initialize bodies from passed data
   useEffect(() => {
