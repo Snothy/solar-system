@@ -282,9 +282,10 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     const dt = (!physics.isPaused && physics.timeStep > 0) ? (physics.timeStep / 60) : 0;
 
     if (dt > 0) {
-      physics.step(dt);
-      visuals.updateVisuals(dt);
-      physics.setSimTime(prev => prev + dt * 1000);
+      const simulatedDt = physics.step(dt);
+      visuals.updateVisuals(simulatedDt);
+      physics.setSimTime(prev => prev + simulatedDt * 1000);
+      physicsCompute.performanceMonitor.endFrame();
     }
   };
 

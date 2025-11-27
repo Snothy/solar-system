@@ -34,7 +34,7 @@ export interface PhysicsEngine {
   setUseAdaptiveTimeStep: React.Dispatch<React.SetStateAction<boolean>>;
   
   // Methods
-  step: (dt: number) => void;
+  step: (dt: number) => number;
 }
 
 export function usePhysicsEngine(
@@ -56,61 +56,7 @@ export function usePhysicsEngine(
   const [enableRelativity, setEnableRelativity] = useState(true);
   const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(false);
 
-  // Helper: Run physics on main thread with sub-stepping
-  const runMainThreadPhysics = useCallback((dt: number) => {
-    physicsCompute.performanceMonitor.startPhysics();
-    
-    if (useAdaptiveTimeStep) {
-      // Adaptive Step (RKF45)
-      let remainingDt = dt;
-      let currentStep = dt; // Initial guess
-      
-      while (remainingDt > 1e-6) {
-        // Don't step past the end of the frame
-        const stepAttempt = Math.min(currentStep, remainingDt);
-        
-        const result = rkf45Step(
-          bodies,
-          stepAttempt,
-          1e-9, // Tolerance
-          enableTidalEvolution,
-          enableAtmosphericDrag,
-          enableYarkovsky,
-          enableRelativity
-        );
-        
-        if (result.takenDt > 0) {
-          remainingDt -= result.takenDt;
-        }
-        
-        currentStep = result.nextDt;
-        
-        // Safety break if step becomes too small
-        if (currentStep < 1e-8 && remainingDt > 1e-6) {
-             break;
-        }
-      }
-    } else {
-      // Fixed Step (Yoshida)
-      const MAX_SUB_STEP = 600;
-      let remainingDt = dt;
 
-      while (remainingDt > 0) {
-        const step = Math.min(remainingDt, MAX_SUB_STEP);
-        yoshida4Step(
-          bodies,
-          step,
-          enableTidalEvolution,
-          enableAtmosphericDrag,
-          enableYarkovsky,
-          enableRelativity
-        );
-        remainingDt -= step;
-      }
-    }
-    
-    physicsCompute.performanceMonitor.endPhysics();
-  }, [bodies, physicsCompute, useAdaptiveTimeStep, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity]);
 
   const step = useCallback((dt: number) => {
     // Start performance tracking
@@ -137,8 +83,69 @@ export function usePhysicsEngine(
       });
     }
     
-    // Main thread physics
-    runMainThreadPhysics(dt);
+    // Main thread physics with Time Dilation
+    // If we can't compute the full step within the iteration limit,
+    // we return the actual amount of time we simulated.
+    // This slows down the simulation (Time Dilation) but preserves Maximum Accuracy.
+    
+    let remainingDt = dt;
+    
+    if (useAdaptiveTimeStep) {
+      // Adaptive Step (RKF45)
+      let currentStep = dt; // Initial guess
+      let iterations = 0;
+      const MAX_ITERATIONS = 100; // Prevent freezing
+      
+      while (remainingDt > 1e-6) {
+        // Safety break: if we're taking too many steps, stop here.
+        // We will return the time we actually simulated.
+        if (iterations > MAX_ITERATIONS) {
+          break;
+        }
+
+        iterations++;
+
+        // Don't step past the end of the frame
+        const stepAttempt = Math.min(currentStep, remainingDt);
+        
+        const result = rkf45Step(
+          bodies,
+          stepAttempt,
+          1e-9, // Maximum Accuracy (was 1e-6)
+          enableTidalEvolution,
+          enableAtmosphericDrag,
+          enableYarkovsky,
+          enableRelativity
+        );
+        
+        if (result.takenDt > 0) {
+          remainingDt -= result.takenDt;
+        }
+        
+        currentStep = result.nextDt;
+        
+        // Safety break if step becomes too small
+        if (currentStep < 1e-8 && remainingDt > 1e-6) {
+             break;
+        }
+      }
+    } else {
+      // Fixed Step (Yoshida)
+      const MAX_SUB_STEP = 600;
+      
+      while (remainingDt > 0) {
+        const step = Math.min(remainingDt, MAX_SUB_STEP);
+        yoshida4Step(
+          bodies,
+          step,
+          enableTidalEvolution,
+          enableAtmosphericDrag,
+          enableYarkovsky,
+          enableRelativity
+        );
+        remainingDt -= step;
+      }
+    }
 
     // Check collisions
     const collisionPositions = checkCollisions(bodies);
@@ -164,9 +171,11 @@ export function usePhysicsEngine(
       });
       setParticles(prev => [...prev, ...newParticles]);
     }
+    
+    // Return the actual time simulated
+    return dt - remainingDt;
 
-    physicsCompute.performanceMonitor.endFrame();
-  }, [bodies, simTime, useTDBTime, enablePrecession, enableNutation, runMainThreadPhysics, physicsCompute, setParticles]);
+  }, [bodies, simTime, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, useAdaptiveTimeStep, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity]);
 
   return {
     simTime,
