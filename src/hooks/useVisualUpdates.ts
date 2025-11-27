@@ -1,7 +1,7 @@
+
 import { useState, useCallback } from 'react';
 import * as THREE from 'three';
 import type { PhysicsBody, VisualBody } from '../types';
-import { computeOpticalLibration } from '../utils/physics';
 import { SCALE, TRAIL_LENGTH } from '../utils/constants';
 
 // Reusable objects to avoid GC
@@ -51,14 +51,9 @@ export function useVisualUpdates(
       );
       _visualPos.copy(_geometricPos);
 
-      // Calculate Moon Libration
-      if (vb.body.name === 'Moon') {
-        // We need to find Earth. Optimization: maybe pass Earth in or cache it?
-        // For now, find it.
-        const earth = bodies.find(b => b.name === 'Earth');
-        if (earth) {
-          vb.libration = computeOpticalLibration(vb.body, earth);
-        }
+      // Update Libration (Moon only)
+      if (vb.body.name === "Moon" && vb.body.libration !== undefined) {
+         vb.libration = vb.body.libration;
       }
 
       // Light Time Delay Correction

@@ -119,6 +119,7 @@ export interface PhysicsBody {
   momentOfInertia?: number; // kg*m^2
   angularVelocity?: THREE.Vector3; // rad/s
   torque?: THREE.Vector3; // N*m
+  libration?: number; // Moon libration angle
 }
 
 export interface VisualBody {

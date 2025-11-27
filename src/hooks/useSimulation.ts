@@ -4,10 +4,28 @@ import type { PhysicsBody, VisualBody, Particle } from '../types';
 import type { SolarSystemData } from '../types/data';
 import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
 import { START_DATE, SCALE, TRAIL_LENGTH } from '../utils/constants';
-import { computePoleVector } from '../utils/precession';
 import { usePhysicsCompute } from './usePhysicsCompute';
 import { usePhysicsEngine } from './usePhysicsEngine';
 import { useVisualUpdates } from './useVisualUpdates';
+
+function computePoleVector(ra: number, dec: number): THREE.Vector3 {
+  const raRad = THREE.MathUtils.degToRad(ra);
+  const decRad = THREE.MathUtils.degToRad(dec);
+  
+  const x_eq = Math.cos(decRad) * Math.cos(raRad);
+  const y_eq = Math.cos(decRad) * Math.sin(raRad);
+  const z_eq = Math.sin(decRad);
+  
+  const epsilon = THREE.MathUtils.degToRad(23.43928);
+  const cosEps = Math.cos(epsilon);
+  const sinEps = Math.sin(epsilon);
+  
+  const x_ecl = x_eq;
+  const y_ecl = y_eq * cosEps + z_eq * sinEps;
+  const z_ecl = -y_eq * sinEps + z_eq * cosEps;
+  
+  return new THREE.Vector3(x_ecl, z_ecl, -y_ecl).normalize();
+}
 
 export function useSimulation(initialData: SolarSystemData[] | null = null, startDate: Date = START_DATE) {
   const [bodies, setBodies] = useState<PhysicsBody[]>([]);
@@ -28,7 +46,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
   const physicsCompute = usePhysicsCompute();
 
   // Physics Engine Hook
-  const physics = usePhysicsEngine(bodies, setParticles, physicsCompute);
+  const physics = usePhysicsEngine(bodies, startDate.getTime() / 86400000 + 2440587.5);
 
   // Visual Updates Hook
   const visuals = useVisualUpdates(bodies, visualBodies, observerPos, focusedObject);
