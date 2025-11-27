@@ -328,47 +328,26 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
       // Add this frame's required simulation time to our debt
       physicsDebt.current += targetDt;
       
-      // MAXIMUM ACCURACY MODE: Process ALL physics debt with fixed sub-stepping
-      // Breaking large timesteps into smaller chunks for numerical stability
-      const MAX_SUBSTEP = 60; // Maximum substep size in seconds (1 minute)
-      
-      let totalSimulatedDt = 0;
-      let substepsProcessed = 0;
-      
       // Process physics debt
-      if (physics.useAdaptiveTimeStep) {
-        // MAXIMUM ACCURACY MODE: Process ALL physics debt with fixed sub-stepping
-        // Breaking large timesteps into smaller chunks for numerical stability
-        while (physicsDebt.current > 0) {
-          // Calculate the size of this substep (capped at MAX_SUBSTEP for stability)
-          const subDt = Math.min(physicsDebt.current, MAX_SUBSTEP);
-          
-          // Perform the physics step
-          const simulatedDt = physics.step(subDt);
-          totalSimulatedDt += simulatedDt;
-          physicsDebt.current -= simulatedDt;
-          substepsProcessed++;
-        }
-      } else {
-        // RAW PERFORMANCE MODE: Single step for the entire debt
-        // Faster, but may be unstable at high speeds (moons might fly off)
-        if (physicsDebt.current > 0) {
+      // We now delegate ALL sub-stepping to the WASM engine for maximum performance and accuracy.
+      // WASM handles the adaptive stepping internally (e.g. 60s max substep).
+      
+      if (physicsDebt.current > 0) {
            const simulatedDt = physics.step(physicsDebt.current);
-           totalSimulatedDt += simulatedDt;
-           physicsDebt.current = 0; // All processed
-           substepsProcessed = 1;
-        }
-      }
-      
-      // Update visuals with the total simulated time
-      if (totalSimulatedDt > 0) {
-        visuals.updateVisuals(totalSimulatedDt);
-        physics.setSimTime(prev => prev + totalSimulatedDt * 1000);
-      }
-      
-      // Performance monitoring
-      if (substepsProcessed > 100) {
-        console.warn(`High substep count: ${substepsProcessed} substeps processed this frame. Consider reducing time acceleration for better performance.`);
+           
+           // Update visuals with the total simulated time
+           if (simulatedDt > 0) {
+             visuals.updateVisuals(simulatedDt);
+             physics.setSimTime(prev => prev + simulatedDt * 1000);
+             
+             // Reduce debt by what was actually simulated
+             physicsDebt.current -= simulatedDt;
+             
+             // Prevent debt accumulation if simulation can't keep up
+             if (physicsDebt.current > targetDt * 5) {
+                 physicsDebt.current = 0; // Reset if we fall too far behind
+             }
+           }
       }
       
       physicsCompute.performanceMonitor.endFrame();

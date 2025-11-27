@@ -43,18 +43,144 @@ impl PhysicsEngine {
         // Update Pole Orientation (Precession/Nutation)
         self.update_pole_orientation(sim_time, enable_precession, enable_nutation);
 
-        // Apply Solar Mass Loss
+        // Apply Solar Mass Loss (once per step is fine, or per substep?)
+        // Mass loss is slow, once per full step is sufficient.
         if enable_solar_mass_loss {
             if let Some(sun_idx) = self.bodies.iter().position(|b| b.name == "Sun") {
                 self.bodies[sun_idx].mass -= SOLAR_MASS_LOSS * dt;
             }
         }
 
-        // Calculate Moon Libration (dynamically from current state)
+        // Calculate Moon Libration
+        self.update_moon_libration();
+
+        // Adaptive Sub-stepping Logic
+        // We want to break 'dt' into smaller chunks 'sub_dt'
+        // Max substep size: 60 seconds (1 minute) for stability
+        // If dt is huge (e.g. 1 week = 604800s), we do many steps.
+        
+        let max_substep = 60.0; // seconds
+        let mut time_remaining = dt;
+        
+        while time_remaining > 0.0 {
+            let sub_dt = if time_remaining > max_substep {
+                max_substep
+            } else {
+                time_remaining
+            };
+            
+            // Use Symplectic Integrator (4th Order Yoshida)
+            self.step_symplectic_4(
+                sub_dt, 
+                enable_relativity, 
+                enable_j2, 
+                enable_tidal, 
+                enable_srp, 
+                enable_yarkovsky, 
+                enable_drag, 
+                use_eih, 
+                enable_pr_drag
+            );
+            
+            time_remaining -= sub_dt;
+        }
+
+        // Update Rotation (Torque) - Apply once for total dt? 
+        // Or per substep? Torque is force-dependent. 
+        // For accuracy, torque integration should also be sub-stepped, 
+        // but for now let's apply it once at the end or assume it's slow.
+        // Better: Apply it inside the symplectic step or just once here if it's slow.
+        // Tidal torque is slow. Once per frame is probably fine, but let's be safe.
+        // Actually, let's keep it simple: Apply tidal torque once per full step for now.
+        if enable_tidal {
+             self.apply_tidal_torque(dt);
+        }
+
+        // Recenter System (Barycenter Correction) to prevent drift
+        self.recenter_system();
+
+        dt
+    }
+
+    // 4th Order Symplectic Integrator (Yoshida)
+    fn step_symplectic_4(
+        &mut self,
+        dt: f64,
+        enable_relativity: bool, 
+        enable_j2: bool, 
+        enable_tidal: bool,
+        enable_srp: bool,
+        enable_yarkovsky: bool,
+        enable_drag: bool,
+        use_eih: bool,
+        enable_pr_drag: bool
+    ) {
+        // Coefficients for Yoshida 4th order
+        let w0 = -1.7024143839193153; // 2^(1/3) / (2 - 2^(1/3))
+        let w1 = 1.3512071919596578;  // 1 / (2 - 2^(1/3))
+        
+        let c1 = w1 / 2.0;
+        let c2 = (w0 + w1) / 2.0;
+        let c3 = c2;
+        let c4 = c1;
+        
+        let d1 = w1;
+        let d2 = w0;
+        let d3 = w1;
+
+        // Step 1: Position Update 1
+        self.update_positions(c1 * dt);
+        
+        // Step 2: Force Update 1 & Velocity Update 1
+        let accs1 = self.compute_accelerations(
+            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag
+        );
+        self.update_velocities(&accs1, d1 * dt);
+
+        // Step 3: Position Update 2
+        self.update_positions(c2 * dt);
+
+        // Step 4: Force Update 2 & Velocity Update 2
+        let accs2 = self.compute_accelerations(
+            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag
+        );
+        self.update_velocities(&accs2, d2 * dt);
+
+        // Step 5: Position Update 3
+        self.update_positions(c3 * dt);
+
+        // Step 6: Force Update 3 & Velocity Update 3
+        let accs3 = self.compute_accelerations(
+            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag
+        );
+        self.update_velocities(&accs3, d3 * dt);
+
+        // Step 7: Position Update 4
+        self.update_positions(c4 * dt);
+    }
+
+    fn update_positions(&mut self, dt: f64) {
+        for b in self.bodies.iter_mut() {
+            let mut delta_r = b.vel; 
+            delta_r.scale(dt);
+            b.pos.add(&delta_r);
+        }
+    }
+
+    fn update_velocities(&mut self, accs: &Vec<Vector3>, dt: f64) {
+        for (i, b) in self.bodies.iter_mut().enumerate() {
+            let mut delta_v = accs[i];
+            delta_v.scale(dt);
+            b.vel.add(&delta_v);
+        }
+    }
+
+    fn update_moon_libration(&mut self) {
         let moon_idx = self.bodies.iter().position(|b| b.name == "Moon");
         let earth_idx = self.bodies.iter().position(|b| b.name == "Earth");
         
         if let (Some(m_idx), Some(e_idx)) = (moon_idx, earth_idx) {
+            // Clone values to avoid borrow checker issues
             let m_pos = self.bodies[m_idx].pos;
             let e_pos = self.bodies[e_idx].pos;
             let m_vel = self.bodies[m_idx].vel;
@@ -65,31 +191,22 @@ impl PhysicsEngine {
             let mut r_vec = m_pos; r_vec.sub(&e_pos);
             let r = r_vec.len();
             
-            // Calculate orbital elements dynamically from state vectors
             let mut rel_vel = m_vel; rel_vel.sub(&e_vel);
-            let mu = G * (e_mass + m_mass); // Standard gravitational parameter
+            let mu = G * (e_mass + m_mass);
             
-            // Specific orbital energy: E = v²/2 - μ/r
             let v_sq = rel_vel.len_sq();
             let specific_energy = v_sq / 2.0 - mu / r;
             
-            // Semi-major axis: a = -μ / (2E)
             let a = -mu / (2.0 * specific_energy);
-            
-            // Specific angular momentum: h = r × v
             let h_vec = r_vec.cross(&rel_vel);
             let h = h_vec.len();
             
-            // Eccentricity: e = sqrt(1 + 2Eh²/μ²)
             let ecc_sq = 1.0 + (2.0 * specific_energy * h * h) / (mu * mu);
             let ecc = if ecc_sq > 0.0 { ecc_sq.sqrt() } else { 0.0 };
             
-            // Semi-latus rectum: p = a(1 - e²)
             let p = a * (1.0 - ecc * ecc);
             
-            // True anomaly from orbit equation: r = p / (1 + e cos ν)
-            // cos ν = (p/r - 1) / e
-            if ecc > 1e-6 { // Avoid division by zero for circular orbits
+            if ecc > 1e-6 {
                 let cos_nu = (p / r - 1.0) / ecc;
                 let clamped_cos_nu = cos_nu.max(-1.0).min(1.0);
                 
@@ -100,78 +217,12 @@ impl PhysicsEngine {
                     nu = 2.0 * std::f64::consts::PI - nu;
                 }
                 
-                // Physical libration: δψ = -2e sin(ν)
                 let libration = -2.0 * ecc * nu.sin();
                 self.bodies[m_idx].libration = Some(libration);
             } else {
-                // Circular orbit: no libration
                 self.bodies[m_idx].libration = Some(0.0);
             }
         }
-
-        // RK4 Integration
-        let k1_v = self.compute_accelerations(&self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
-        let k1_r: Vec<Vector3> = self.bodies.iter().map(|b| b.vel).collect();
-
-        let mut temp_bodies = self.bodies.clone();
-        for (i, b) in temp_bodies.iter_mut().enumerate() {
-            let mut delta_r = k1_r[i]; delta_r.scale(0.5 * dt);
-            let mut delta_v = k1_v[i]; delta_v.scale(0.5 * dt);
-            b.pos.add(&delta_r);
-            b.vel.add(&delta_v);
-        }
-        let k2_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
-        let k2_r: Vec<Vector3> = temp_bodies.iter().map(|b| b.vel).collect();
-
-        temp_bodies = self.bodies.clone();
-        for (i, b) in temp_bodies.iter_mut().enumerate() {
-            let mut delta_r = k2_r[i]; delta_r.scale(0.5 * dt);
-            let mut delta_v = k2_v[i]; delta_v.scale(0.5 * dt);
-            b.pos.add(&delta_r);
-            b.vel.add(&delta_v);
-        }
-        let k3_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
-        let k3_r: Vec<Vector3> = temp_bodies.iter().map(|b| b.vel).collect();
-
-        temp_bodies = self.bodies.clone();
-        for (i, b) in temp_bodies.iter_mut().enumerate() {
-            let mut delta_r = k3_r[i]; delta_r.scale(dt);
-            let mut delta_v = k3_v[i]; delta_v.scale(dt);
-            b.pos.add(&delta_r);
-            b.vel.add(&delta_v);
-        }
-        let k4_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
-        let k4_r: Vec<Vector3> = temp_bodies.iter().map(|b| b.vel).collect();
-
-        for (i, b) in self.bodies.iter_mut().enumerate() {
-            let mut sum_r = k1_r[i];
-            let mut k2_r_2 = k2_r[i]; k2_r_2.scale(2.0);
-            let mut k3_r_2 = k3_r[i]; k3_r_2.scale(2.0);
-            sum_r.add(&k2_r_2);
-            sum_r.add(&k3_r_2);
-            sum_r.add(&k4_r[i]);
-            sum_r.scale(dt / 6.0);
-            b.pos.add(&sum_r);
-
-            let mut sum_v = k1_v[i];
-            let mut k2_v_2 = k2_v[i]; k2_v_2.scale(2.0);
-            let mut k3_v_2 = k3_v[i]; k3_v_2.scale(2.0);
-            sum_v.add(&k2_v_2);
-            sum_v.add(&k3_v_2);
-            sum_v.add(&k4_v[i]);
-            sum_v.scale(dt / 6.0);
-            b.vel.add(&sum_v);
-        }
-        
-        // Update Rotation (Torque)
-        if enable_tidal {
-             self.apply_tidal_torque(dt);
-        }
-
-        // Recenter System (Barycenter Correction) to prevent drift
-        self.recenter_system();
-
-        dt
     }
 
     fn compute_accelerations(

@@ -224,22 +224,17 @@ export function usePhysicsEngine(
 
     let simulatedDt = dt;
 
-    // Use WASM if ready and Adaptive Time Step is ENABLED (as per user request for performance)
-    // Actually, let's use it always if available for max performance?
-    // The user specifically asked about improving "Adaptive Time-Stepping".
-    // But our WASM implementation currently does RK4 (Fixed Step-ish, or high precision).
-    // Let's use WASM if ready.
-
     if (wasmReady && wasmEngineRef.current) {
         try {
             // Pass flags: dt, sim_time, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih
+            // WASM now handles adaptive sub-stepping internally for stability
             simulatedDt = wasmEngineRef.current.step(
                 dt,
                 currentTime, // Pass sim_time for pole updates
                 enableRelativity, 
                 enablePrecession, // enable_j2 (proxy for J2 force)
                 enableTidalEvolution,
-                true, // enable_srp (Always on if Yarkovsky/PR are on? Or should we add a master SRP toggle? User didn't ask for SRP toggle, just PR Drag. Let's keep SRP on for now as base.)
+                true, // enable_srp
                 enableYarkovsky,
                 enableAtmosphericDrag,
                 useEIH,
@@ -275,8 +270,6 @@ export function usePhysicsEngine(
             console.error("WASM Step failed", e);
         }
     } else {
-        // Fallback removed as per request to delete old code
-        // If WASM is not ready, we just don't step physics (or wait)
         console.warn("WASM Physics not ready yet");
         simulatedDt = 0;
     }
@@ -285,7 +278,6 @@ export function usePhysicsEngine(
     let collisionPositions: {x: number, y: number, z: number}[] = [];
     if (enableCollisions && wasmReady && wasmEngineRef.current) {
          const cols = wasmEngineRef.current.check_collisions();
-         // cols is JsValue, we assume it's array of {x,y,z}
          collisionPositions = cols as any; 
     }
 
@@ -315,7 +307,7 @@ export function usePhysicsEngine(
     // Return the actual time simulated
     return simulatedDt;
 
-  }, [bodies, simTime, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, useAdaptiveTimeStep, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady]);
+  }, [bodies, simTime, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions]);
 
   return {
     simTime,
