@@ -36,14 +36,18 @@ impl PhysicsEngine {
         enable_drag: bool,
         use_eih: bool,
         enable_precession: bool,
-        enable_nutation: bool
+        enable_nutation: bool,
+        enable_solar_mass_loss: bool,
+        enable_pr_drag: bool
     ) -> f64 {
         // Update Pole Orientation (Precession/Nutation)
         self.update_pole_orientation(sim_time, enable_precession, enable_nutation);
 
         // Apply Solar Mass Loss
-        if let Some(sun_idx) = self.bodies.iter().position(|b| b.name == "Sun") {
-            self.bodies[sun_idx].mass -= SOLAR_MASS_LOSS * dt;
+        if enable_solar_mass_loss {
+            if let Some(sun_idx) = self.bodies.iter().position(|b| b.name == "Sun") {
+                self.bodies[sun_idx].mass -= SOLAR_MASS_LOSS * dt;
+            }
         }
 
         // Calculate Moon Libration (dynamically from current state)
@@ -106,7 +110,7 @@ impl PhysicsEngine {
         }
 
         // RK4 Integration
-        let k1_v = self.compute_accelerations(&self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih);
+        let k1_v = self.compute_accelerations(&self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
         let k1_r: Vec<Vector3> = self.bodies.iter().map(|b| b.vel).collect();
 
         let mut temp_bodies = self.bodies.clone();
@@ -116,7 +120,7 @@ impl PhysicsEngine {
             b.pos.add(&delta_r);
             b.vel.add(&delta_v);
         }
-        let k2_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih);
+        let k2_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
         let k2_r: Vec<Vector3> = temp_bodies.iter().map(|b| b.vel).collect();
 
         temp_bodies = self.bodies.clone();
@@ -126,7 +130,7 @@ impl PhysicsEngine {
             b.pos.add(&delta_r);
             b.vel.add(&delta_v);
         }
-        let k3_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih);
+        let k3_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
         let k3_r: Vec<Vector3> = temp_bodies.iter().map(|b| b.vel).collect();
 
         temp_bodies = self.bodies.clone();
@@ -136,7 +140,7 @@ impl PhysicsEngine {
             b.pos.add(&delta_r);
             b.vel.add(&delta_v);
         }
-        let k4_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih);
+        let k4_v = self.compute_accelerations(&temp_bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
         let k4_r: Vec<Vector3> = temp_bodies.iter().map(|b| b.vel).collect();
 
         for (i, b) in self.bodies.iter_mut().enumerate() {
@@ -179,7 +183,8 @@ impl PhysicsEngine {
         enable_srp: bool,
         enable_yarkovsky: bool,
         enable_drag: bool,
-        use_eih: bool
+        use_eih: bool,
+        enable_pr_drag: bool
     ) -> Vec<Vector3> {
         let n = bodies.len();
         let mut accs = vec![Vector3::zero(); n];
@@ -199,8 +204,10 @@ impl PhysicsEngine {
                     let f = apply_srp(sun, b, &r_vec, dist);
                     let mut a = f; a.scale(1.0 / b.mass);
                     accs[i].add(&a);
-                    
-                    // PR Drag
+                }
+
+                // PR Drag
+                if enable_pr_drag {
                     let f_pr = apply_pr_drag(sun, b, &r_vec, dist);
                     let mut a_pr = f_pr; a_pr.scale(1.0 / b.mass);
                     accs[i].add(&a_pr);

@@ -412,6 +412,17 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setUseTDBTime: physics.setUseTDBTime,
     setEnableRelativity: physics.setEnableRelativity,
     setUseAdaptiveTimeStep: physics.setUseAdaptiveTimeStep,
+    
+    // New Toggles
+    enableSolarMassLoss: physics.enableSolarMassLoss,
+    setEnableSolarMassLoss: physics.setEnableSolarMassLoss,
+    enableCollisions: physics.enableCollisions,
+    setEnableCollisions: physics.setEnableCollisions,
+    enablePRDrag: physics.enablePRDrag,
+    setEnablePRDrag: physics.setEnablePRDrag,
+    useEIH: physics.useEIH,
+    setUseEIH: physics.setUseEIH,
+    
     updatePhysics,
 
     // Visual Updates Exports

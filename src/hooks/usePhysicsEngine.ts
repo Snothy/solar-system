@@ -68,6 +68,12 @@ export interface PhysicsEngine {
   setUseAdaptiveTimeStep: React.Dispatch<React.SetStateAction<boolean>>;
   useEIH: boolean;
   setUseEIH: React.Dispatch<React.SetStateAction<boolean>>;
+  enableSolarMassLoss: boolean;
+  setEnableSolarMassLoss: React.Dispatch<React.SetStateAction<boolean>>;
+  enableCollisions: boolean;
+  setEnableCollisions: React.Dispatch<React.SetStateAction<boolean>>;
+  enablePRDrag: boolean;
+  setEnablePRDrag: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Methods
   step: (dt: number) => number;
@@ -93,6 +99,11 @@ export function usePhysicsEngine(
   const [enableRelativity, setEnableRelativity] = useState(true);
   const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(true); // Adaptive timestep enabled by default
   const [useEIH, setUseEIH] = useState(true); // Default to Maximum Accuracy
+  
+  // New Toggles
+  const [enableSolarMassLoss, setEnableSolarMassLoss] = useState(true);
+  const [enableCollisions, setEnableCollisions] = useState(true);
+  const [enablePRDrag, setEnablePRDrag] = useState(true);
 
   const physicsCompute = usePhysicsCompute();
   const wasmEngineRef = useRef<WasmPhysicsEngine | null>(null);
@@ -226,36 +237,16 @@ export function usePhysicsEngine(
                 dt,
                 currentTime, // Pass sim_time for pole updates
                 enableRelativity, 
-                enablePrecession, // enable_j2 (proxy for J2 force) - Wait, enablePrecession is for AXIAL precession. 
-                // We need a separate J2 flag if we want to toggle J2 force independently.
-                // Currently UI has "Axial Precession" toggle.
-                // And "General Relativity".
-                // But NO "J2" toggle explicitly?
-                // Looking at PhysicsSettings.tsx:
-                // - General Relativity
-                // - Tidal Evolution
-                // - Atmospheric Drag
-                // - Yarkovsky Effect
-                // - Adaptive Time-Stepping
-                // - Axial Precession
-                // - Nutation
-                //
-                // It seems "J2" force is NOT togglable in the UI anymore?
-                // In the original code, enablePrecession was passed as enable_j2.
-                // So "Axial Precession" toggle controlled J2 forces? That's confusing.
-                // I should probably pass 'true' for J2 if we want it always on, or add a toggle.
-                // OR, re-use enablePrecession for J2 force for now to maintain behavior, 
-                // but pass it separately for actual precession.
-                // Let's pass enablePrecession for J2 force (to keep existing behavior) 
-                // AND for enable_precession (new arg).
-                enablePrecession, // enable_j2
+                enablePrecession, // enable_j2 (proxy for J2 force)
                 enableTidalEvolution,
-                true, // enable_srp
+                true, // enable_srp (Always on if Yarkovsky/PR are on? Or should we add a master SRP toggle? User didn't ask for SRP toggle, just PR Drag. Let's keep SRP on for now as base.)
                 enableYarkovsky,
                 enableAtmosphericDrag,
                 useEIH,
                 enablePrecession, // enable_precession
-                enableNutation    // enable_nutation
+                enableNutation,    // enable_nutation
+                enableSolarMassLoss,
+                enablePRDrag
             );
             
             // Sync back bodies
@@ -292,7 +283,7 @@ export function usePhysicsEngine(
 
     // Check collisions
     let collisionPositions: {x: number, y: number, z: number}[] = [];
-    if (wasmReady && wasmEngineRef.current) {
+    if (enableCollisions && wasmReady && wasmEngineRef.current) {
          const cols = wasmEngineRef.current.check_collisions();
          // cols is JsValue, we assume it's array of {x,y,z}
          collisionPositions = cols as any; 
@@ -351,6 +342,12 @@ export function usePhysicsEngine(
     setUseAdaptiveTimeStep,
     useEIH,
     setUseEIH,
+    enableSolarMassLoss,
+    setEnableSolarMassLoss,
+    enableCollisions,
+    setEnableCollisions,
+    enablePRDrag,
+    setEnablePRDrag,
     particles,
     step,
     syncBodiesToWasm

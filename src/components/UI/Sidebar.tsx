@@ -12,14 +12,37 @@ export function Sidebar({ children, showMinimap, onToggleMinimap, onOpenSettings
   return (
     <div className={styles.sidebar}>
       <div className={styles.header}>
-        <div className="flex items-center justify-between">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <h1 className={styles.title}>OrbitEngine</h1>
           <button 
             onClick={onOpenSettings}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-blue-400 hover:text-white group relative"
             title="Physics Settings"
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              color: '#fff',
+              outline: 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.transform = 'rotate(90deg)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.transform = 'rotate(0deg)';
+            }}
           >
-            <span className="text-xl block group-hover:rotate-90 transition-transform duration-500">⚙️</span>
+            <span style={{ fontSize: '16px', lineHeight: 1, filter: 'grayscale(100%) brightness(1.5)' }}>⚙️</span>
           </button>
         </div>
       </div>

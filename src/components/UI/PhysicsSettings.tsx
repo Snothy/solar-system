@@ -42,6 +42,18 @@ export interface PhysicsSettingsProps {
   useAdaptiveTimeStep: boolean;
   onToggleRelativity: (enabled: boolean) => void;
   onToggleAdaptiveTimeStep: (enabled: boolean) => void;
+  
+  // New Props
+  enableSolarMassLoss: boolean;
+  onToggleSolarMassLoss: (enabled: boolean) => void;
+  enableCollisions: boolean;
+  onToggleCollisions: (enabled: boolean) => void;
+  enablePRDrag: boolean;
+  onTogglePRDrag: (enabled: boolean) => void;
+  useEIH: boolean;
+  onToggleEIH: (enabled: boolean) => void;
+  useVisualScale: boolean;
+  onToggleVisualScale: (enabled: boolean) => void;
 }
 
 interface ToggleItemProps {
@@ -179,7 +191,19 @@ export function PhysicsSettings({
   enableRelativity,
   useAdaptiveTimeStep,
   onToggleRelativity,
-  onToggleAdaptiveTimeStep
+  onToggleAdaptiveTimeStep,
+  
+  // New Props
+  enableSolarMassLoss,
+  onToggleSolarMassLoss,
+  enableCollisions,
+  onToggleCollisions,
+  enablePRDrag,
+  onTogglePRDrag,
+  useEIH,
+  onToggleEIH,
+  useVisualScale,
+  onToggleVisualScale
 }: PhysicsSettingsProps) {
   
   const sectionHeaderStyle = {
@@ -219,6 +243,19 @@ export function PhysicsSettings({
             onChange={onToggleRelativity}
             tag="EIH"
           />
+          {enableRelativity && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+              <ToggleItem
+                label="High-Precision GR (EIH)"
+                description={useEIH
+                  ? "Enabled: Full Einstein-Infeld-Hoffmann equations. Maximum accuracy."
+                  : "Disabled: PPN Approximation. Faster, sufficient for most bodies."}
+                checked={useEIH}
+                onChange={onToggleEIH}
+                tag={useEIH ? "MAX ACCURACY" : "FAST"}
+              />
+            </div>
+          )}
           <ToggleItem
             label="Tidal Evolution"
             description={enableTidalEvolution
@@ -243,6 +280,14 @@ export function PhysicsSettings({
             checked={enableYarkovsky}
             onChange={onToggleYarkovsky}
           />
+          <ToggleItem
+            label="Poynting-Robertson Drag"
+            description={enablePRDrag
+              ? "Enabled: Relativistic drag causes dust to spiral into the Sun."
+              : "Disabled: Dust only affected by radiation pressure push."}
+            checked={enablePRDrag}
+            onChange={onTogglePRDrag}
+          />
         </div>
       </div>
 
@@ -253,6 +298,15 @@ export function PhysicsSettings({
           Time & Observation
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <ToggleItem
+            label="Enhanced Visibility (Visual Scale)"
+            description={useVisualScale
+              ? "Enabled: Planets/Moons rendered larger for visibility (Not to scale)."
+              : "Disabled: 1:1 True Scale. Objects appear as tiny dots."}
+            checked={useVisualScale}
+            onChange={onToggleVisualScale}
+            tag={useVisualScale ? "VISIBLE" : "TRUE SCALE"}
+          />
           <ToggleItem
             label="Barycentric Dynamical Time (TDB)"
             description={useTDBTime
@@ -311,6 +365,22 @@ export function PhysicsSettings({
               : "Disabled: Smooth precession only, ignoring lunar node influence."}
             checked={enableNutation}
             onChange={onToggleNutation}
+          />
+          <ToggleItem
+            label="Solar Mass Loss"
+            description={enableSolarMassLoss
+              ? "Enabled: Sun loses mass over time (nuclear fusion/wind). Orbits expand slightly."
+              : "Disabled: Sun mass constant. Idealized Keplerian orbits."}
+            checked={enableSolarMassLoss}
+            onChange={onToggleSolarMassLoss}
+          />
+          <ToggleItem
+            label="Collision Detection"
+            description={enableCollisions
+              ? "Enabled: Bodies interact/merge on contact."
+              : "Disabled: Ghost mode. Bodies pass through each other."}
+            checked={enableCollisions}
+            onChange={onToggleCollisions}
           />
         </div>
       </div>

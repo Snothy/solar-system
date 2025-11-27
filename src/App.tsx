@@ -66,6 +66,15 @@ export function App() {
     setEnableRelativity,
     useAdaptiveTimeStep,
     setUseAdaptiveTimeStep,
+    // New Toggles
+    enableSolarMassLoss,
+    setEnableSolarMassLoss,
+    enableCollisions,
+    setEnableCollisions,
+    enablePRDrag,
+    setEnablePRDrag,
+    useEIH,
+    setUseEIH,
     physicsCompute, // GPU/Worker compute interface
     addBody
   } = useSimulation(simulationData, simulationStartDate);
@@ -235,6 +244,22 @@ export function App() {
         useAdaptiveTimeStep={useAdaptiveTimeStep}
         onToggleRelativity={(val) => { console.log('App: Setting Relativity to', val); setEnableRelativity(val); }}
         onToggleAdaptiveTimeStep={setUseAdaptiveTimeStep}
+        
+        // New Props
+        enableSolarMassLoss={enableSolarMassLoss}
+        onToggleSolarMassLoss={setEnableSolarMassLoss}
+        enableCollisions={enableCollisions}
+        onToggleCollisions={setEnableCollisions}
+        enablePRDrag={enablePRDrag}
+        onTogglePRDrag={setEnablePRDrag}
+        useEIH={useEIH}
+        onToggleEIH={setUseEIH}
+        useVisualScale={useVisualScale}
+        onToggleVisualScale={(val) => {
+            setUseVisualScale(val);
+            if (val) setVisualScale(1000);
+            else setVisualScale(1);
+        }}
       />
     </>
   );
