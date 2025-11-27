@@ -34,6 +34,8 @@ export interface PhysicsSettingsProps {
   onToggleEIH: (enabled: boolean) => void;
   useVisualScale: boolean;
   onToggleVisualScale: (enabled: boolean) => void;
+  visualScale: number;
+  onSetVisualScale: (scale: number) => void;
 }
 
 interface ToggleItemProps {
@@ -185,7 +187,9 @@ export function PhysicsSettings({
   useEIH,
   onToggleEIH,
   useVisualScale,
-  onToggleVisualScale
+  onToggleVisualScale,
+  visualScale,
+  onSetVisualScale
 }: PhysicsSettingsProps) {
   
   const sectionHeaderStyle = {
@@ -289,6 +293,30 @@ export function PhysicsSettings({
             onChange={onToggleVisualScale}
             tag={useVisualScale ? "VISIBLE" : "TRUE SCALE"}
           />
+          {useVisualScale && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px', paddingTop: '8px', paddingBottom: '8px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                 <label style={{ fontSize: '11px', color: '#9ca3af' }}>Magnification</label>
+                 <span style={{ fontSize: '11px', color: '#fff', fontFamily: 'monospace' }}>{visualScale}x</span>
+               </div>
+               <input
+                 type="range"
+                 min="1"
+                 max="5000"
+                 value={visualScale}
+                 onChange={(e) => onSetVisualScale(Number(e.target.value))}
+                 style={{
+                   width: '100%',
+                   height: '4px',
+                   background: 'rgba(255,255,255,0.1)',
+                   borderRadius: '2px',
+                   appearance: 'none',
+                   outline: 'none',
+                   cursor: 'pointer'
+                 }}
+               />
+            </div>
+          )}
           <ToggleItem
             label="Barycentric Dynamical Time (TDB)"
             description={useTDBTime

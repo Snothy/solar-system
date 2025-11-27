@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Scene } from './components/Scene/Scene';
 import { Sidebar } from './components/UI/Sidebar';
-import { ScaleControls } from './components/UI/ScaleControls';
+
 import { TimeControls } from './components/UI/TimeControls';
 import { ObjectList } from './components/UI/ObjectList';
 import { SelectionPanel } from './components/UI/SelectionPanel';
@@ -158,12 +158,7 @@ export function App() {
         onToggleMinimap={setShowMinimap}
         onOpenSettings={() => setShowSettings(true)}
       >
-        <ScaleControls
-          visualScale={visualScale}
-          useVisualScale={useVisualScale}
-          onVisualScaleChange={setVisualScale}
-          onUseVisualScaleChange={setUseVisualScale}
-        />
+
 
         <PerformanceSettings
           metrics={performanceMetrics}
@@ -261,9 +256,11 @@ export function App() {
         useVisualScale={useVisualScale}
         onToggleVisualScale={(val) => {
             setUseVisualScale(val);
-            if (val) setVisualScale(1000);
-            else setVisualScale(1);
+            if (val && visualScale === 1) setVisualScale(1000); // Default to 1000x if enabling from 1x
+            else if (!val) setVisualScale(1);
         }}
+        visualScale={visualScale}
+        onSetVisualScale={setVisualScale}
       />
     </>
   );

@@ -15,6 +15,17 @@ interface CelestialBodyProps {
   onClick: () => void;
   layer: number;
   sunPosition: THREE.Vector3;
+  parentVisualBody?: VisualBody;
+}
+
+function calculateVisualRadius(baseRadius: number, visualScale: number, useVisualScale: boolean): number {
+  let r = baseRadius;
+  if (useVisualScale) {
+    r *= visualScale;
+    const MAX_RADIUS = 40.0;
+    if (r > MAX_RADIUS) r = MAX_RADIUS;
+  }
+  return r;
 }
 
 function BodyModel({ url, scale }: { url: string, scale: number }) {
@@ -43,7 +54,8 @@ export function CelestialBody({
   useVisualScale,
   onClick,
   layer,
-  sunPosition
+  sunPosition,
+  parentVisualBody
 }: CelestialBodyProps) {
   const groupRef = useRef<THREE.Group>(null);
   
@@ -73,7 +85,33 @@ export function CelestialBody({
   useFrame(() => {
     if (groupRef.current) {
       // Update position from physics simulation
-      groupRef.current.position.copy(visualBody.mesh.position);
+      const targetPos = visualBody.mesh.position;
+      
+      // Minimum Visual Distance Logic for Moons
+      if (useVisualScale && parentVisualBody) {
+         const parentRadius = calculateVisualRadius(parentVisualBody.baseRadius, visualScale, true);
+         const myRadius = calculateVisualRadius(visualBody.baseRadius, visualScale, true);
+         
+         // Minimum distance to avoid clipping (1.1x combined radius)
+         const minDist = (parentRadius + myRadius) * 1.1;
+         
+         const parentPos = parentVisualBody.mesh.position;
+         
+         // Calculate vector from parent to moon
+         const diff = new THREE.Vector3().subVectors(targetPos, parentPos);
+         const dist = diff.length();
+         
+         if (dist < minDist && dist > 0) {
+            // Push out along the radius vector
+            const dir = diff.normalize();
+            const newPos = parentPos.clone().add(dir.multiplyScalar(minDist));
+            groupRef.current.position.copy(newPos);
+         } else {
+            groupRef.current.position.copy(targetPos);
+         }
+      } else {
+         groupRef.current.position.copy(targetPos);
+      }
       
       // Update rotation
       // 1. Get base orientation (Pole alignment)
@@ -97,30 +135,44 @@ export function CelestialBody({
   
   // Calculate scale
   const scaleVec = useMemo(() => {
+    // 1. Determine base radii (in scene units)
+    let rx, ry, rz;
+    
     if (data.radii) {
-      const s = SCALE * (useVisualScale ? visualScale : 1);
-      // Tri-axial scaling: x, z, y because Three.js Y is up (polar axis), 
-      // but usually radii are given as a, b, c. 
-      // In solarSystem.ts we defined x, y, z.
-      // Let's assume x, y, z map to local x, y, z of the sphere.
-      // Note: We rotate the sphere to align the pole to Y.
-      // So 'y' radius should be the polar radius (c).
-      // 'x' and 'z' are equatorial radii (a, b).
-      // Our data has x, y, z. Let's map them directly.
-      return [data.radii.x * s, data.radii.y * s, data.radii.z * s] as [number, number, number];
+      rx = data.radii.x * SCALE;
+      ry = data.radii.y * SCALE;
+      rz = data.radii.z * SCALE;
+    } else {
+      const r = visualBody.baseRadius;
+      rx = r;
+      ry = r;
+      rz = r;
     }
 
-    let r = visualBody.baseRadius;
-    // Apply visual scale uniformly to all bodies, but cap the Sun's scale
+    // 2. Apply visual scale if enabled
     if (useVisualScale) {
-      if (data.type === 'star') {
-        r = r * (1 + (visualScale - 1) * 0.05);
-      } else {
-        r = r * visualScale;
+      // Apply scale factor
+      rx *= visualScale;
+      ry *= visualScale;
+      rz *= visualScale;
+
+      // 3. Apply Global Radius Cap (40 units = 40 million km)
+      // Mercury perihelion is ~46 million km (46 units).
+      // This ensures no body ever expands enough to touch Mercury's orbit.
+      const MAX_RADIUS = 40.0;
+      
+      if (rx > MAX_RADIUS) {
+         // Maintain aspect ratio if we cap
+         const factor = MAX_RADIUS / rx;
+         rx *= factor;
+         ry *= factor;
+         rz *= factor;
       }
     }
-    return [r, r, r] as [number, number, number];
-  }, [visualBody.baseRadius, visualScale, useVisualScale, data.type, data.radii]);
+
+    return [rx, ry, rz] as [number, number, number];
+  }, [visualBody.baseRadius, visualScale, useVisualScale, data.radii]);
+
   
   // Material for sphere
   const material = useMemo(() => {

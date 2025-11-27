@@ -168,12 +168,18 @@ export function Scene({
             }
           }
 
+          // Find parent visual body if it exists
+          const parentVisualBody = vb.body.parentName 
+            ? visualBodies.find(p => p.body.name === vb.body.parentName)
+            : undefined;
+
           return (
             <group key={vb.body.name}>
               <Suspense fallback={null}>
                 <CelestialBody
                   data={data}
                   visualBody={vb}
+                  parentVisualBody={parentVisualBody}
                   visualScale={visualScale}
                   useVisualScale={useVisualScale}
                   onClick={() => onObjectSelect(index)}
