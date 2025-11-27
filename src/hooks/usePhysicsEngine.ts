@@ -40,6 +40,7 @@ export interface PhysicsEngine {
 
   // Methods
   step: (dt: number) => number;
+  syncBodiesToWasm: () => void;
 }
 
 export function usePhysicsEngine(
@@ -47,8 +48,8 @@ export function usePhysicsEngine(
   initialTime: number
 ): PhysicsEngine {
   const [simTime, setSimTime] = useState(initialTime);
-  const [isPaused, setIsPaused] = useState(true);
-  const [timeStep, setTimeStep] = useState(1); // Days per second (target)
+  const [isPaused, setIsPaused] = useState(false); // Simulation running by default  
+  const [timeStep, setTimeStep] = useState(0); // Real time: 0 = realtime (1 second per second)
   const [particles, setParticles] = useState<Particle[]>([]);
 
   // Physics Settings
@@ -59,7 +60,7 @@ export function usePhysicsEngine(
   const [useTDBTime, setUseTDBTime] = useState(true);
   const [enableYarkovsky, setEnableYarkovsky] = useState(true);
   const [enableRelativity, setEnableRelativity] = useState(true);
-  const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(false);
+  const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(true); // Adaptive timestep enabled by default
   const [useEIH, setUseEIH] = useState(true); // Default to Maximum Accuracy
 
   const physicsCompute = usePhysicsCompute();
@@ -132,6 +133,48 @@ export function usePhysicsEngine(
       setWasmReady(false);
     }
   }, [wasmInitialized, bodies.length]); // Re-update when body count changes
+
+  // Manual sync function to push body changes to WASM
+  const syncBodiesToWasm = useCallback(() => {
+    if (!wasmReady || !wasmEngineRef.current || bodies.length === 0) return;
+    
+    try {
+      const wasmBodies = bodies.map(b => ({
+        name: b.name,
+        mass: b.mass,
+        radius: b.radius,
+        pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
+        vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
+        j2: b.J2,
+        j3: b.J3,
+        j4: b.J4,
+        c22: b.C22,
+        s22: b.S22,
+        poleVector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : null,
+        k2: b.k2,
+        tidalQ: b.tidalQ,
+        angularVelocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
+        momentOfInertia: b.momentOfInertia,
+        hasAtmosphere: b.hasAtmosphere,
+        surfacePressure: b.surfacePressure,
+        scaleHeight: b.scaleHeight,
+        meanTemperature: b.meanTemperature,
+        dragCoefficient: b.dragCoefficient,
+        albedo: b.albedo,
+        thermalInertia: b.thermalInertia,
+        poleRA0: b.poleRA0,
+        poleDec0: b.poleDec0,
+        precessionRate: b.precessionRate,
+        nutationAmplitude: b.nutationAmplitude,
+        libration: b.libration
+      }));
+      
+      wasmEngineRef.current.update_bodies(wasmBodies);
+      console.log(`Manually synced ${bodies.length} bodies to WASM physics engine`);
+    } catch (e) {
+      console.error("Failed to sync bodies to WASM:", e);
+    }
+  }, [wasmReady, bodies]);
 
   const step = useCallback((dt: number) => {
     // Start performance tracking
@@ -258,6 +301,7 @@ export function usePhysicsEngine(
     useEIH,
     setUseEIH,
     particles,
-    step
+    step,
+    syncBodiesToWasm
   };
 }

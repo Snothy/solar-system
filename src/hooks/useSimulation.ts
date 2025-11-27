@@ -42,11 +42,22 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     observerPos.current.set(x, y, z);
   };
 
+  // Track when we need to sync bodies to WASM (after manual updates)
+  const needsWasmSync = useRef(false);
+
   // Physics compute (worker/GPU) integration
   const physicsCompute = usePhysicsCompute();
 
   // Physics Engine Hook
   const physics = usePhysicsEngine(bodies, startDate.getTime() / 86400000 + 2440587.5);
+
+  // Sync bodies to WASM when manual updates occur
+  useEffect(() => {
+    if (needsWasmSync.current && bodies.length > 0) {
+      physics.syncBodiesToWasm();
+      needsWasmSync.current = false;
+    }
+  }, [bodies, physics]);
 
   // Visual Updates Hook
   const visuals = useVisualUpdates(bodies, visualBodies, observerPos, focusedObject);
@@ -194,6 +205,9 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     if (focusedObject && focusedObject.name === name) {
       setFocusedObject(prev => prev ? { ...prev, ...updates } : null);
     }
+
+    // Mark that we need to sync to WASM on next effect
+    needsWasmSync.current = true;
   };
 
   const addBody = (data: any) => {
@@ -296,14 +310,54 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setOrbitVisibility(next);
   };
 
+  // Track physics debt (simulation time we still need to process)
+  const physicsDebt = useRef(0);
+  
   const updatePhysics = () => {
-    const dt = (!physics.isPaused && physics.timeStep > 0) ? (physics.timeStep / 60) : 0;
+    // timeStep represents simulation seconds per real second
+    // timeStep = 0 means realtime (1 sec sim per 1 sec real)
+    // At 60 FPS, each frame is 1/60 seconds
+    // So: dt = (timeStep === 0 ? 1 : timeStep) / 60
+    const targetDt = !physics.isPaused ? ((physics.timeStep === 0 ? 1 : physics.timeStep) / 60) : 0;
 
-    if (dt > 0) {
-      const simulatedDt = physics.step(dt);
-      visuals.updateVisuals(simulatedDt);
-      physics.setSimTime(prev => prev + simulatedDt * 1000);
+    if (targetDt > 0) {
+      // Add this frame's required simulation time to our debt
+      physicsDebt.current += targetDt;
+      
+      // Adaptive sub-stepping: break large timesteps into smaller chunks
+      // Max sub-step size: 60 seconds (1 minute) for numerical stability
+      const MAX_SUBSTEP = 60; // seconds
+      
+      // PERFORMANCE OPTIMIZATION: Limit substeps per frame to prevent chopping
+      // Instead of doing ALL substeps at once, we do a reasonable batch per frame
+      // and carry the "debt" forward. This maintains 100% accuracy while improving smoothness.
+      const MAX_SUBSTEPS_PER_FRAME = 10; // Tune this: higher = more accurate but choppier
+      
+      let totalSimulatedDt = 0;
+      let substepsThisFrame = 0;
+      
+      // Process physics debt in manageable chunks
+      while (physicsDebt.current > 0 && substepsThisFrame < MAX_SUBSTEPS_PER_FRAME) {
+        // Calculate the size of this substep (capped at MAX_SUBSTEP for stability)
+        const subDt = Math.min(physicsDebt.current, MAX_SUBSTEP);
+        
+        // Perform the physics step
+        const simulatedDt = physics.step(subDt);
+        totalSimulatedDt += simulatedDt;
+        physicsDebt.current -= simulatedDt;
+        substepsThisFrame++;
+      }
+      
+      // Update visuals with whatever we managed to simulate this frame
+      if (totalSimulatedDt > 0) {
+        visuals.updateVisuals(totalSimulatedDt);
+        physics.setSimTime(prev => prev + totalSimulatedDt * 1000);
+      }
+      
       physicsCompute.performanceMonitor.endFrame();
+    } else {
+      // Simulation paused, reset debt
+      physicsDebt.current = 0;
     }
   };
 
