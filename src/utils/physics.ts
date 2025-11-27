@@ -125,7 +125,7 @@ export function computeGravitationalForces(
           .add(_v.multiplyScalar(4 * rDotV))
           .multiplyScalar(mu / (c2 * Math.pow(rMag, 3)));
           
-        b1.force.add(_accPPN.multiplyScalar(b1.mass));
+        b1.force.sub(_accPPN.multiplyScalar(b1.mass));
       }
 
       // Force on b2 due to b1
@@ -143,7 +143,7 @@ export function computeGravitationalForces(
           .add(_v.multiplyScalar(4 * rDotV))
           .multiplyScalar(mu / (c2 * Math.pow(rMag, 3)));
           
-        b2.force.add(_accPPN.multiplyScalar(b2.mass));
+        b2.force.sub(_accPPN.multiplyScalar(b2.mass));
         _rVec.negate(); // Restore
       }
 
@@ -191,6 +191,8 @@ function applyYarkovskyForce(sun: PhysicsBody, body: PhysicsBody): void {
   _cross1.crossVectors(_dir, _v);
   _tangentialDir.crossVectors(_cross1, _dir).normalize();
   
+  // The 0.1 factor is a tuning parameter to approximate the Yarkovsky efficiency
+  // and thermal lag effects not fully captured by the simplified model.
   const fMag = (absorbedPower / C_LIGHT) * Math.sin(thermalLagAngle) * 0.1;
   
   _tangentialDir.multiplyScalar(fMag);

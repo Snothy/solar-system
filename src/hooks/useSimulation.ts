@@ -234,7 +234,7 @@ export function useSimulation(initialData: any[] | null = null, startDate: Date 
           const perpDirection = vCross.normalize();
           const dist = observerPos.current.distanceTo(visualPos);
           const shift = perpDirection.multiplyScalar(dist * Math.sin(aberrationAngle));
-          visualPos.add(shift.multiplyScalar(SCALE));
+          visualPos.add(shift);
         }
       }
 
