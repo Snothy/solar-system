@@ -170,8 +170,6 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
             return Vector3::zero();
         }
 
-        let n = v_mag / dist; // Mean motion approximation
-        
         // Proper tidal force formula:
         // a_tidal = (3/2) * k2/Q * (GM/r²) * (R/r)⁵
         // Units: m/s²
@@ -179,12 +177,27 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
         let r_ratio_5 = (b1.radius / dist).powi(5);
         let acc = 1.5 * (k2 / q) * gm_over_r2 * r_ratio_5;
         
-        // Direction: tangential to orbit (opposes motion for tidal drag)
-        let mut cross1 = r_vec.cross(&orb_vel);
-        let mut tan = r_vec.cross(&cross1); 
-        tan.normalize();
-        tan.scale(acc * b2.mass);
-        return tan;
+        // Determine direction based on relative angular velocity
+        // F ~ (Omega_rot - Omega_orb) x r
+        
+        let mut orbital_ang_vel = r_vec.cross(&orb_vel);
+        orbital_ang_vel.scale(1.0 / (dist * dist));
+        
+        let rot_vel = b1.angular_velocity.unwrap_or(Vector3::zero());
+        
+        let mut delta_omega = rot_vel;
+        delta_omega.sub(&orbital_ang_vel);
+        
+        let mut dir = delta_omega.cross(r_vec);
+        
+        // If delta_omega is zero (locked), no tangential force? 
+        // Actually tidal bulge is aligned, so no torque/tangential force. Correct.
+        // But if dir is zero length, we return zero.
+        if dir.len_sq() > 1e-16 {
+            dir.normalize();
+            dir.scale(acc * b2.mass); // Force = Mass * Acc
+            return dir;
+        }
     }
     Vector3::zero()
 }

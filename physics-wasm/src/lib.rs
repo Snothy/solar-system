@@ -527,6 +527,22 @@ impl PhysicsEngine {
                        // Applying reactions here breaks the symplectic structure and injects energy
                    }
                    // If is_sun_parent is true (e.g. Earth), we skip entirely (handled by Drift).
+                } else {
+                    // WH Mode (include_sun_gravity = false)
+                    // We still need to apply the REACTION force on the Sun from the planet!
+                    // Even though the planet's motion is handled by drift, the Sun must feel the planet's pull
+                    // to conserve momentum and allow the Sun to wobble.
+                    
+                    // Force on Sun due to Body i: F = G * M * m / r^2
+                    // Direction: Towards Body i. (r_vec points from Sun to Body)
+                    let dist_sq = dist * dist;
+                    let f_mag = (G * sun.mass * b.mass) / dist_sq;
+                    let mut f_on_sun = r_vec; 
+                    f_on_sun.normalize();
+                    f_on_sun.scale(f_mag);
+                    
+                    let mut a_sun = f_on_sun; a_sun.scale(1.0 / sun.mass);
+                    accs[s_idx].add(&a_sun);
                 }
 
                 // SRP
