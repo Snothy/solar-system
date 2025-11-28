@@ -173,6 +173,14 @@ impl PhysicsEngine {
                     use_eih,
                     enable_pr_drag
                 );
+
+                // Apply Tidal Torque per substep (Added for parity with Adaptive)
+                if enable_tidal {
+                    self.apply_tidal_torque(sub_dt);
+                }
+                
+                // Update Libration per substep (Added for parity with Adaptive)
+                self.update_moon_libration();
                 
                 time_remaining -= sub_dt;
             }
