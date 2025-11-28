@@ -1,18 +1,21 @@
 mod constants;
 mod types;
 mod forces;
+mod kepler;
 
 use wasm_bindgen::prelude::*;
 use js_sys::Float32Array;
 use crate::types::{Vector3, PhysicsBody};
 use crate::constants::{SOLAR_MASS_LOSS, G};
 use crate::forces::*;
+use crate::kepler::*;
 
 #[wasm_bindgen]
 pub struct PhysicsEngine {
     bodies: Vec<PhysicsBody>,
     trails: Vec<Vec<f32>>,
     trail_indices: Vec<usize>,
+    parent_indices: Vec<Option<usize>>, // Cache parent index for each body
 }
 
 #[wasm_bindgen]
@@ -28,7 +31,9 @@ impl PhysicsEngine {
         let trails = vec![vec![0.0; trail_len * 3]; n];
         let trail_indices = vec![0; n];
         
-        PhysicsEngine { bodies, trails, trail_indices }
+        let mut engine = PhysicsEngine { bodies, trails, trail_indices, parent_indices: vec![None; n] };
+        engine.update_hierarchy();
+        engine
     }
 
     pub fn update_bodies(&mut self, val: JsValue) {
@@ -39,6 +44,67 @@ impl PhysicsEngine {
             let trail_len = 2000;
             self.trails = vec![vec![0.0; trail_len * 3]; n];
             self.trail_indices = vec![0; n];
+            self.parent_indices = vec![None; n];
+        }
+        self.update_hierarchy();
+    }
+
+    fn update_hierarchy(&mut self) {
+        let n = self.bodies.len();
+        self.parent_indices = vec![None; n];
+        
+        // Dynamic Hierarchy Detection using Sphere of Influence (SOI)
+        // 1. Find the most massive body (assumed to be the "Sun" / System Center)
+        let mut sun_idx = 0;
+        let mut max_mass = 0.0;
+        for (i, b) in self.bodies.iter().enumerate() {
+            if b.mass > max_mass {
+                max_mass = b.mass;
+                sun_idx = i;
+            }
+        }
+        
+        // 2. Determine parent for each body
+        for i in 0..n {
+            if i == sun_idx { continue; }
+            
+            let body = &self.bodies[i];
+            let mut best_parent = Some(sun_idx); // Default to Sun
+            let mut min_soi_radius = f64::MAX;
+            
+            // Check all potential parents (must be more massive)
+            for j in 0..n {
+                if i == j { continue; }
+                let potential_parent = &self.bodies[j];
+                
+                // Only consider more massive bodies as parents
+                if potential_parent.mass <= body.mass { continue; }
+                
+                // Calculate SOI radius of potential_parent relative to the Sun
+                // r_SOI = a * (m / M)^0.4
+                // We approximate 'a' as the current distance to Sun
+                let r_soi = if j == sun_idx {
+                    f64::MAX // Sun has infinite SOI effectively
+                } else {
+                    let dist_to_sun = potential_parent.pos.distance_to(&self.bodies[sun_idx].pos);
+                    dist_to_sun * (potential_parent.mass / max_mass).powf(0.4)
+                };
+                
+                // Check if body is within this SOI
+                let dist = body.pos.distance_to(&potential_parent.pos);
+                
+                if dist < r_soi {
+                    // If within SOI, this is a candidate.
+                    // We want the "most local" parent, i.e., the one with the smallest SOI radius
+                    // (or simply the closest one that satisfies the condition, but smallest SOI is more robust for hierarchy)
+                    if r_soi < min_soi_radius {
+                        min_soi_radius = r_soi;
+                        best_parent = Some(j);
+                    }
+                }
+            }
+            
+            self.parent_indices[i] = best_parent;
         }
     }
 
@@ -58,7 +124,9 @@ impl PhysicsEngine {
         enable_solar_mass_loss: bool,
         enable_pr_drag: bool,
         use_adaptive: bool,
-        adaptive_quality: u8 // 0=Low, 1=Medium, 2=High, 3=Ultra
+        adaptive_quality: u8, // 0=Low, 1=Medium, 2=High, 3=Ultra
+        use_wisdom_holman: bool,
+        wisdom_holman_quality: u8 // 0=Low, 1=Medium, 2=High, 3=Ultra
     ) -> f64 {
         // Update Pole Orientation (Precession/Nutation)
         self.update_pole_orientation(sim_time, enable_precession, enable_nutation);
@@ -70,10 +138,45 @@ impl PhysicsEngine {
             }
         }
 
-        // Adaptive Sub-stepping Logic
-        // We want to break 'dt' into smaller chunks 'sub_dt'
-        
-        if use_adaptive {
+        // FORCE HIERARCHY UPDATE (Debugging "Orbiting Empty Space")
+        // This ensures parent indices are always fresh
+        self.update_hierarchy();
+
+        if use_wisdom_holman {
+            // Map quality to max substep size (seconds)
+            // Larger substeps than adaptive because Wisdom-Holman is symplectic (more stable)
+            let max_wh_substep = match wisdom_holman_quality {
+                0 => 300.0,  // Low - Fast, good for most systems
+                1 => 180.0,  // Medium - Balanced (Default)
+                2 => 100.0,  // High - Conservative, very accurate
+                3 => 60.0,   // Ultra - Maximum accuracy
+                _ => 180.0,
+            };
+            
+            let mut time_remaining = dt;
+            
+            while time_remaining > 0.0 {
+                let sub_dt = if time_remaining > max_wh_substep {
+                    max_wh_substep
+                } else {
+                    time_remaining
+                };
+
+                self.step_wisdom_holman(
+                    sub_dt,
+                    enable_relativity,
+                    enable_j2,
+                    enable_tidal,
+                    enable_srp,
+                    enable_yarkovsky,
+                    enable_drag,
+                    use_eih,
+                    enable_pr_drag
+                );
+                
+                time_remaining -= sub_dt;
+            }
+        } else if use_adaptive {
             // Map quality to max substep size (seconds)
             let max_substep = match adaptive_quality {
                 0 => 60.0,  // Low
@@ -172,7 +275,7 @@ impl PhysicsEngine {
         
         // Step 2: Force Update 1 & Velocity Update 1
         let accs1 = self.compute_accelerations(
-            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag
+            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, true, false
         );
         self.update_velocities(&accs1, d1 * dt);
 
@@ -181,7 +284,7 @@ impl PhysicsEngine {
 
         // Step 4: Force Update 2 & Velocity Update 2
         let accs2 = self.compute_accelerations(
-            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag
+            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, true, false
         );
         self.update_velocities(&accs2, d2 * dt);
 
@@ -190,12 +293,89 @@ impl PhysicsEngine {
 
         // Step 6: Force Update 3 & Velocity Update 3
         let accs3 = self.compute_accelerations(
-            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag
+            &self.bodies, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, true, false
         );
         self.update_velocities(&accs3, d3 * dt);
 
         // Step 7: Position Update 4
         self.update_positions(c4 * dt);
+    }
+
+    // Wisdom-Holman (MVS) Integrator - Democratic Heliocentric Formulation
+    // All bodies drift in heliocentric coordinates (relative to Sun)
+    // Perturbations (interactions) applied in kick step
+    fn step_wisdom_holman(
+        &mut self,
+        dt: f64,
+        enable_relativity: bool, 
+        enable_j2: bool, 
+        enable_tidal: bool,
+        enable_srp: bool,
+        enable_yarkovsky: bool,
+        enable_drag: bool,
+        use_eih: bool,
+        enable_pr_drag: bool
+    ) {
+        let sun_idx = self.bodies.iter().position(|b| b.name == "Sun");
+        
+        if let Some(s_idx) = sun_idx {
+            // Store Sun's state at t
+            let sun_mass = self.bodies[s_idx].mass;
+            let sun_pos_t = self.bodies[s_idx].pos;
+            let sun_vel_t = self.bodies[s_idx].vel;
+            
+            // 1. DRIFT (dt/2) - Heliocentric Keplerian motion
+            
+            // Sun: Linear drift (or stationary in heliocentric frame)
+            let mut sun_delta = sun_vel_t;
+            sun_delta.scale(dt / 2.0);
+            self.bodies[s_idx].pos.add(&sun_delta);
+            
+            // All other bodies: Kepler drift around Sun
+            for i in 0..self.bodies.len() {
+                if i == s_idx { continue; }
+                drift_kepler(&mut self.bodies[i], dt / 2.0, sun_mass, &sun_pos_t, &sun_vel_t);
+            }
+            
+            // 2. KICK (dt) - Perturbations only (Keplerian term already handled by drift)
+            
+            // Compute accelerations with Sun's Keplerian term subtracted
+            // In heliocentric formulation, ALL bodies have their Sun Keplerian interaction
+            // handled by drift, so we subtract it from accelerations
+            let accs = self.compute_accelerations(
+                &self.bodies, 
+                enable_relativity, 
+                enable_j2, 
+                enable_tidal, 
+                enable_srp, 
+                enable_yarkovsky, 
+                enable_drag, 
+                use_eih, 
+                enable_pr_drag, 
+                false,  // Don't include Sun gravity - it's handled by drift
+                false   // No parent subtraction - we're not using hierarchical
+            );
+            
+            // Update velocities with perturbations
+            self.update_velocities(&accs, dt);
+            
+            // 3. DRIFT (dt/2) - Second half-step
+            
+            // Sun's NEW position/velocity after first drift and kick
+            let sun_pos_t_plus = self.bodies[s_idx].pos;
+            let sun_vel_t_plus = self.bodies[s_idx].vel;
+            
+            // Sun: Linear drift
+            let mut sun_delta = sun_vel_t_plus;
+            sun_delta.scale(dt / 2.0);
+            self.bodies[s_idx].pos.add(&sun_delta);
+            
+            // All other bodies: Kepler drift around Sun
+            for i in 0..self.bodies.len() {
+                if i == s_idx { continue; }
+                drift_kepler(&mut self.bodies[i], dt / 2.0, sun_mass, &sun_pos_t_plus, &sun_vel_t_plus);
+            }
+        }
     }
 
     fn update_positions(&mut self, dt: f64) {
@@ -274,7 +454,9 @@ impl PhysicsEngine {
         enable_yarkovsky: bool,
         enable_drag: bool,
         use_eih: bool,
-        enable_pr_drag: bool
+        enable_pr_drag: bool,
+        include_sun_gravity: bool,
+        subtract_parent_gravity: bool
     ) -> Vec<Vector3> {
         let n = bodies.len();
         let mut accs = vec![Vector3::zero(); n];
@@ -289,6 +471,56 @@ impl PhysicsEngine {
                 let mut r_vec = b.pos; r_vec.sub(&sun.pos);
                 let dist = r_vec.len();
                 
+                // Newtonian Gravity from Sun (Optional)
+                if include_sun_gravity {
+                   // Check if Sun is the parent and we should subtract it
+                   let is_sun_parent = if let Some(p_idx) = self.parent_indices[i] { p_idx == s_idx } else { false };
+                   
+                   if !subtract_parent_gravity {
+                       // Standard case: Full gravity
+                       let dist_sq = dist * dist;
+                       let f = apply_newtonian(sun, b, &r_vec, dist_sq);
+                       
+                       // Fix: Gravity is attractive!
+                       let mut a = f; a.scale(-1.0 / b.mass);
+                       accs[i].add(&a);
+                       
+                       let mut a_sun = f; a_sun.scale(1.0 / sun.mass);
+                       accs[s_idx].add(&a_sun);
+                   } else if !is_sun_parent {
+                       // Wisdom-Holman case:
+                       // If Sun is NOT the direct parent (e.g. Moon, where parent is Earth),
+                       // we must apply the TIDAL force (Sun->Moon - Sun->Earth).
+                       // Because the Earth's motion around Sun is already handled by the drift of the Earth.
+                       
+                       let dist_sq = dist * dist;
+                       let f_sun_body = apply_newtonian(sun, b, &r_vec, dist_sq);
+                       let mut a_sun_body = f_sun_body; a_sun_body.scale(-1.0 / b.mass); // Accel of Body due to Sun
+                       
+                       // Calculate Accel of Parent due to Sun
+                       let mut a_sun_parent = Vector3::zero();
+                       if let Some(p_idx) = self.parent_indices[i] {
+                           let parent = &bodies[p_idx];
+                           let mut r_p = parent.pos; r_p.sub(&sun.pos);
+                           let dist_p_sq = r_p.len_sq();
+                           let f_sun_parent = apply_newtonian(sun, parent, &r_p, dist_p_sq);
+                           a_sun_parent = f_sun_parent; a_sun_parent.scale(-1.0 / parent.mass);
+                       }
+                       
+                       // Apply Difference (Tidal Acceleration) to Body
+                       // a_final = a_sun_body - a_sun_parent
+                       let mut a_tidal = a_sun_body;
+                       a_tidal.sub(&a_sun_parent);
+                       
+                       accs[i].add(&a_tidal);
+                       
+                       // In standard MVS, we don't apply reaction forces to the Sun during the kick
+                       // The Sun's motion is handled by the drift step
+                       // Applying reactions here breaks the symplectic structure and injects energy
+                   }
+                   // If is_sun_parent is true (e.g. Earth), we skip entirely (handled by Drift).
+                }
+
                 // SRP
                 if enable_srp {
                     let f = apply_srp(sun, b, &r_vec, dist);
@@ -342,11 +574,34 @@ impl PhysicsEngine {
                 
                 if dist > 0.0 {
                     // 1. Newtonian
-                    let f = apply_newtonian(b1, b2, &r_vec, dist_sq);
-                    let mut a1 = f; a1.scale(1.0 / b1.mass);
-                    let mut a2 = f; a2.scale(-1.0 / b2.mass);
-                    accs[i].add(&a1);
-                    accs[j].add(&a2);
+                    // If one of them is Sun, we might skip if include_sun_gravity is false
+                    // But wait, we handled Sun gravity in the loop above ONLY if include_sun_gravity is true.
+                    // If include_sun_gravity is true, we handled it.
+                    // So here we should SKIP if one is Sun.
+                    
+                    let is_sun_interaction = (sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap()));
+                    
+                    if !is_sun_interaction {
+                         // Check parent-child relationship for subtraction
+                         let mut skip_newtonian = false;
+                         if subtract_parent_gravity {
+                             // ONLY skip if they have a DIRECT parent-child relationship
+                             // i.e., one is the IMMEDIATE parent of the other
+                             // Do NOT skip sibling moons (they both have same parent)
+                             let i_is_parent_of_j = self.parent_indices[j] == Some(i);
+                             let j_is_parent_of_i = self.parent_indices[i] == Some(j);
+                             
+                             skip_newtonian = i_is_parent_of_j || j_is_parent_of_i;
+                         }
+                         
+                         if !skip_newtonian {
+                             let f = apply_newtonian(b1, b2, &r_vec, dist_sq);
+                             let mut a1 = f; a1.scale(1.0 / b1.mass);
+                             let mut a2 = f; a2.scale(-1.0 / b2.mass);
+                             accs[i].add(&a1);
+                             accs[j].add(&a2);
+                         }
+                    }
 
                     // 2. Relativity
                     if enable_relativity {
@@ -633,6 +888,8 @@ impl PhysicsEngine {
             Vector3::zero()
         };
 
+        let mut geometric_positions = vec![0.0; n * 3];
+
         for i in 0..n {
             let b = &self.bodies[i];
             
@@ -640,13 +897,12 @@ impl PhysicsEngine {
             let mut pos = b.pos;
             pos.scale(scale_factor); // Convert to visual units
             
+            geometric_positions[i * 3] = pos.x as f32;
+            geometric_positions[i * 3 + 1] = pos.y as f32;
+            geometric_positions[i * 3 + 2] = pos.z as f32;
+
             // 2. Visual Scale (Moon visibility)
-            // This is tricky in Rust without easy access to parent relationship by name map.
-            // But we have parent_name in PhysicsBody? No, we didn't pass it in struct PhysicsBody in types.rs?
-            // Let's check types.rs. If not, we skip this or add it.
-            // Assuming we skip Visual Scale logic for now or implement it later.
-            // User asked for "Visual Corrections" (Delay/Aberration).
-            // Let's stick to Delay/Aberration for now.
+            // ... (omitted for now)
             
             let mut vis_pos = pos;
 
@@ -657,9 +913,7 @@ impl PhysicsEngine {
                 let delay = dist_meters / c_light;
                 
                 let mut correction = b.vel;
-                correction.scale(-delay * scale_factor); // Velocity is in m/s, need visual units?
-                // b.vel is m/s. delay is s. b.vel * delay = meters.
-                // We need visual units. So meters * scale_factor.
+                correction.scale(-delay * scale_factor); 
                 vis_pos.add(&correction);
             }
 
@@ -686,9 +940,7 @@ impl PhysicsEngine {
             visual_positions[i * 3 + 1] = vis_pos.y as f32;
             visual_positions[i * 3 + 2] = vis_pos.z as f32;
 
-            // Update Trails
-            // We update trails with the GEOMETRIC position (or visual? usually geometric for trails)
-            // JS code used _geometricPos for trails.
+            // Update Trails (Internal Buffer - Optional if we use JS)
             let t_idx = self.trail_indices[i];
             let trail_len = self.trails[i].len() / 3;
             
@@ -700,19 +952,12 @@ impl PhysicsEngine {
         }
 
         // Return object with positions and trails
-        // We can return a JsValue object
         let result = js_sys::Object::new();
         let pos_array = unsafe { js_sys::Float32Array::view(&visual_positions) };
-        // We need to copy because view is unsafe if memory grows?
-        // Actually, returning a Float32Array from Rust creates a copy usually unless using memory view directly.
-        // Let's just return the positions for now.
-        // Accessing trails from JS might be better done via a separate getter to avoid copying massive arrays every frame.
-        // Or we pass a pointer?
-        
-        // Let's just return positions for now to test.
-        // Trails can be accessed via a separate call `get_trail(body_idx)`.
+        let geo_array = unsafe { js_sys::Float32Array::view(&geometric_positions) };
         
         js_sys::Reflect::set(&result, &"positions".into(), &pos_array).unwrap();
+        js_sys::Reflect::set(&result, &"geometricPositions".into(), &geo_array).unwrap();
         result.into()
     }
     

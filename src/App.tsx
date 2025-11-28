@@ -64,10 +64,12 @@ export function App() {
     setEnableLightAberration,
     enableRelativity,
     setEnableRelativity,
-    useAdaptiveTimeStep,
-    setUseAdaptiveTimeStep,
+    integratorMode,
+    setIntegratorMode,
     adaptiveQuality,
     setAdaptiveQuality,
+    wisdomHolmanQuality,
+    setWisdomHolmanQuality,
     // New Toggles
     enableSolarMassLoss,
     setEnableSolarMassLoss,
@@ -238,11 +240,13 @@ export function App() {
         onToggleLightAberration={setEnableLightAberration}
         onToggleLightTimeDelay={setUseLightTimeDelay}
         enableRelativity={enableRelativity}
-        useAdaptiveTimeStep={useAdaptiveTimeStep}
         onToggleRelativity={(val) => { console.log('App: Setting Relativity to', val); setEnableRelativity(val); }}
-        onToggleAdaptiveTimeStep={setUseAdaptiveTimeStep}
+        integratorMode={integratorMode}
+        onSetIntegratorMode={setIntegratorMode}
         adaptiveQuality={adaptiveQuality}
         onSetAdaptiveQuality={setAdaptiveQuality}
+        wisdomHolmanQuality={wisdomHolmanQuality}
+        onSetWisdomHolmanQuality={setWisdomHolmanQuality}
         
         // New Props
         enableSolarMassLoss={enableSolarMassLoss}

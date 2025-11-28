@@ -1,4 +1,7 @@
 
+
+export type IntegratorMode = 'standard' | 'adaptive' | 'wisdom-holman';
+
 export interface PhysicsSettingsProps {
   enableTidalEvolution: boolean;
   enableAtmosphericDrag: boolean;
@@ -17,11 +20,15 @@ export interface PhysicsSettingsProps {
   onToggleLightAberration: (enabled: boolean) => void;
   onToggleLightTimeDelay: (enabled: boolean) => void;
   enableRelativity: boolean;
-  useAdaptiveTimeStep: boolean;
   onToggleRelativity: (enabled: boolean) => void;
-  onToggleAdaptiveTimeStep: (enabled: boolean) => void;
+  
+  // Integrator Mode
+  integratorMode: IntegratorMode;
+  onSetIntegratorMode: (mode: IntegratorMode) => void;
   adaptiveQuality: number;
   onSetAdaptiveQuality: (quality: number) => void;
+  wisdomHolmanQuality: number;
+  onSetWisdomHolmanQuality: (quality: number) => void;
   
   // New Props
   enableSolarMassLoss: boolean;
@@ -62,7 +69,6 @@ function ToggleItem({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log(`PhysicsSettings: Toggle clicked: ${label}, new value: ${!checked}`);
         if (!disabled) {
           onChange(!checked);
         }
@@ -171,11 +177,14 @@ export function PhysicsSettings({
   onToggleLightAberration,
   onToggleLightTimeDelay,
   enableRelativity,
-  useAdaptiveTimeStep,
   onToggleRelativity,
-  onToggleAdaptiveTimeStep,
+  
+  integratorMode,
+  onSetIntegratorMode,
   adaptiveQuality,
   onSetAdaptiveQuality,
+  wisdomHolmanQuality,
+  onSetWisdomHolmanQuality,
   
   // New Props
   enableSolarMassLoss,
@@ -351,17 +360,52 @@ export function PhysicsSettings({
           Advanced Dynamics
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <ToggleItem
-            label="Adaptive Time-Stepping"
-            description={useAdaptiveTimeStep
-              ? "Enabled: Uses sub-stepping (max 60s) for stability. Prevents moons from flying off."
-              : "Disabled: Single step per frame. Higher performance but unstable at high speeds."}
-            checked={useAdaptiveTimeStep}
-            onChange={onToggleAdaptiveTimeStep}
-            tag={useAdaptiveTimeStep ? "STABLE" : "FAST"}
-          />
-          {useAdaptiveTimeStep && (
-            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+          
+          {/* Integrator Mode Selector */}
+          <div style={{ 
+            padding: '12px', 
+            backgroundColor: 'rgba(255,255,255,0.03)', 
+            borderRadius: '8px',
+            marginBottom: '8px'
+          }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#d1d5db', marginBottom: '8px' }}>
+              Integrator Mode
+            </label>
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+              {[
+                { id: 'standard', label: 'Standard' },
+                { id: 'adaptive', label: 'Adaptive' },
+                { id: 'wisdom-holman', label: 'Wisdom-Holman' }
+              ].map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => onSetIntegratorMode(mode.id as IntegratorMode)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    fontSize: '11px',
+                    backgroundColor: integratorMode === mode.id ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                    color: integratorMode === mode.id ? 'white' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontWeight: integratorMode === mode.id ? 600 : 400
+                  }}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
+              {integratorMode === 'standard' && "Fixed time step. Fast but unstable at high speeds."}
+              {integratorMode === 'adaptive' && "Variable sub-stepping. Stable but slower."}
+              {integratorMode === 'wisdom-holman' && "Symplectic Map. Best for high-speed solar system simulation."}
+            </p>
+          </div>
+
+          {integratorMode === 'adaptive' && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginBottom: '8px' }}>
               <div style={{ padding: '8px 0' }}>
                 <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
                   Adaptive Quality (Max Substep)
@@ -396,6 +440,44 @@ export function PhysicsSettings({
               </div>
             </div>
           )}
+
+          {integratorMode === 'wisdom-holman' && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginBottom: '8px' }}>
+              <div style={{ padding: '8px 0' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+                  Wisdom-Holman Quality (Max Substep)
+</label>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[
+                    { l: 'Low', v: 0, d: '300s' },
+                    { l: 'Med', v: 1, d: '180s' },
+                    { l: 'High', v: 2, d: '100s' },
+                    { l: 'Ultra', v: 3, d: '60s' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onSetWisdomHolmanQuality(opt.v)}
+                      style={{
+                        flex: 1,
+                        padding: '4px',
+                        fontSize: '10px',
+                        backgroundColor: wisdomHolmanQuality === opt.v ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                        color: wisdomHolmanQuality === opt.v ? 'white' : '#9ca3af',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      title={`Max Substep: ${opt.d}`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           <ToggleItem
             label="Axial Precession"
             description={enablePrecession
@@ -452,3 +534,4 @@ export function PhysicsSettings({
     </div>
   );
 }
+

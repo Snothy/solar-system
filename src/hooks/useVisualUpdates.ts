@@ -58,6 +58,7 @@ export function useVisualUpdates(
 
         if (visualState && visualState.positions) {
             const positions = visualState.positions; // Float32Array [x, y, z, x, y, z...]
+            const geometricPositions = visualState.geometricPositions; // Float32Array [x, y, z...]
             
             visualBodies.forEach((vb, i) => {
                 // Update Position
@@ -74,21 +75,20 @@ export function useVisualUpdates(
                     vb.mesh.rotation.y += vb.rotationSpeed * dt;
                 }
                 
-                // Update Trails (WASM should handle this, but for now we just get positions)
-                // If we want WASM trails, we need to get them from WASM.
-                // The plan said "Implement Trail History Buffer in Rust".
-                // And "Expose get_visual_state".
-                // I implemented `get_visual_state` to return positions.
-                // I also implemented `get_trail` in Rust but didn't expose it in `get_visual_state` return object yet.
-                // I should probably update trails in JS using the WASM-calculated position for this step, 
-                // to ensure visual correctness first.
-                
                 // Update trail (JS side using GEOMETRIC pos to avoid camera artifacts)
                 // _visualPos depends on camera position (Light Time Delay), causing trails to jump when camera moves.
                 // We must use the stable geometric position for trails.
-                const geoX = vb.body.pos.x * SCALE;
-                const geoY = vb.body.pos.y * SCALE;
-                const geoZ = vb.body.pos.z * SCALE;
+                let geoX, geoY, geoZ;
+                
+                if (geometricPositions) {
+                    geoX = geometricPositions[idx];
+                    geoY = geometricPositions[idx+1];
+                    geoZ = geometricPositions[idx+2];
+                } else {
+                    geoX = vb.body.pos.x * SCALE;
+                    geoY = vb.body.pos.y * SCALE;
+                    geoZ = vb.body.pos.z * SCALE;
+                }
 
                 const trailPositions = vb.trail.geometry.attributes.position.array as Float32Array;
                 if (vb.trailCount >= TRAIL_LENGTH) {

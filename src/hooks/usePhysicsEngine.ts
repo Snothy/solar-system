@@ -37,48 +37,61 @@ function utcToTDB(utcTime: number): number {
   // Convert seconds to milliseconds and add to UTC time
   return utcTime + total_correction_seconds * 1000;
 }
-import { usePhysicsCompute } from './usePhysicsCompute';
 import init, { PhysicsEngine as WasmPhysicsEngine } from '../../physics-wasm/pkg/physics_wasm';
+import { usePhysicsCompute } from './usePhysicsCompute';
+import type { IntegratorMode } from '../components/UI/PhysicsSettings';
 
 export interface PhysicsEngine {
+  // State
   simTime: number;
-  setSimTime: React.Dispatch<React.SetStateAction<number>>;
-  isPaused: boolean;
-  setIsPaused: React.Dispatch<React.SetStateAction<boolean>>;
   timeStep: number;
-  setTimeStep: React.Dispatch<React.SetStateAction<number>>;
-  particles: Particle[];
-
+  isPaused: boolean;
+  
   // Settings
   enableTidalEvolution: boolean;
   setEnableTidalEvolution: React.Dispatch<React.SetStateAction<boolean>>;
   enableAtmosphericDrag: boolean;
   setEnableAtmosphericDrag: React.Dispatch<React.SetStateAction<boolean>>;
+  enableYarkovsky: boolean;
+  setEnableYarkovsky: React.Dispatch<React.SetStateAction<boolean>>;
   enablePrecession: boolean;
   setEnablePrecession: React.Dispatch<React.SetStateAction<boolean>>;
   enableNutation: boolean;
   setEnableNutation: React.Dispatch<React.SetStateAction<boolean>>;
   useTDBTime: boolean;
   setUseTDBTime: React.Dispatch<React.SetStateAction<boolean>>;
-  enableYarkovsky: boolean;
-  setEnableYarkovsky: React.Dispatch<React.SetStateAction<boolean>>;
   enableRelativity: boolean;
   setEnableRelativity: React.Dispatch<React.SetStateAction<boolean>>;
-  useAdaptiveTimeStep: boolean;
-  setUseAdaptiveTimeStep: React.Dispatch<React.SetStateAction<boolean>>;
+  
+  // Integrator Settings
+  integratorMode: IntegratorMode;
+  setIntegratorMode: React.Dispatch<React.SetStateAction<IntegratorMode>>;
   adaptiveQuality: number;
   setAdaptiveQuality: React.Dispatch<React.SetStateAction<number>>;
-  useEIH: boolean;
-  setUseEIH: React.Dispatch<React.SetStateAction<boolean>>;
+  wisdomHolmanQuality: number;
+  setWisdomHolmanQuality: React.Dispatch<React.SetStateAction<number>>;
+  
+  // New Toggles
   enableSolarMassLoss: boolean;
   setEnableSolarMassLoss: React.Dispatch<React.SetStateAction<boolean>>;
   enableCollisions: boolean;
   setEnableCollisions: React.Dispatch<React.SetStateAction<boolean>>;
   enablePRDrag: boolean;
   setEnablePRDrag: React.Dispatch<React.SetStateAction<boolean>>;
+  useEIH: boolean;
+  setUseEIH: React.Dispatch<React.SetStateAction<boolean>>;
+
+  // Backward compatibility
+  useAdaptiveTimeStep: boolean;
+  setUseAdaptiveTimeStep: React.Dispatch<React.SetStateAction<boolean>>;
+  useWisdomHolman: boolean;
+  setUseWisdomHolman: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Methods
   step: (dt: number) => number;
+  setTimeStep: (step: number) => void;
+  setIsPaused: (paused: boolean) => void;
+  setSimTime: React.Dispatch<React.SetStateAction<number>>;
   syncBodiesToWasm: () => void;
   getVisualState: (
     observerPos: THREE.Vector3,
@@ -89,39 +102,43 @@ export interface PhysicsEngine {
     focusedBodyIdx: number,
     scaleFactor: number
   ) => any;
+  particles: Particle[];
+  setParticles: React.Dispatch<React.SetStateAction<Particle[]>>;
 }
 
-export function usePhysicsEngine(
-  bodies: PhysicsBody[],
-  initialTime: number
-): PhysicsEngine {
-  const [simTime, setSimTime] = useState(initialTime);
-  const [isPaused, setIsPaused] = useState(false); // Simulation running by default  
-  const [timeStep, setTimeStep] = useState(0); // Real time: 0 = realtime (1 second per second)
-  const [particles, setParticles] = useState<Particle[]>([]);
-
+export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): PhysicsEngine {
+  const [simTime, setSimTimeState] = useState(initialTime);
+  const [timeStep, setTimeStep] = useState(0); // 0 = Realtime
+  const [isPaused, setIsPaused] = useState(false);
+  
   // Refs for throttled time updates
   const simTimeRef = useRef(initialTime);
   const lastStateUpdateTime = useRef(0);
 
-  // Sync ref if initialTime changes
-  useEffect(() => {
-    if (simTimeRef.current === initialTime) return;
-    simTimeRef.current = initialTime;
-  }, [initialTime]);
+  // Wrapper to keep ref in sync with state
+  const setSimTime = useCallback((value: number | ((prev: number) => number)) => {
+      setSimTimeState(prev => {
+          const newValue = typeof value === 'function' ? value(prev) : value;
+          simTimeRef.current = newValue;
+          return newValue;
+      });
+  }, []);
 
   // Physics Settings
   const [enableTidalEvolution, setEnableTidalEvolution] = useState(true);
   const [enableAtmosphericDrag, setEnableAtmosphericDrag] = useState(true);
+  const [enableYarkovsky, setEnableYarkovsky] = useState(true);
   const [enablePrecession, setEnablePrecession] = useState(true);
   const [enableNutation, setEnableNutation] = useState(true);
   const [useTDBTime, setUseTDBTime] = useState(true);
-  const [enableYarkovsky, setEnableYarkovsky] = useState(true);
   const [enableRelativity, setEnableRelativity] = useState(true);
-  const [useAdaptiveTimeStep, setUseAdaptiveTimeStep] = useState(true); // Adaptive timestep enabled by default
-  const [adaptiveQuality, setAdaptiveQuality] = useState(2); // 0=Low, 1=Medium, 2=High (Default), 3=Ultra
-  const [useEIH, setUseEIH] = useState(true); // Default to Maximum Accuracy
+  const [useEIH, setUseEIH] = useState(true);
   
+  // Integrator Settings
+  const [integratorMode, setIntegratorMode] = useState<IntegratorMode>('wisdom-holman'); // Default to best
+  const [adaptiveQuality, setAdaptiveQuality] = useState(2); // High default
+  const [wisdomHolmanQuality, setWisdomHolmanQuality] = useState(1); // Medium default
+
   // New Toggles
   const [enableSolarMassLoss, setEnableSolarMassLoss] = useState(true);
   const [enableCollisions, setEnableCollisions] = useState(true);
@@ -130,7 +147,7 @@ export function usePhysicsEngine(
   const physicsCompute = usePhysicsCompute();
   const wasmEngineRef = useRef<WasmPhysicsEngine | null>(null);
   const [wasmReady, setWasmReady] = useState(false);
-  const [wasmInitialized, setWasmInitialized] = useState(false);
+  const [particles, setParticles] = useState<Particle[]>([]);
 
   // Initialize WASM module (once)
   useEffect(() => {
@@ -138,7 +155,7 @@ export function usePhysicsEngine(
       try {
         await init();
         console.log("WASM Module Loaded");
-        setWasmInitialized(true);
+        setWasmReady(true);
       } catch (e) {
         console.error("Failed to load WASM module:", e);
       }
@@ -148,39 +165,42 @@ export function usePhysicsEngine(
 
   // Create/Update WASM engine when bodies change
   useEffect(() => {
-    if (!wasmInitialized || bodies.length === 0) return;
+    // Only proceed if WASM module is loaded and there are bodies
+    if (!wasmReady || bodies.length === 0) return;
     
     try {
       // Convert bodies to plain objects for WASM
-      const wasmBodies = bodies.map(b => ({
-        name: b.name,
-        mass: b.mass,
-        radius: b.radius,
-        pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
-        vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
-        j2: b.J2,
-        j3: b.J3,
-        j4: b.J4,
-        c22: b.C22,
-        s22: b.S22,
-        poleVector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : null,
-        k2: b.k2,
-        tidalQ: b.tidalQ,
-        angularVelocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
-        momentOfInertia: b.momentOfInertia,
-        hasAtmosphere: b.hasAtmosphere,
-        surfacePressure: b.surfacePressure,
-        scaleHeight: b.scaleHeight,
-        meanTemperature: b.meanTemperature,
-        dragCoefficient: b.dragCoefficient,
-        albedo: b.albedo,
-        thermalInertia: b.thermalInertia,
-        poleRA0: b.poleRA0,
-        poleDec0: b.poleDec0,
-        precessionRate: b.precessionRate,
-        nutationAmplitude: b.nutationAmplitude,
-        libration: b.libration
-      }));
+      const wasmBodies = bodies.map(b => {
+        return {
+          name: b.name,
+          mass: b.mass,
+          radius: b.radius,
+          pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
+          vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
+          j2: b.J2,
+          j3: b.J3,
+          j4: b.J4,
+          c22: b.C22,
+          s22: b.S22,
+          pole_vector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : { x: 0, y: 1, z: 0 },
+          k2: b.k2,
+          tidal_q: b.tidalQ,
+          angular_velocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
+          moment_of_inertia: b.momentOfInertia,
+          has_atmosphere: b.hasAtmosphere,
+          surface_pressure: b.surfacePressure,
+          scale_height: b.scaleHeight,
+          mean_temperature: b.meanTemperature,
+          drag_coefficient: b.dragCoefficient,
+          albedo: b.albedo,
+          thermal_inertia: b.thermalInertia,
+          pole_ra0: b.poleRA0,
+          pole_dec0: b.poleDec0,
+          precession_rate: b.precessionRate,
+          nutation_amplitude: b.nutationAmplitude,
+          libration: b.libration
+        };
+      });
       
       if (!wasmEngineRef.current) {
         // Create engine for the first time
@@ -191,47 +211,47 @@ export function usePhysicsEngine(
         wasmEngineRef.current.update_bodies(wasmBodies);
         console.log(`WASM Physics Engine Updated with ${bodies.length} bodies`);
       }
-      setWasmReady(true);
     } catch (e) {
       console.error("Failed to create/update WASM physics engine:", e);
-      setWasmReady(false);
     }
-  }, [wasmInitialized, bodies.length]); // Re-update when body count changes
+  }, [wasmReady, bodies.length]); // Re-update when body count changes
 
   // Manual sync function to push body changes to WASM
   const syncBodiesToWasm = useCallback(() => {
     if (!wasmReady || !wasmEngineRef.current || bodies.length === 0) return;
     
     try {
-      const wasmBodies = bodies.map(b => ({
-        name: b.name,
-        mass: b.mass,
-        radius: b.radius,
-        pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
-        vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
-        j2: b.J2,
-        j3: b.J3,
-        j4: b.J4,
-        c22: b.C22,
-        s22: b.S22,
-        poleVector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : null,
-        k2: b.k2,
-        tidalQ: b.tidalQ,
-        angularVelocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
-        momentOfInertia: b.momentOfInertia,
-        hasAtmosphere: b.hasAtmosphere,
-        surfacePressure: b.surfacePressure,
-        scaleHeight: b.scaleHeight,
-        meanTemperature: b.meanTemperature,
-        dragCoefficient: b.dragCoefficient,
-        albedo: b.albedo,
-        thermalInertia: b.thermalInertia,
-        poleRA0: b.poleRA0,
-        poleDec0: b.poleDec0,
-        precessionRate: b.precessionRate,
-        nutationAmplitude: b.nutationAmplitude,
-        libration: b.libration
-      }));
+      const wasmBodies = bodies.map(b => {
+        return {
+          name: b.name,
+          mass: b.mass,
+          radius: b.radius,
+          pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
+          vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
+          j2: b.J2,
+          j3: b.J3,
+          j4: b.J4,
+          c22: b.C22,
+          s22: b.S22,
+          pole_vector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : { x: 0, y: 1, z: 0 },
+          k2: b.k2,
+          tidal_q: b.tidalQ,
+          angular_velocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
+          moment_of_inertia: b.momentOfInertia,
+          has_atmosphere: b.hasAtmosphere,
+          surface_pressure: b.surfacePressure,
+          scale_height: b.scaleHeight,
+          mean_temperature: b.meanTemperature,
+          drag_coefficient: b.dragCoefficient,
+          albedo: b.albedo,
+          thermal_inertia: b.thermalInertia,
+          pole_ra0: b.poleRA0,
+          pole_dec0: b.poleDec0,
+          precession_rate: b.precessionRate,
+          nutation_amplitude: b.nutationAmplitude,
+          libration: b.libration
+        };
+      });
       
       wasmEngineRef.current.update_bodies(wasmBodies);
       console.log(`Manually synced ${bodies.length} bodies to WASM physics engine`);
@@ -241,117 +261,106 @@ export function usePhysicsEngine(
   }, [wasmReady, bodies]);
 
   const step = useCallback((dt: number) => {
-    // Get current time in TDB if enabled
-    // Use the ref for accurate physics time
-    const currentTime = useTDBTime ? utcToTDB(simTimeRef.current) : simTimeRef.current;
+    if (!wasmEngineRef.current || !wasmReady) return 0;
+    
+    try {
+        const useAdaptive = integratorMode === 'adaptive';
+        const useWisdomHolman = integratorMode === 'wisdom-holman';
 
-    let simulatedDt = dt;
+        const currentSimTime = simTimeRef.current;
+        const tdbTime = useTDBTime ? utcToTDB(currentSimTime) : currentSimTime;
+        const jdTime = tdbTime / 86400000 + 2440587.5;
 
-    if (wasmReady && wasmEngineRef.current) {
-        try {
-            // Pass flags: dt, sim_time, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih
-            // WASM now handles adaptive sub-stepping internally for stability
-            simulatedDt = wasmEngineRef.current.step(
-                dt,
-                currentTime, // Pass sim_time for pole updates
-                enableRelativity, 
-                true, // enable_j2 (Always on for high fidelity, or use a setting)
-                enableTidalEvolution,
-                true, // enable_srp
-                enableYarkovsky,
-                enableAtmosphericDrag,
-                useEIH,
-                enablePrecession, // enable_precession
-                enableNutation,    // enable_nutation
-                enableSolarMassLoss,
-                enablePRDrag,
-                useAdaptiveTimeStep,
-                adaptiveQuality // 0=Low, 1=Medium, 2=High, 3=Ultra
-            );
-            
-            // Sync back bodies
-            const newBodies = wasmEngineRef.current.get_bodies();
-            for (let i = 0; i < bodies.length; i++) {
-                const nb = newBodies[i];
+        const simulatedDt = wasmEngineRef.current.step(
+            dt,
+            jdTime, // Pass Julian Date to WASM
+            enableRelativity, 
+            true, // enable_j2 (Always on for high fidelity, or use a setting)
+            enableTidalEvolution,
+            true, // enable_srp
+            enableYarkovsky,
+            enableAtmosphericDrag,
+            useEIH,
+            enablePrecession,
+            enableNutation,
+            enableSolarMassLoss,
+            enablePRDrag,
+            useAdaptive,
+            adaptiveQuality, // 0=Low, 1=Medium, 2=High, 3=Ultra
+            useWisdomHolman,
+            wisdomHolmanQuality // 0=Low, 1=Medium, 2=High, 3=Ultra
+        );
+        
+        // Update simTime (convert seconds to milliseconds)
+        simTimeRef.current += simulatedDt * 1000;
+        
+        // Throttle React state updates for UI
+        const now = performance.now();
+        if (now - lastStateUpdateTime.current > 100) { // 10fps UI update
+            setSimTime(simTimeRef.current);
+            lastStateUpdateTime.current = now;
+        }
+
+        // Check collisions
+        let collisionPositions: {x: number, y: number, z: number}[] = [];
+        if (enableCollisions && wasmReady && wasmEngineRef.current) {
+            const cols = wasmEngineRef.current.check_collisions();
+            collisionPositions = cols as any; 
+        }
+
+        if (collisionPositions.length > 0) {
+            const newParticles: Particle[] = collisionPositions.map(pos => {
+                const geo = new THREE.BufferGeometry();
+                const positions = new Float32Array(30 * 3);
+                for (let i = 0; i < 30; i++) {
+                    positions[i * 3] = pos.x * SCALE;
+                    positions[i * 3 + 1] = pos.y * SCALE;
+                    positions[i * 3 + 2] = pos.z * SCALE;
+                }
+                geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const mat = new THREE.PointsMaterial({ color: 0xffaa00, size: 2 });
+                const pts = new THREE.Points(geo, mat);
+
+                const vels: number[] = [];
+                for (let i = 0; i < 30; i++) {
+                    vels.push((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5));
+                }
+
+                return { mesh: pts, vels, life: 1.0 };
+            });
+            setParticles(prev => [...prev, ...newParticles]);
+        }
+
+        // Let's fetch state for the bodies array occasionally?
+        if (now - lastStateUpdateTime.current > 500) {
+             const states = wasmEngineRef.current.get_bodies();
+             // We don't want to trigger a re-render of the whole body list every 500ms if not needed.
+             // But we might want to update the mutable objects in the array without triggering React?
+             for (let i = 0; i < bodies.length; i++) {
+                const nb = states[i];
                 if (nb) {
                     bodies[i].pos.set(nb.pos.x, nb.pos.y, nb.pos.z);
                     bodies[i].vel.set(nb.vel.x, nb.vel.y, nb.vel.z);
-                    if (nb.angular_velocity) {
-                        if (!bodies[i].angularVelocity) bodies[i].angularVelocity = new THREE.Vector3();
-                        bodies[i].angularVelocity!.set(nb.angular_velocity.x, nb.angular_velocity.y, nb.angular_velocity.z);
-                    }
-                    // Sync pole vector if updated
-                    if (nb.pole_vector) {
-                        if (!bodies[i].poleVector) bodies[i].poleVector = new THREE.Vector3();
-                        bodies[i].poleVector!.set(nb.pole_vector.x, nb.pole_vector.y, nb.pole_vector.z);
-                    }
-                    // Sync libration
-                    if (nb.libration !== undefined) {
-                        bodies[i].libration = nb.libration;
-                    }
+                    // Update orientation
+                    // if (!bodies[i].angularVelocity) bodies[i].angularVelocity = new THREE.Vector3();
+                    // bodies[i].angularVelocity!.set(nb.angular_velocity.x, nb.angular_velocity.y, nb.angular_velocity.z);
+                    
+                    // Update pole vector
+                    // if (!bodies[i].poleVector) bodies[i].poleVector = new THREE.Vector3();
+                    // bodies[i].poleVector!.set(nb.pole_vector.x, nb.pole_vector.y, nb.pole_vector.z);
+                    
+                    // Update libration
+                    // bodies[i].libration = nb.libration;
                 }
             }
-        } catch (e) {
-            console.error("WASM Step failed", e);
-        }
-    } else {
-        console.warn("WASM Physics not ready yet");
-        simulatedDt = 0;
-    }
-
-    // Check collisions
-    let collisionPositions: {x: number, y: number, z: number}[] = [];
-    if (enableCollisions && wasmReady && wasmEngineRef.current) {
-         const cols = wasmEngineRef.current.check_collisions();
-         collisionPositions = cols as any; 
-    }
-
-    if (collisionPositions.length > 0) {
-      const newParticles: Particle[] = collisionPositions.map(pos => {
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(30 * 3);
-        for (let i = 0; i < 30; i++) {
-          positions[i * 3] = pos.x * SCALE;
-          positions[i * 3 + 1] = pos.y * SCALE;
-          positions[i * 3 + 2] = pos.z * SCALE;
-        }
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({ color: 0xffaa00, size: 2 });
-        const pts = new THREE.Points(geo, mat);
-
-        const vels: number[] = [];
-        for (let i = 0; i < 30; i++) {
-          vels.push((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5));
         }
 
-        return { mesh: pts, vels, life: 1.0 };
-      });
-      setParticles(prev => [...prev, ...newParticles]);
+        return simulatedDt;
+    } catch (e) {
+        console.error(e);
+        return 0;
     }
-
-    // Return the actual time simulated
-    return simulatedDt;
-
-  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, useAdaptiveTimeStep, adaptiveQuality]);
-
-  // Custom setter to handle ref and throttling
-  const setSimTimeThrottled = useCallback((valOrUpdater: number | ((prev: number) => number)) => {
-    let newVal: number;
-    if (typeof valOrUpdater === 'function') {
-      newVal = valOrUpdater(simTimeRef.current);
-    } else {
-      newVal = valOrUpdater;
-    }
-    
-    simTimeRef.current = newVal;
-
-    // Throttle React state update to ~15 FPS (every 60ms)
-    const now = performance.now();
-    if (now - lastStateUpdateTime.current > 60) {
-      setSimTime(newVal);
-      lastStateUpdateTime.current = now;
-    }
-  }, []);
+  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, integratorMode, adaptiveQuality, wisdomHolmanQuality]);
 
   // Force update state when pausing to ensure UI is consistent
   useEffect(() => {
@@ -390,9 +399,26 @@ export function usePhysicsEngine(
     }
   }, [wasmReady]);
 
+  // Backward compatibility wrappers
+  const useAdaptiveTimeStep = integratorMode === 'adaptive';
+  const setUseAdaptiveTimeStep = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+      setIntegratorMode(prev => {
+          const newVal = typeof val === 'function' ? val(prev === 'adaptive') : val;
+          return newVal ? 'adaptive' : 'standard';
+      });
+  }, []);
+
+  const useWisdomHolman = integratorMode === 'wisdom-holman';
+  const setUseWisdomHolman = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+      setIntegratorMode(prev => {
+          const newVal = typeof val === 'function' ? val(prev === 'wisdom-holman') : val;
+          return newVal ? 'wisdom-holman' : 'standard';
+      });
+  }, []);
+
   return {
     simTime,
-    setSimTime: setSimTimeThrottled, // Use our wrapper
+    setSimTime, // Use direct setter
     timeStep,
     setTimeStep,
     isPaused,
@@ -411,10 +437,12 @@ export function usePhysicsEngine(
     setUseTDBTime,
     enableRelativity,
     setEnableRelativity,
-    useAdaptiveTimeStep,
-    setUseAdaptiveTimeStep,
+    integratorMode,
+    setIntegratorMode,
     adaptiveQuality,
     setAdaptiveQuality,
+    wisdomHolmanQuality,
+    setWisdomHolmanQuality,
     useEIH,
     setUseEIH,
     enableSolarMassLoss,
@@ -423,7 +451,13 @@ export function usePhysicsEngine(
     setEnableCollisions,
     enablePRDrag,
     setEnablePRDrag,
+    // Backward compatibility
+    useAdaptiveTimeStep,
+    setUseAdaptiveTimeStep,
+    useWisdomHolman,
+    setUseWisdomHolman,
     particles,
+    setParticles,
     step,
     syncBodiesToWasm,
     getVisualState

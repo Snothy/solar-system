@@ -49,7 +49,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
   const physicsCompute = usePhysicsCompute();
 
   // Physics Engine Hook
-  const physics = usePhysicsEngine(bodies, startDate.getTime() / 86400000 + 2440587.5);
+  const physics = usePhysicsEngine(bodies, startDate.getTime());
 
   // Sync bodies to WASM when manual updates occur
   useEffect(() => {
@@ -455,7 +455,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
            // Update visuals with the total simulated time
            if (simulatedDt > 0) {
              visuals.updateVisuals(simulatedDt);
-             physics.setSimTime(prev => prev + simulatedDt * 1000);
+             // physics.setSimTime is handled internally by physics.step now
              
              // Reduce debt by what was actually simulated
              physicsDebt.current -= simulatedDt;
@@ -487,27 +487,25 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     
     // Physics Engine Exports
     simTime: physics.simTime,
+    setSimTime: physics.setSimTime,
     timeStep: physics.timeStep,
-    isPaused: physics.isPaused,
-    enableTidalEvolution: physics.enableTidalEvolution,
-    enableAtmosphericDrag: physics.enableAtmosphericDrag,
-    enableYarkovsky: physics.enableYarkovsky,
-    enablePrecession: physics.enablePrecession,
-    enableNutation: physics.enableNutation,
-    useTDBTime: physics.useTDBTime,
-    enableRelativity: physics.enableRelativity,
-    useAdaptiveTimeStep: physics.useAdaptiveTimeStep,
-    
     setTimeStep: physics.setTimeStep,
+    isPaused: physics.isPaused,
     setIsPaused: physics.setIsPaused,
+    enableTidalEvolution: physics.enableTidalEvolution,
     setEnableTidalEvolution: physics.setEnableTidalEvolution,
+    enableAtmosphericDrag: physics.enableAtmosphericDrag,
     setEnableAtmosphericDrag: physics.setEnableAtmosphericDrag,
+    enableYarkovsky: physics.enableYarkovsky,
     setEnableYarkovsky: physics.setEnableYarkovsky,
+    enablePrecession: physics.enablePrecession,
     setEnablePrecession: physics.setEnablePrecession,
+    enableNutation: physics.enableNutation,
     setEnableNutation: physics.setEnableNutation,
+    useTDBTime: physics.useTDBTime,
     setUseTDBTime: physics.setUseTDBTime,
+    enableRelativity: physics.enableRelativity,
     setEnableRelativity: physics.setEnableRelativity,
-    setUseAdaptiveTimeStep: physics.setUseAdaptiveTimeStep,
     adaptiveQuality: physics.adaptiveQuality,
     setAdaptiveQuality: physics.setAdaptiveQuality,
     
@@ -520,6 +518,10 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setEnablePRDrag: physics.setEnablePRDrag,
     useEIH: physics.useEIH,
     setUseEIH: physics.setUseEIH,
+    integratorMode: physics.integratorMode,
+    setIntegratorMode: physics.setIntegratorMode,
+    wisdomHolmanQuality: physics.wisdomHolmanQuality,
+    setWisdomHolmanQuality: physics.setWisdomHolmanQuality,
     
     updatePhysics,
 
