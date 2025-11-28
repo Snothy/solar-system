@@ -1,22 +1,18 @@
-mod constants;
-mod types;
-mod forces;
-mod kepler;
-mod hierarchy;
-mod utils;
-mod analysis;
-mod torques;
+pub mod common;
+pub mod dynamics;
+pub mod forces;
+pub mod analysis;
 pub mod integrators;
 
 use wasm_bindgen::prelude::*;
 use js_sys::Float32Array;
-use crate::types::{Vector3, PhysicsBody};
-use crate::constants::SOLAR_MASS_LOSS;
+use crate::common::types::{Vector3, PhysicsBody};
+use crate::common::constants::SOLAR_MASS_LOSS;
 use crate::integrators::*;
-use crate::hierarchy::update_hierarchy;
-use crate::utils::update_pole_orientation;
+use crate::dynamics::hierarchy::update_hierarchy;
+use crate::common::utils::update_pole_orientation;
 use crate::analysis::{update_moon_libration, check_collisions};
-use crate::torques::apply_tidal_torque;
+use crate::dynamics::torques::apply_tidal_torque;
 
 #[wasm_bindgen]
 pub struct PhysicsEngine {
@@ -76,6 +72,9 @@ impl PhysicsEngine {
         enable_nutation: bool,
         enable_solar_mass_loss: bool,
         enable_pr_drag: bool,
+        enable_yorp: bool,
+        enable_comet_forces: bool,
+        enable_collisions: bool,
         integrator_type: u8, // 0=Adaptive, 1=Wisdom-Holman, 2=SABA4, 3=HighPrecision
         quality: u8 // 0=Low, 1=Medium, 2=High, 3=Ultra
     ) -> f64 {
@@ -116,9 +115,11 @@ impl PhysicsEngine {
                         enable_yarkovsky,
                         enable_drag,
                         use_eih,
-                        enable_pr_drag
+                        enable_pr_drag,
+                        enable_comet_forces
                     );
                     if enable_tidal { apply_tidal_torque(&mut self.bodies, sub_dt); }
+                    if enable_yorp { crate::dynamics::torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
                     update_moon_libration(&mut self.bodies);
                     time_remaining -= sub_dt;
                 }
@@ -146,9 +147,11 @@ impl PhysicsEngine {
                         enable_yarkovsky,
                         enable_drag,
                         use_eih,
-                        enable_pr_drag
+                        enable_pr_drag,
+                        enable_comet_forces
                     );
                     if enable_tidal { apply_tidal_torque(&mut self.bodies, sub_dt); }
+                    if enable_yorp { crate::dynamics::torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
                     update_moon_libration(&mut self.bodies);
                     time_remaining -= sub_dt;
                 }
@@ -166,9 +169,11 @@ impl PhysicsEngine {
                     enable_yarkovsky,
                     enable_drag,
                     use_eih,
-                    enable_pr_drag
+                    enable_pr_drag,
+                    enable_comet_forces
                 );
                 if enable_tidal { apply_tidal_torque(&mut self.bodies, dt); }
+                if enable_yorp { crate::dynamics::torques::apply_yorp_torque(&mut self.bodies, dt); }
                 update_moon_libration(&mut self.bodies);
             },
             _ => { // Adaptive (Symplectic 4) - Default
@@ -194,12 +199,35 @@ impl PhysicsEngine {
                         enable_yarkovsky, 
                         enable_drag, 
                         use_eih, 
-                        enable_pr_drag
+                        enable_pr_drag,
+                        enable_comet_forces
                     );
                     if enable_tidal { apply_tidal_torque(&mut self.bodies, sub_dt); }
+                    if enable_yorp { crate::dynamics::torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
                     update_moon_libration(&mut self.bodies);
                     time_remaining -= sub_dt;
                 }
+            }
+        }
+
+        // Collision Resolution
+        if enable_collisions {
+            let removed_indices = crate::analysis::resolve_collisions(&mut self.bodies);
+            if !removed_indices.is_empty() {
+                // Remove bodies from trails and other structures if needed
+                // For now, just removing from bodies vector is handled by resolve_collisions?
+                // Wait, resolve_collisions returns INDICES to remove.
+                // We need to actually remove them here.
+                for &idx in &removed_indices {
+                    if idx < self.bodies.len() {
+                        self.bodies.remove(idx);
+                        self.trails.remove(idx);
+                        self.trail_indices.remove(idx);
+                        self.parent_indices.remove(idx);
+                    }
+                }
+                // Re-update hierarchy after removal
+                self.update_hierarchy_internal();
             }
         }
 
@@ -249,8 +277,8 @@ impl PhysicsEngine {
         observer_x: f64,
         observer_y: f64,
         observer_z: f64,
-        visual_scale: f64,
-        use_visual_scale: bool,
+        _visual_scale: f64,
+        _use_visual_scale: bool,
         use_light_time_delay: bool,
         enable_light_aberration: bool,
         focused_body_idx: i32, // -1 if none
@@ -302,7 +330,7 @@ impl PhysicsEngine {
                 to_obj.sub(&observer_pos);
                 to_obj.normalize();
                 
-                let mut v_cross = observer_vel.cross(&to_obj);
+                let v_cross = observer_vel.cross(&to_obj);
                 let aberration_angle = v_cross.len() / c_light;
                 
                 if aberration_angle > 1e-12 {

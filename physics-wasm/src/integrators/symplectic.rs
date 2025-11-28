@@ -1,5 +1,5 @@
-use crate::types::PhysicsBody;
-use crate::utils::{update_positions, update_velocities};
+use crate::common::types::PhysicsBody;
+use crate::common::utils::{update_positions, update_velocities};
 use crate::forces::calculate_accelerations;
 
 pub fn step_symplectic_4(
@@ -13,7 +13,8 @@ pub fn step_symplectic_4(
     enable_yarkovsky: bool,
     enable_drag: bool,
     use_eih: bool,
-    enable_pr_drag: bool
+    enable_pr_drag: bool,
+    enable_comet_forces: bool
 ) {
     // Coefficients for Yoshida 4th order
     let w0 = -1.7024143839193153; // 2^(1/3) / (2 - 2^(1/3))
@@ -33,7 +34,7 @@ pub fn step_symplectic_4(
     
     // Step 2: Force Update 1 & Velocity Update 1
     let accs1 = calculate_accelerations(
-        bodies, parent_indices, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, true, false
+        bodies, parent_indices, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces, true, false
     );
     update_velocities(bodies, &accs1, d1 * dt);
 
@@ -42,7 +43,7 @@ pub fn step_symplectic_4(
 
     // Step 4: Force Update 2 & Velocity Update 2
     let accs2 = calculate_accelerations(
-        bodies, parent_indices, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, true, false
+        bodies, parent_indices, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces, true, false
     );
     update_velocities(bodies, &accs2, d2 * dt);
 
@@ -51,7 +52,7 @@ pub fn step_symplectic_4(
 
     // Step 6: Force Update 3 & Velocity Update 3
     let accs3 = calculate_accelerations(
-        bodies, parent_indices, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, true, false
+        bodies, parent_indices, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces, true, false
     );
     update_velocities(bodies, &accs3, d3 * dt);
 

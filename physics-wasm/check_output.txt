@@ -1,6 +1,26 @@
     Checking physics-wasm v0.1.0 (/Users/drumevp/Documents/solar_system/physics-wasm)
+error[E0433]: failed to resolve: unresolved import
+   --> src/lib.rs:122:45
+    |
+122 |                     if enable_yorp { crate::torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
+    |                                             ^^^^^^^ unresolved import
+    |
+help: a similar path exists
+    |
+122 |                     if enable_yorp { crate::dynamics::torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
+    |                                             ++++++++++
+help: consider importing this module
+    |
+  7 + use crate::dynamics::torques;
+    |
+help: if you import `torques`, refer to it directly
+    |
+122 -                     if enable_yorp { crate::torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
+122 +                     if enable_yorp { torques::apply_yorp_torque(&mut self.bodies, sub_dt); }
+    |
+
 warning: unused import: `wasm_bindgen::prelude::*`
- --> src/types.rs:2:5
+ --> src/common/types.rs:2:5
   |
 2 | use wasm_bindgen::prelude::*;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -8,91 +28,31 @@ warning: unused import: `wasm_bindgen::prelude::*`
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
 warning: unnecessary parentheses around assigned value
-    --> src/lib.rs:1157:42
-     |
-1157 |                 let is_sun_interaction = (sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap()));
-     |                                          ^                                                                     ^
-     |
-     = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+   --> src/forces/mod.rs:173:42
+    |
+173 |                 let is_sun_interaction = (sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap()));
+    |                                          ^                                                                     ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
 help: remove these parentheses
-     |
-1157 -                 let is_sun_interaction = (sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap()));
-1157 +                 let is_sun_interaction = sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap());
-     |
-
-warning: variable does not need to be mutable
-  --> src/forces.rs:69:9
-   |
-69 |     let mut r21 = *r_vec; 
-   |         ----^^^
-   |         |
-   |         help: remove this `mut`
-   |
-   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
-
-warning: unused variable: `v_mag`
-   --> src/forces.rs:166:13
     |
-166 |         let v_mag = orb_vel.len();
-    |             ^^^^^
-    |
-    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-help: if this is intentional, prefix it with an underscore
-    |
-166 |         let _v_mag = orb_vel.len();
-    |             +
-help: you might have meant to pattern match on the similarly named constant `SABA4_D2`
-    |
-166 -         let v_mag = orb_vel.len();
-166 +         let integrators::SABA4_D2 = orb_vel.len();
+173 -                 let is_sun_interaction = (sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap()));
+173 +                 let is_sun_interaction = sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap());
     |
 
-warning: unused variable: `sun`
-   --> src/forces.rs:219:18
-    |
-219 | pub fn apply_srp(sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
-    |                  ^^^ help: if this is intentional, prefix it with an underscore: `_sun`
-
-warning: unused variable: `r_vec`
-   --> src/forces.rs:227:61
-    |
-227 | pub fn apply_pr_drag(sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
-    |                                                             ^^^^^ help: if this is intentional, prefix it with an underscore: `_r_vec`
-
-warning: unused variable: `sun`
-   --> src/forces.rs:237:24
-    |
-237 | pub fn apply_yarkovsky(sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
-    |                        ^^^ help: if this is intentional, prefix it with an underscore: `_sun`
-
-warning: variable does not need to be mutable
-   --> src/forces.rs:246:13
-    |
-246 |         let mut cross1 = dir.cross(&v); 
-    |             ----^^^^^^
-    |             |
-    |             help: remove this `mut`
-
-warning: variable does not need to be mutable
-   --> src/forces.rs:251:18
-    |
-251 |              let mut orb_norm = r_vec.cross(&body.vel);
-    |                  ----^^^^^^^^
-    |                  |
-    |                  help: remove this `mut`
-
-warning: unused variable: `r_vec`
-   --> src/forces.rs:261:59
-    |
-261 | pub fn apply_drag(atmo: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
-    |                                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_r_vec`
+warning: unused import: `wasm_bindgen::prelude::*`
+ --> src/analysis/mod.rs:3:5
+  |
+3 | use wasm_bindgen::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused variable: `v0_sq`
-  --> src/kepler.rs:49:38
+  --> src/dynamics/kepler.rs:49:38
    |
 49 | fn solve_universal(dt: f64, r0: f64, v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
    |                                      ^^^^^
    |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 help: if this is intentional, prefix it with an underscore
    |
 49 | fn solve_universal(dt: f64, r0: f64, _v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
@@ -100,61 +60,105 @@ help: if this is intentional, prefix it with an underscore
 help: you might have meant to pattern match on the similarly named constant `SABA4_D2`
    |
 49 - fn solve_universal(dt: f64, r0: f64, v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
-49 + fn solve_universal(dt: f64, r0: f64, integrators::SABA4_D2: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
+49 + fn solve_universal(dt: f64, r0: f64, integrators::saba4::SABA4_D2: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
    |
 
+warning: variable does not need to be mutable
+  --> src/forces/relativity.rs:61:9
+   |
+61 |     let mut r21 = *r_vec; 
+   |         ----^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `v_mag`
+ --> src/forces/tidal.rs:7:13
+  |
+7 |         let v_mag = orb_vel.len();
+  |             ^^^^^
+  |
+help: if this is intentional, prefix it with an underscore
+  |
+7 |         let _v_mag = orb_vel.len();
+  |             +
+help: you might have meant to pattern match on the similarly named constant `SABA4_D2`
+  |
+7 -         let v_mag = orb_vel.len();
+7 +         let integrators::saba4::SABA4_D2 = orb_vel.len();
+  |
+
+warning: unused variable: `sun`
+ --> src/forces/solar.rs:4:18
+  |
+4 | pub fn apply_srp(sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
+  |                  ^^^ help: if this is intentional, prefix it with an underscore: `_sun`
+
+warning: unused variable: `r_vec`
+  --> src/forces/solar.rs:12:61
+   |
+12 | pub fn apply_pr_drag(sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
+   |                                                             ^^^^^ help: if this is intentional, prefix it with an underscore: `_r_vec`
+
+warning: unused variable: `sun`
+  --> src/forces/solar.rs:22:24
+   |
+22 | pub fn apply_yarkovsky(sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
+   |                        ^^^ help: if this is intentional, prefix it with an underscore: `_sun`
+
+warning: variable does not need to be mutable
+  --> src/forces/solar.rs:31:13
+   |
+31 |         let mut cross1 = dir.cross(&v); 
+   |             ----^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/forces/solar.rs:36:18
+   |
+36 |              let mut orb_norm = r_vec.cross(&body.vel);
+   |                  ----^^^^^^^^
+   |                  |
+   |                  help: remove this `mut`
+
+warning: unused variable: `r_vec`
+ --> src/forces/drag.rs:3:59
+  |
+3 | pub fn apply_drag(atmo: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
+  |                                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_r_vec`
+
 warning: unused variable: `visual_scale`
-   --> src/lib.rs:897:9
+   --> src/lib.rs:280:9
     |
-897 |         visual_scale: f64,
+280 |         visual_scale: f64,
     |         ^^^^^^^^^^^^
     |
 help: if this is intentional, prefix it with an underscore
     |
-897 |         _visual_scale: f64,
+280 |         _visual_scale: f64,
     |         +
 help: you might have meant to pattern match on the similarly named constant `SABA4_D2`
     |
-897 -         visual_scale: f64,
-897 +         integrators::SABA4_D2: f64,
+280 -         visual_scale: f64,
+280 +         integrators::saba4::SABA4_D2: f64,
     |
 
 warning: unused variable: `use_visual_scale`
-   --> src/lib.rs:898:9
+   --> src/lib.rs:281:9
     |
-898 |         use_visual_scale: bool,
+281 |         use_visual_scale: bool,
     |         ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_use_visual_scale`
 
 warning: variable does not need to be mutable
-   --> src/lib.rs:950:21
+   --> src/lib.rs:333:21
     |
-950 |                 let mut v_cross = observer_vel.cross(&to_obj);
+333 |                 let mut v_cross = observer_vel.cross(&to_obj);
     |                     ----^^^^^^^
     |                     |
     |                     help: remove this `mut`
 
-warning: method `recenter_system` is never used
-   --> src/lib.rs:842:8
-    |
- 26 | impl PhysicsEngine {
-    | ------------------ method in this implementation
-...
-842 |     fn recenter_system(&mut self) {
-    |        ^^^^^^^^^^^^^^^
-    |
-    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-
-warning: function `solve_kepler` is never used
- --> src/kepler.rs:6:8
-  |
-6 | pub fn solve_kepler(mean_anomaly: f64, ecc: f64) -> f64 {
-  |        ^^^^^^^^^^^^
-
-warning: function `drift_kepler` is never used
-  --> src/kepler.rs:92:8
-   |
-92 | pub fn drift_kepler(body: &mut PhysicsBody, dt: f64, sun_mass: f64, sun_pos: &Vector3, sun_vel: &Vector3) {
-   |        ^^^^^^^^^^^^
-
-warning: `physics-wasm` (lib) generated 17 warnings (run `cargo fix --lib -p physics-wasm` to apply 9 suggestions)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s
+For more information about this error, try `rustc --explain E0433`.
+warning: `physics-wasm` (lib) generated 15 warnings
+error: could not compile `physics-wasm` (lib) due to 1 previous error; 15 warnings emitted

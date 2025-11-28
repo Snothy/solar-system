@@ -39,6 +39,10 @@ export interface PhysicsSettingsProps {
   onTogglePRDrag: (enabled: boolean) => void;
   useEIH: boolean;
   onToggleEIH: (enabled: boolean) => void;
+  enableYORP: boolean;
+  onToggleYORP: (enabled: boolean) => void;
+  enableCometForces: boolean;
+  onToggleCometForces: (enabled: boolean) => void;
   useVisualScale: boolean;
   onToggleVisualScale: (enabled: boolean) => void;
   visualScale: number;
@@ -195,6 +199,10 @@ export function PhysicsSettings({
   onTogglePRDrag,
   useEIH,
   onToggleEIH,
+  enableYORP,
+  onToggleYORP,
+  enableCometForces,
+  onToggleCometForces,
   useVisualScale,
   onToggleVisualScale,
   visualScale,
@@ -282,6 +290,22 @@ export function PhysicsSettings({
               : "Disabled: Dust only affected by radiation pressure push."}
             checked={enablePRDrag}
             onChange={onTogglePRDrag}
+          />
+          <ToggleItem
+            label="YORP Effect"
+            description={enableYORP
+              ? "Enabled: Radiation pressure alters asteroid spin rates over time."
+              : "Disabled: Spin rates remain constant (unless tidal forces apply)."}
+            checked={enableYORP}
+            onChange={onToggleYORP}
+          />
+          <ToggleItem
+            label="Cometary Forces"
+            description={enableCometForces
+              ? "Enabled: Non-gravitational forces (outgassing) affect cometary orbits."
+              : "Disabled: Comets follow purely gravitational trajectories."}
+            checked={enableCometForces}
+            onChange={onToggleCometForces}
           />
         </div>
       </div>

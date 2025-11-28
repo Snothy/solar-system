@@ -1,4 +1,4 @@
-use crate::types::PhysicsBody;
+use crate::common::types::PhysicsBody;
 
 pub fn update_hierarchy(bodies: &Vec<PhysicsBody>) -> Vec<Option<usize>> {
     let n = bodies.len();

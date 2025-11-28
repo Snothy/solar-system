@@ -1,4 +1,4 @@
-use crate::types::PhysicsBody;
+use crate::common::types::PhysicsBody;
 use crate::forces::calculate_accelerations;
 use ode_solvers::{System, Dop853, DVector};
 
@@ -14,7 +14,8 @@ pub fn step_high_precision(
     enable_yarkovsky: bool,
     enable_drag: bool,
     use_eih: bool,
-    enable_pr_drag: bool
+    enable_pr_drag: bool,
+    enable_comet_forces: bool
 ) {
     struct SolarSystem<'a> {
         bodies: Vec<PhysicsBody>,
@@ -26,7 +27,8 @@ pub fn step_high_precision(
         enable_yarkovsky: bool,
         enable_drag: bool,
         use_eih: bool,
-        enable_pr_drag: bool
+        enable_pr_drag: bool,
+        enable_comet_forces: bool
     }
     
     impl<'a> System<DVector<f64>> for SolarSystem<'a> {
@@ -53,6 +55,7 @@ pub fn step_high_precision(
                 self.enable_drag,
                 self.use_eih,
                 self.enable_pr_drag,
+                self.enable_comet_forces,
                 true,
                 false
             );
@@ -91,7 +94,8 @@ pub fn step_high_precision(
         enable_yarkovsky,
         enable_drag,
         use_eih,
-        enable_pr_drag
+        enable_pr_drag,
+        enable_comet_forces
     };
     
     // Use very tight tolerances for "NASA level"

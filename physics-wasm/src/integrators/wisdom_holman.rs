@@ -1,7 +1,7 @@
-use crate::types::PhysicsBody;
-use crate::utils::update_velocities;
+use crate::common::types::PhysicsBody;
+use crate::common::utils::update_velocities;
 use crate::forces::calculate_accelerations;
-use crate::kepler::drift_kepler_relative;
+use crate::dynamics::kepler::drift_kepler_relative;
 
 pub fn step_wisdom_holman(
     bodies: &mut Vec<PhysicsBody>,
@@ -14,7 +14,8 @@ pub fn step_wisdom_holman(
     enable_yarkovsky: bool,
     enable_drag: bool,
     use_eih: bool,
-    enable_pr_drag: bool
+    enable_pr_drag: bool,
+    enable_comet_forces: bool
 ) {
     let sun_idx = bodies.iter().position(|b| b.name == "Sun");
     
@@ -63,6 +64,7 @@ pub fn step_wisdom_holman(
             enable_drag, 
             use_eih, 
             enable_pr_drag, 
+            enable_comet_forces,
             false,  // Don't include Sun gravity - it's handled by drift
             false   // No parent subtraction - we're not using hierarchical
         );

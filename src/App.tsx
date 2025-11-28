@@ -79,6 +79,10 @@ export function App() {
     setEnablePRDrag,
     useEIH,
     setUseEIH,
+    enableYORP,
+    setEnableYORP,
+    enableCometForces,
+    setEnableCometForces,
     physicsCompute, // GPU/Worker compute interface
     addBody
   } = useSimulation(simulationData, simulationStartDate);
@@ -257,6 +261,10 @@ export function App() {
         onTogglePRDrag={setEnablePRDrag}
         useEIH={useEIH}
         onToggleEIH={setUseEIH}
+        enableYORP={enableYORP}
+        onToggleYORP={setEnableYORP}
+        enableCometForces={enableCometForces}
+        onToggleCometForces={setEnableCometForces}
         useVisualScale={useVisualScale}
         onToggleVisualScale={(val) => {
             setUseVisualScale(val);

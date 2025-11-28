@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
-use wasm_bindgen::prelude::*;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default)]
 pub struct Vector3 {
     pub x: f64,
     pub y: f64,
@@ -58,7 +58,7 @@ impl Vector3 {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PhysicsBody {
     pub name: String,
@@ -125,4 +125,16 @@ pub struct PhysicsBody {
     
     #[serde(default)]
     pub libration: Option<f64>,
+
+    // YORP Effect
+    #[serde(default)]
+    pub yorp_factor: Option<f64>,
+
+    // Cometary Non-Gravitational Forces (Marsden-Sekanina)
+    #[serde(default)]
+    pub comet_a1: Option<f64>,
+    #[serde(default)]
+    pub comet_a2: Option<f64>,
+    #[serde(default)]
+    pub comet_a3: Option<f64>,
 }

@@ -78,6 +78,10 @@ export interface PhysicsEngine {
   setEnableCollisions: React.Dispatch<React.SetStateAction<boolean>>;
   enablePRDrag: boolean;
   setEnablePRDrag: React.Dispatch<React.SetStateAction<boolean>>;
+  enableYORP: boolean;
+  setEnableYORP: React.Dispatch<React.SetStateAction<boolean>>;
+  enableCometForces: boolean;
+  setEnableCometForces: React.Dispatch<React.SetStateAction<boolean>>;
   useEIH: boolean;
   setUseEIH: React.Dispatch<React.SetStateAction<boolean>>;
 
@@ -143,6 +147,8 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   const [enableSolarMassLoss, setEnableSolarMassLoss] = useState(true);
   const [enableCollisions, setEnableCollisions] = useState(true);
   const [enablePRDrag, setEnablePRDrag] = useState(true);
+  const [enableYORP, setEnableYORP] = useState(true);
+  const [enableCometForces, setEnableCometForces] = useState(true);
 
   const physicsCompute = usePhysicsCompute();
   const wasmEngineRef = useRef<WasmPhysicsEngine | null>(null);
@@ -301,6 +307,9 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             enableNutation,
             enableSolarMassLoss,
             enablePRDrag,
+            enableYORP,
+            enableCometForces,
+            enableCollisions,
             integratorType,
             quality
         );
@@ -465,6 +474,10 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     setEnableCollisions,
     enablePRDrag,
     setEnablePRDrag,
+    enableYORP,
+    setEnableYORP,
+    enableCometForces,
+    setEnableCometForces,
     // Backward compatibility
     useAdaptiveTimeStep,
     setUseAdaptiveTimeStep,

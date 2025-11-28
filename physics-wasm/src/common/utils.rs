@@ -1,4 +1,4 @@
-use crate::types::{Vector3, PhysicsBody};
+use crate::common::types::{Vector3, PhysicsBody};
 
 pub fn update_positions(bodies: &mut Vec<PhysicsBody>, dt: f64) {
     for b in bodies.iter_mut() {

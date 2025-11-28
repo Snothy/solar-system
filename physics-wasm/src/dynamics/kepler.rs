@@ -1,5 +1,5 @@
-use crate::types::{Vector3, PhysicsBody};
-use crate::constants::G;
+use crate::common::types::{Vector3, PhysicsBody};
+use crate::common::constants::G;
 
 // Kepler Equation Solver using Newton-Raphson
 // M = E - e*sin(E)
@@ -46,7 +46,7 @@ fn stumpff_s(z: f64) -> f64 {
 
 // Universal Variable Kepler Solver
 // Solves for x where t = ...
-fn solve_universal(dt: f64, r0: f64, v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
+fn solve_universal(dt: f64, r0: f64, _v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f64) -> f64 {
     let mut x = if alpha > 1e-6 {
         // Elliptic initial guess: x = sqrt(mu) * dt * alpha
         (mu).sqrt() * dt * alpha

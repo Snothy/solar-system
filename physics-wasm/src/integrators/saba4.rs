@@ -1,7 +1,7 @@
-use crate::types::PhysicsBody;
-use crate::utils::{update_positions, update_velocities};
+use crate::common::types::PhysicsBody;
+use crate::common::utils::{update_positions, update_velocities};
 use crate::forces::calculate_accelerations;
-use crate::kepler::drift_kepler_relative;
+use crate::dynamics::kepler::drift_kepler_relative;
 
 // SABA4 Coefficients (Laskar & Robutel 2001)
 // c coefficients (Drift)
@@ -24,7 +24,8 @@ pub fn step_saba4(
     enable_yarkovsky: bool,
     enable_drag: bool,
     use_eih: bool,
-    enable_pr_drag: bool
+    enable_pr_drag: bool,
+    enable_comet_forces: bool
 ) {
     // SABA4: A B A B A B A B A
     // A = Drift (Kepler), B = Kick (Interaction)
@@ -33,25 +34,25 @@ pub fn step_saba4(
     drift_system_kepler(bodies, SABA4_C1 * dt);
     
     // Step 2: B(d1)
-    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
+    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
     
     // Step 3: A(c2)
     drift_system_kepler(bodies, SABA4_C2 * dt);
     
     // Step 4: B(d2)
-    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
+    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
     
     // Step 5: A(c3)
     drift_system_kepler(bodies, SABA4_C3 * dt);
     
     // Step 6: B(d2)
-    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
+    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
     
     // Step 7: A(c2)
     drift_system_kepler(bodies, SABA4_C2 * dt);
     
     // Step 8: B(d1)
-    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag);
+    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
     
     // Step 9: A(c1)
     drift_system_kepler(bodies, SABA4_C1 * dt);
@@ -95,7 +96,8 @@ fn kick_system_interaction(
     enable_yarkovsky: bool,
     enable_drag: bool,
     use_eih: bool,
-    enable_pr_drag: bool
+    enable_pr_drag: bool,
+    enable_comet_forces: bool
 ) {
     let accs = calculate_accelerations(
         bodies, 
@@ -108,6 +110,7 @@ fn kick_system_interaction(
         enable_drag, 
         use_eih, 
         enable_pr_drag, 
+        enable_comet_forces,
         false, // include_sun_gravity (handled by drift)
         false  // subtract_parent_gravity (not needed for SABA/WH)
     );
