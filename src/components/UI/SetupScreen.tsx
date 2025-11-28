@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
 import { fetchMultipleBodies } from '../../services/jplHorizons';
 import { saveTexture, saveTextureSelection, getAllTextures, getAllTextureSelections, deleteTexture, deleteTextureSelection } from '../../services/textureStorage';
-import { dataCache } from '../../services/dataCache';
 import type { CelestialBodyData } from '../../types';
+
 import './SetupScreen.css';
 
 interface SetupScreenProps {
@@ -27,9 +27,14 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
   const [textureSelections, setTextureSelections] = useState<TextureSelection>({});
   const [isFetching, setIsFetching] = useState(false);
   const [previewTexture, setPreviewTexture] = useState<{ url: string; name: string } | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [cachedDates, setCachedDates] = useState<string[]>([]);
+  // Initialize with local date (YYYY-MM-DD) instead of UTC
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+  });
   const [useParallelFetching, setUseParallelFetching] = useState(false);
+
   const [forceRefresh, setForceRefresh] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,8 +50,15 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
     // Load stored textures
     loadStoredTextures();
     
-    // Load cached dates
-    setCachedDates(dataCache.getAvailableDates());
+    // Auto-load data if available
+
+    const autoLoad = async () => {
+        // Check if we have local data for today
+        // We can just try to fetch. The fetcher prioritizes local data.
+        // If local data exists, it will be fast.
+        await startFetching();
+    };
+    autoLoad();
   }, []);
 
   const loadStoredTextures = async () => {
@@ -91,7 +103,8 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
         if (bodyName) {
           updateStatus(bodyName, status);
         }
-      }, concurrency, forceRefresh);
+      }, concurrency);
+
 
       const finalResults = bodiesToFetch.map(body => {
         const jplData = resultsMap[body.jplId!];
@@ -109,8 +122,40 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
           rotationPeriod: jplData.rotationPeriod || body.rotationPeriod || 0,
           meanTemperature: jplData.meanTemperature || body.meanTemperature || 0,
           axialTilt: jplData.axialTilt || body.axialTilt || 0,
-          surfaceGravity: jplData.surfaceGravity || body.surfaceGravity || 0
+          surfaceGravity: jplData.surfaceGravity || body.surfaceGravity || 0,
+          refDate: jplData.refDate,
+          // Pass through new properties
+          meanDensity: jplData.meanDensity,
+          volumeKm3: jplData.volumeKm3,
+          albedo: jplData.albedo,
+          photosphereTemperature: jplData.photosphereTemperature,
+          rotationPeriodHours: jplData.rotationPeriodHours,
+          flatness: jplData.flatness,
+          obliquity: jplData.obliquity,
+          poleRA: jplData.poleRA,
+          poleDec: jplData.poleDec,
+          
+          // Nested
+          solar: jplData.solar,
+          motion: jplData.motion,
+          atmosphere: jplData.atmosphere,
+          
+          massLayers: jplData.massLayers,
+          gravityField: jplData.gravityField,
+          orbital: jplData.orbital,
+          surface: jplData.surface,
+          escapeSpeed: jplData.escapeSpeed,
+          
+          // Saturn/Gas Giant Specific
+          visualMagnitude: jplData.visualMagnitude,
+          planetaryIR: jplData.planetaryIR,
+          arocheIceRp: jplData.arocheIceRp,
+          meanDailyMotionDegD: jplData.meanDailyMotionDegD,
+          rotationRateRadS: jplData.rotationRateRadS,
         };
+
+
+
       }).filter(Boolean);
 
       setFetchedData(finalResults);
@@ -118,10 +163,9 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
       console.error("Bulk fetch failed", e);
     } finally {
       setIsFetching(false);
-      // Refresh cached dates after fetch
-      setCachedDates(dataCache.getAvailableDates());
     }
   };
+
 
   const handleTextureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedBody || !event.target.files || event.target.files.length === 0) return;
@@ -190,6 +234,7 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
   };
 
   const handleStartSimulation = () => {
+    // Process data to apply selected textures
     const finalData = fetchedData.map(d => {
       const selection = textureSelections[d.name];
       let textureUrl = d.texture;
@@ -206,10 +251,28 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
         texture: textureUrl
       };
     });
-    
 
-    onSimulationStart(finalData, new Date(selectedDate));
+    // Determine start time
+    // If selected date is today (local), use current time snapped to the nearest previous hour (XX:00).
+    // Otherwise use 00:00 local time of that date.
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const todayLocal = new Date(now.getTime() - offset).toISOString().split('T')[0];
+    
+    let startDate: Date;
+    if (selectedDate === todayLocal) {
+        startDate = new Date(); 
+        // Snap to nearest previous hour (XX:00) to match data granularity
+        startDate.setMinutes(0, 0, 0);
+    } else {
+        // Append T00:00:00 to ensure local midnight parsing
+        startDate = new Date(`${selectedDate}T00:00:00`);
+    }
+
+    onSimulationStart(finalData, startDate);
+
   };
+
 
   // Organize bodies hierarchically
   const organizedBodies = React.useMemo(() => {
@@ -268,27 +331,8 @@ export function SetupScreen({ onSimulationStart }: SetupScreenProps) {
           />
         </div>
         
-        {cachedDates.length > 0 && (
-          <div className="cached-dates-group">
-            <label>Load Cached:</label>
-            <select 
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedDate(e.target.value);
-                }
-              }}
-              value=""
-              className="date-select"
-            >
-              <option value="">Select a date...</option>
-              {cachedDates.map(date => (
-                <option key={date} value={date}>{date}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <div className="toggle-group">
+
           <label>Parallel Fetching:</label>
           <label className="toggle-switch">
             <input 

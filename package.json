@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "cd physics-wasm && cargo test",
     "build:wasm": "cd physics-wasm && wasm-pack build --target web",
     "build": "npm run build:wasm && tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pull-data": "npx tsx scripts/pull-data.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

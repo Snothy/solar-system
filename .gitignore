@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 physics-wasm/target
 physics-wasm/pkg
+data
+formatted_data

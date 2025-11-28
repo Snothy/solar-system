@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { fetchBodyData } from '../../services/jplHorizons';
+// import { fetchBodyData } from '../../services/jplHorizons';
+
 import styles from './SearchPanel.module.css';
 
 interface SearchPanelProps {
@@ -20,20 +21,10 @@ export function SearchPanel({ onAddBody }: SearchPanelProps) {
     setSearchResult(null);
 
     try {
-      // Fetch data for the body (using current date)
-      const data = await fetchBodyData(searchTerm);
+      // Live fetching is deprecated in favor of local data.
+      // const data = await fetchBodyData(searchTerm);
+      setError("Live search is currently disabled. Please use local data.");
       
-      // Enhance data with name from search term (or we could parse it)
-      const enhancedData = {
-        ...data,
-        name: searchTerm, // We might want to parse the real name from result
-        // Default visuals
-        color: Math.random() * 0xffffff,
-        texture: '', // No texture by default
-        type: 'asteroid' // Default type
-      };
-
-      setSearchResult(enhancedData);
     } catch (err) {
       console.error("Search failed", err);
       setError("Body not found or JPL API error");
@@ -41,6 +32,7 @@ export function SearchPanel({ onAddBody }: SearchPanelProps) {
       setIsSearching(false);
     }
   };
+
 
   const handleAdd = () => {
     if (searchResult) {

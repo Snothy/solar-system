@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use physics_wasm::types::{PhysicsBody, Vector3};
-    use physics_wasm::forces::apply_cometary_forces;
-    use physics_wasm::torques::apply_yorp_torque;
+    use physics_wasm::common::types::{PhysicsBody, Vector3};
+    use physics_wasm::forces::comet::apply_cometary_forces;
+    use physics_wasm::dynamics::torques::apply_yorp_torque;
     use physics_wasm::analysis::resolve_collisions;
 
     #[test]

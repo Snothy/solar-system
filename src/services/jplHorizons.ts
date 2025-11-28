@@ -1,12 +1,5 @@
 import * as THREE from 'three';
-import { dataCache } from './dataCache';
 
-const CORS_PROXIES = [
-  'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url=',
-];
-
-const BASE_URL = 'https://ssd.jpl.nasa.gov/api/horizons.api';
 
 export interface JPLData {
   pos: THREE.Vector3;
@@ -18,227 +11,205 @@ export interface JPLData {
   meanTemperature?: number;
   axialTilt?: number;
   surfaceGravity?: number;
+  refDate?: string; // The exact date of the data point
+  
+  // Extended Properties
+  escapeSpeed?: number;
+
+  massLayers?: Record<string, number>;
+  gravityField?: Record<string, number>;
+  orbital?: Record<string, any>;
+  surface?: Record<string, any>;
+  
+  // New Properties from Enhanced Extraction
+  meanDensity?: number;
+  volumeKm3?: number;
+  albedo?: number;
+  photosphereTemperature?: number;
+  rotationPeriodHours?: number;
+
+  flatness?: number;
+  obliquity?: number;
+  poleRA?: number;
+  poleDec?: number;
+
+  
+  // Exhaustive Properties
+  targetPrimary?: string;
+  angularDiameter1AUArcsec?: number;
+  visualMagnitude?: number;
+  meanDailyMotionDegD?: number;
+  rotationRateRadS?: number;
+  arocheIceRp?: number;
+  
+  // Nested Structures
+  planetaryIR?: {
+    max?: number;
+    min?: number;
+  };
+
+  solar?: {
+    solar_constant?: number;
+    luminosity?: number;
+    mass_energy_conversion_rate_kg_s?: number;
+    sunspot_cycle_years?: number;
+    sunspot_min_year?: string;
+    radius_km?: number;
+  };
+  
+  motion?: {
+    speed_kms?: number;
+    nearby_stars_speed_kms?: number;
+    nearby_stars_apex_ra?: number;
+    nearby_stars_apex_dec?: number;
+    cbr_speed_kms?: number;
+    cbr_apex_l?: number;
+    cbr_apex_b?: number;
+    apex_ra?: number;
+    apex_dec?: number;
+  };
+
+  atmosphere?: {
+    photosphere_temperature_bottom?: number;
+    photosphere_temperature_top?: number;
+    photospheric_depth_km?: number;
+    chromospheric_depth_km?: number;
+  };
+
+
 }
 
-async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
-  let lastError: any;
 
-  for (let i = 0; i < retries; i++) {
-    for (const proxy of CORS_PROXIES) {
-      try {
-        const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
-        if (response.ok) return response;
-        console.warn(`Proxy ${proxy} failed with status ${response.status}`);
-      } catch (e) {
-        console.warn(`Proxy ${proxy} failed:`, e);
-        lastError = e;
-      }
-    }
-    // Wait before retrying (exponential backoff)
-    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
-  }
-  throw lastError || new Error('All proxies failed');
-}
+import { SOLAR_SYSTEM_DATA } from '../data/solarSystem';
+import { EXTENDED_BODIES } from '../data/extendedBodies';
 
-export async function fetchBodyData(id: string, date: Date = new Date()): Promise<JPLData> {
-  // Format date as YYYY-MM-DD
-  const startTime = date.toISOString().split('T')[0];
-  const stopTime = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+// Create a map for ID -> Name lookup
+const BODY_ID_MAP = new Map<string, string>();
+[...SOLAR_SYSTEM_DATA, ...EXTENDED_BODIES].forEach(b => {
+    if (b.jplId) BODY_ID_MAP.set(b.jplId, b.name);
+});
 
-  const params = new URLSearchParams({
-    format: 'json',
-    COMMAND: `'${id}'`,
-    OBJ_DATA: "'YES'",
-    MAKE_EPHEM: "'YES'",
-    EPHEM_TYPE: "'VECTORS'",
-    CENTER: "'@ssb'", // Solar System Barycenter
-    START_TIME: `'${startTime}'`,
-    STOP_TIME: `'${stopTime}'`,
-    STEP_SIZE: "'1d'",
-    OUT_UNITS: "'KM-S'",
-    REF_PLANE: "'ECLIPTIC'" // Use Ecliptic plane (XY is orbit plane, Z is North)
-  });
+async function fetchLocalData(name: string, date: Date): Promise<JPLData | null> {
+    try {
+        // Fetch vector data
+        // CHANGED: Fetch from /formatted_data/
+        const vecRes = await fetch(`/formatted_data/${name}/vector_data/data.json`);
+        if (!vecRes.ok) return null;
+        const vecData = await vecRes.json();
 
-  const targetUrl = `${BASE_URL}?${params.toString()}`;
-
-  try {
-    const response = await fetchWithRetry(targetUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const resultText = data.result;
-
-    // Parse the result text to find the vector data
-    // Look for $$SOE and $$EOE markers
-    const soeIndex = resultText.indexOf('$$SOE');
-    const eoeIndex = resultText.indexOf('$$EOE');
-
-    if (soeIndex === -1 || eoeIndex === -1) {
-      throw new Error('Ephemeris data not found in response');
-    }
-
-    const ephemBlock = resultText.substring(soeIndex, eoeIndex);
-    
-    // Extract X, Y, Z, VX, VY, VZ
-    // Regex explanation:
-    // X\s*=\s* : Match "X =" with optional whitespace
-    // ( ... )  : Capture group
-    // [+-]?    : Optional sign
-    // \d+      : One or more digits
-    // (?:\.\d+)? : Optional decimal part
-    // (?:E[+-]?\d+)? : Optional exponent part
-    const numRegex = /([+-]?\d+(?:\.\d+)?(?:E[+-]?\d+)?)/;
-    
-    const xMatch = ephemBlock.match(new RegExp(`X\\s*=\\s*${numRegex.source}`, 'i'));
-    const yMatch = ephemBlock.match(new RegExp(`Y\\s*=\\s*${numRegex.source}`, 'i'));
-    const zMatch = ephemBlock.match(new RegExp(`Z\\s*=\\s*${numRegex.source}`, 'i'));
-    
-    const vxMatch = ephemBlock.match(new RegExp(`VX\\s*=\\s*${numRegex.source}`, 'i'));
-    const vyMatch = ephemBlock.match(new RegExp(`VY\\s*=\\s*${numRegex.source}`, 'i'));
-    const vzMatch = ephemBlock.match(new RegExp(`VZ\\s*=\\s*${numRegex.source}`, 'i'));
-
-    if (!xMatch || !yMatch || !zMatch || !vxMatch || !vyMatch || !vzMatch) {
-      console.error('JPL Parse Error: Missing vector components', { resultText });
-      throw new Error('Failed to parse vector data');
-    }
-
-    // Convert from km to meters (multiply by 1000)
-    const pos = new THREE.Vector3(
-      parseFloat(xMatch[1]) * 1000,
-      parseFloat(yMatch[1]) * 1000,
-      parseFloat(zMatch[1]) * 1000
-    );
-
-    const vel = new THREE.Vector3(
-      parseFloat(vxMatch[1]) * 1000,
-      parseFloat(vyMatch[1]) * 1000,
-      parseFloat(vzMatch[1]) * 1000
-    );
-
-    // Check for NaNs
-    if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z) || isNaN(vel.x) || isNaN(vel.y) || isNaN(vel.z)) {
-      throw new Error('Parsed vectors contain NaN');
-    }
-
-    // Convert from J2000 Ecliptic frame (Horizons default) to our scene frame
-    // x_scene = x_horizons, y_scene = z_horizons, z_scene = -y_horizons
-    const scenePos = new THREE.Vector3(pos.x, pos.z, -pos.y);
-    const sceneVel = new THREE.Vector3(vel.x, vel.z, -vel.y);
-
-    // --- Parse Physical Properties ---
-    // These are in the text BEFORE the $$SOE marker.
-    const headerText = resultText.substring(0, soeIndex);
-    
-    const result: JPLData = { pos: scenePos, vel: sceneVel };
-
-    // 1. Mass
-    // Pattern: "Mass x10^24 (kg)= 5.972" or "Mass, 10^24 kg = 5.97"
-    const massExpMatch = headerText.match(/Mass\s*x?10\^(\d+)\s*\(?kg\)?\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-    if (massExpMatch) {
-      const exponent = parseInt(massExpMatch[1]);
-      const base = parseFloat(massExpMatch[2].replace('~', ''));
-      result.mass = base * Math.pow(10, exponent);
-    }
-
-    // 2. Radius and Radii
-    // Try to find tri-axial dimensions first
-    // Pattern: "Dimensions (km) = 13.0 x 11.4 x 9.1" (Phobos style)
-    const dimMatch = headerText.match(/Dimensions\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)\s*x\s*([~]?\d+(?:\.\d+)?)\s*x\s*([~]?\d+(?:\.\d+)?)/i);
-    if (dimMatch) {
-      const x = parseFloat(dimMatch[1].replace('~', '')) * 1000;
-      const y = parseFloat(dimMatch[2].replace('~', '')) * 1000;
-      const z = parseFloat(dimMatch[3].replace('~', '')) * 1000;
-      result.radii = { x, y, z };
-      result.radius = Math.max(x, y, z); // Use max dimension as bounding radius
-    } else {
-      // Try Equatorial/Polar radii
-      // Pattern: "Equatorial radius (km) = 6378.137"
-      // Pattern: "Polar radius (km) = 6356.752"
-      const eqRadiusMatch = headerText.match(/Equatorial\s*radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-      const polRadiusMatch = headerText.match(/Polar\s*radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-      
-      if (eqRadiusMatch && polRadiusMatch) {
-        const eqR = parseFloat(eqRadiusMatch[1].replace('~', '')) * 1000;
-        const polR = parseFloat(polRadiusMatch[1].replace('~', '')) * 1000;
-        result.radii = { x: eqR, y: polR, z: eqR }; // y is polar axis in our local space before rotation
-        result.radius = eqR;
-      } else {
-        // Fallback to Mean Radius
-        // Pattern: "Vol. Mean Radius (km) = 6371.01" or "Mean Radius (km) = ..."
-        const radiusMatch = headerText.match(/(?:Vol\.\s*)?Mean\s*Radius\s*\(km\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-        if (radiusMatch) {
-          // Convert km to meters
-          result.radius = parseFloat(radiusMatch[1].replace('~', '')) * 1000;
-          result.radii = { x: result.radius, y: result.radius, z: result.radius };
+        // Fetch properties
+        // CHANGED: Fetch from /formatted_data/
+        const propsRes = await fetch(`/formatted_data/${name}/body_data/properties.json`);
+        let props: Record<string, any> = {};
+        if (propsRes.ok) {
+            props = await propsRes.json();
         }
-      }
-    }
 
-    // 3. Rotation Period
-    // Pattern: "Mean sidereal day, hr = 23.934" or "Rot. Rate (rad/s) = ..."
-    // Let's look for "Mean sidereal day, hr" first.
-    const rotPeriodMatch = headerText.match(/Mean\s*sidereal\s*day,\s*hr\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-    if (rotPeriodMatch) {
-      result.rotationPeriod = parseFloat(rotPeriodMatch[1].replace('~', ''));
-    } else {
-        // Try Rot Rate in rad/s
-        const rotRateMatch = headerText.match(/Rot\.\s*Rate\s*\(rad\/s\)\s*=\s*([~]?\d+(?:\.\d+)?E?[+-]?\d*)/i);
-        if (rotRateMatch) {
-            const rads = parseFloat(rotRateMatch[1].replace('~', ''));
-            // Convert rad/s to hours per rotation
-            // T = 2*pi / w
-            // Period in seconds = 2*pi / rads
-            // Period in hours = (2*pi / rads) / 3600
-            if (rads !== 0) {
-                result.rotationPeriod = ((2 * Math.PI) / rads) / 3600;
+        // Find closest data point (Exact Match Strategy)
+        // The data is sorted by date.
+        // We need to parse the dates.
+        // Format: "A.D. 2025-Nov-28 00:00:00.0000 TDB"
+        
+        let closestPoint = null;
+        let minDiff = Infinity;
+        const targetTime = date.getTime();
+
+        for (const point of vecData) {
+            // Parse date string manually or use Date.parse if format allows
+            // "A.D. 2025-Nov-28 00:00:00.0000 TDB" -> "2025-Nov-28 00:00:00"
+            const cleanDate = point.date.replace('A.D. ', '').replace(' TDB', '');
+            const pointTime = new Date(cleanDate).getTime();
+            
+            const diff = Math.abs(pointTime - targetTime);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestPoint = point;
             }
         }
+
+        if (!closestPoint) return null;
+
+        const pos = new THREE.Vector3(closestPoint.pos[0], closestPoint.pos[1], closestPoint.pos[2]);
+        const vel = new THREE.Vector3(closestPoint.vel[0], closestPoint.vel[1], closestPoint.vel[2]);
+
+        // Convert to scene frame
+        const scenePos = new THREE.Vector3(pos.x, pos.z, -pos.y);
+        const sceneVel = new THREE.Vector3(vel.x, vel.z, -vel.y);
+
+        return {
+            pos: scenePos,
+            vel: sceneVel,
+            
+            // Physical Properties
+            mass: props['mass_kg'],
+            // Use mean radius for generic radius, convert km -> m
+            radius: (props['mean_radius_km'] || props['vol_mean_radius_km'] || props['equatorial_radius_km']) * 1000,
+            
+            meanTemperature: props['mean_temperature_k'],
+            surfaceGravity: props['surface_gravity_m_s2'],
+            refDate: closestPoint.date, 
+
+            
+            // Extended Properties
+
+            escapeSpeed: props['escape_speed_km_s'] ? props['escape_speed_km_s'] * 1000 : undefined,
+
+            massLayers: props['mass_layers'],
+            gravityField: props['gravity_field'],
+            orbital: {
+                ...props['orbital'],
+                // Prioritize root properties (Header data, usually planetocentric for moons)
+                semi_major_axis_km: props['semi_major_axis_km'] || props['orbital']?.semi_major_axis_km,
+                sidereal_period_days: props['orbital_period_days'] || props['orbital']?.sidereal_period_days,
+                eccentricity: props['eccentricity'] || props['orbital']?.eccentricity,
+                inclination_deg: props['inclination_deg'] || props['orbital']?.inclination_deg,
+            },
+
+            surface: props['surface'],
+
+
+            // New Properties
+            meanDensity: props['density_g_cm3'],
+            volumeKm3: props['volume_km3'], // or vol_mean_radius_km derived? props has volume_km3 if parsed
+            albedo: props['albedo'],
+            photosphereTemperature: props['photosphere_temperature'],
+            rotationPeriodHours: props['sidereal_rotation_period_hours'],
+            flatness: props['flattening'],
+            obliquity: props['obliquity_deg'],
+            poleRA: props['pole_ra_deg'],
+            poleDec: props['pole_dec_deg'],
+            
+            // Exhaustive Properties
+            targetPrimary: props['target_primary'],
+            angularDiameter1AUArcsec: props['angular_diameter_1au_arcsec'],
+            visualMagnitude: props['visual_magnitude'],
+            meanDailyMotionDegD: props['mean_daily_motion_deg_d'],
+            rotationRateRadS: props['rotation_rate_rad_s'],
+            arocheIceRp: props['aroche_ice_rp'],
+            
+            // Nested Structures
+            planetaryIR: props['planetary_ir'],
+            solar: props['solar'],
+            motion: props['motion'],
+            atmosphere: props['atmosphere'],
+
+
+
+        } as JPLData;
+
+    } catch (e) {
+        console.warn(`Failed to fetch local data for ${name}`, e);
+        return null;
     }
-
-    // 4. Temperature
-    // Pattern: "Mean surface temp (Ts), K= 287.6"
-    const tempMatch = headerText.match(/Mean\s*surface\s*temp\s*\(Ts\),\s*K\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-    if (tempMatch) {
-      result.meanTemperature = parseFloat(tempMatch[1].replace('~', ''));
-    }
-
-    // 5. Axial Tilt (Obliquity)
-    // Pattern: "Obliquity to orbit, deg = 23.439"
-    // Match "Obliquity to orbit" OR just "Obliquity"
-    const tiltMatch = headerText.match(/Obliquity(?:.*?)deg\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-    if (tiltMatch) {
-      result.axialTilt = parseFloat(tiltMatch[1].replace('~', ''));
-    }
-
-    // 6. Surface Gravity
-    // Pattern: "g_e, m/s^2 (equatorial) = 9.78"
-    const gravMatch = headerText.match(/g_e,\s*m\/s\^2\s*\(equatorial\)\s*=\s*([~]?\d+(?:\.\d+)?)/i);
-    if (gravMatch) {
-      result.surfaceGravity = parseFloat(gravMatch[1].replace('~', ''));
-    }
-
-    return result;
-
-  } catch (error) {
-    console.error(`Error fetching data for object ${id}:`, error);
-    throw error;
-  }
 }
-
-
 
 export async function fetchMultipleBodies(
   ids: string[], 
   date: Date = new Date(),
   onProgress?: (id: string, status: 'loading' | 'complete' | 'error') => void,
-  concurrency: number = 5,
-  forceFetch: boolean = false
+  concurrency: number = 5
 ): Promise<Record<string, JPLData>> {
   const results: Record<string, JPLData> = {};
-  const dateStr = date.toISOString().split('T')[0];
   const queue = [...ids];
   const CONCURRENCY_LIMIT = concurrency;
   let activeRequests = 0;
@@ -253,44 +224,32 @@ export async function fetchMultipleBodies(
       while (queue.length > 0 && activeRequests < CONCURRENCY_LIMIT) {
         const id = queue.shift()!;
         
-        // Check cache first
-        const cached = !forceFetch ? dataCache.get(id, dateStr) : null;
-        if (cached) {
-          // Reconstruct Vectors because JSON.parse makes them plain objects
-          const reconstructed: JPLData = {
-            ...cached,
-            pos: new THREE.Vector3(cached.pos.x, cached.pos.y, cached.pos.z),
-            vel: new THREE.Vector3(cached.vel.x, cached.vel.y, cached.vel.z)
-          };
-          
-          results[id] = reconstructed;
-          onProgress?.(id, 'complete');
-          // Process next immediately without taking up a request slot
-          processQueue(); 
-          continue;
-        }
-
         activeRequests++;
         onProgress?.(id, 'loading');
 
-        fetchBodyData(id, date)
-          .then(data => {
-            results[id] = data;
-            dataCache.set(id, dateStr, data);
+        // Try local fetch first
+        const name = BODY_ID_MAP.get(id);
+        let localData = null;
+        if (name) {
+            localData = await fetchLocalData(name, date);
+        }
+
+        if (localData) {
+            results[id] = localData;
             onProgress?.(id, 'complete');
-          })
-          .catch(() => {
+        } else {
+            console.warn(`No local data found for ${id} (${name})`);
             onProgress?.(id, 'error');
-          })
-          .finally(() => {
-            activeRequests--;
-            processQueue();
-          });
+        }
+        activeRequests--;
+        processQueue();
+
       }
     };
 
     processQueue();
   });
 }
+
 
 
