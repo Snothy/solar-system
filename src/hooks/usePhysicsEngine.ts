@@ -264,8 +264,24 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     if (!wasmEngineRef.current || !wasmReady) return 0;
     
     try {
-        const useAdaptive = integratorMode === 'adaptive';
-        const useWisdomHolman = integratorMode === 'wisdom-holman';
+        // Map integratorMode string to u8
+        let integratorType = 0; // Adaptive
+        let quality = adaptiveQuality;
+        
+        if (integratorMode === 'wisdom-holman') {
+            integratorType = 1;
+            quality = wisdomHolmanQuality;
+        } else if (integratorMode === 'saba4') {
+            integratorType = 2;
+            quality = wisdomHolmanQuality; // Reuse WH quality for now
+        } else if (integratorMode === 'high-precision') {
+            integratorType = 3;
+            quality = 3; // Ultra
+        } else {
+            // Adaptive
+            integratorType = 0;
+            quality = adaptiveQuality;
+        }
 
         const currentSimTime = simTimeRef.current;
         const tdbTime = useTDBTime ? utcToTDB(currentSimTime) : currentSimTime;
@@ -285,10 +301,8 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             enableNutation,
             enableSolarMassLoss,
             enablePRDrag,
-            useAdaptive,
-            adaptiveQuality, // 0=Low, 1=Medium, 2=High, 3=Ultra
-            useWisdomHolman,
-            wisdomHolmanQuality // 0=Low, 1=Medium, 2=High, 3=Ultra
+            integratorType,
+            quality
         );
         
         // Update simTime (convert seconds to milliseconds)

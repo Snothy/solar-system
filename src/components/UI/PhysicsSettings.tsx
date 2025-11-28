@@ -1,6 +1,6 @@
 
 
-export type IntegratorMode = 'standard' | 'adaptive' | 'wisdom-holman';
+export type IntegratorMode = 'standard' | 'adaptive' | 'wisdom-holman' | 'saba4' | 'high-precision';
 
 export interface PhysicsSettingsProps {
   enableTidalEvolution: boolean;
@@ -371,26 +371,29 @@ export function PhysicsSettings({
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#d1d5db', marginBottom: '8px' }}>
               Integrator Mode
             </label>
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
               {[
                 { id: 'standard', label: 'Standard' },
                 { id: 'adaptive', label: 'Adaptive' },
-                { id: 'wisdom-holman', label: 'Wisdom-Holman' }
+                { id: 'wisdom-holman', label: 'Wisdom-Holman' },
+                { id: 'saba4', label: 'SABA4' },
+                { id: 'high-precision', label: 'High Precision' }
               ].map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => onSetIntegratorMode(mode.id as IntegratorMode)}
                   style={{
-                    flex: 1,
+                    flex: '1 0 auto',
                     padding: '6px 4px',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     backgroundColor: integratorMode === mode.id ? '#2563eb' : 'rgba(255,255,255,0.05)',
                     color: integratorMode === mode.id ? 'white' : '#9ca3af',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    fontWeight: integratorMode === mode.id ? 600 : 400
+                    fontWeight: integratorMode === mode.id ? 600 : 400,
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {mode.label}
@@ -401,6 +404,8 @@ export function PhysicsSettings({
               {integratorMode === 'standard' && "Fixed time step. Fast but unstable at high speeds."}
               {integratorMode === 'adaptive' && "Variable sub-stepping. Stable but slower."}
               {integratorMode === 'wisdom-holman' && "Symplectic Map. Best for high-speed solar system simulation."}
+              {integratorMode === 'saba4' && "SABA4 Symplectic. Excellent for long-term stability (millions of years)."}
+              {integratorMode === 'high-precision' && "DOP853 (RK8). NASA/JPL level accuracy for ephemeris generation."}
             </p>
           </div>
 
@@ -534,4 +539,3 @@ export function PhysicsSettings({
     </div>
   );
 }
-
