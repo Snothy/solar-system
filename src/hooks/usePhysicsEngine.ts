@@ -135,7 +135,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   const [useEIH, setUseEIH] = useState(true);
   
   // Integrator Settings
-  const [integratorMode, setIntegratorMode] = useState<IntegratorMode>('wisdom-holman'); // Default to best
+  const [integratorMode, setIntegratorMode] = useState<IntegratorMode>('saba4'); // Default to best
   const [adaptiveQuality, setAdaptiveQuality] = useState(2); // High default
   const [wisdomHolmanQuality, setWisdomHolmanQuality] = useState(1); // Medium default
 

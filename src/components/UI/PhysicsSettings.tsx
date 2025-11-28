@@ -376,36 +376,66 @@ export function PhysicsSettings({
                 { id: 'standard', label: 'Standard' },
                 { id: 'adaptive', label: 'Adaptive' },
                 { id: 'wisdom-holman', label: 'Wisdom-Holman' },
-                { id: 'saba4', label: 'SABA4' },
-                { id: 'high-precision', label: 'High Precision' }
+                { id: 'saba4', label: 'SABA4', highlight: true, badge: 'STABLE' },
+                { id: 'high-precision', label: 'High Precision', highlight: true, badge: 'ACCURATE' }
               ].map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => onSetIntegratorMode(mode.id as IntegratorMode)}
                   style={{
                     flex: '1 0 auto',
-                    padding: '6px 4px',
+                    padding: '6px 8px',
                     fontSize: '10px',
-                    backgroundColor: integratorMode === mode.id ? '#2563eb' : 'rgba(255,255,255,0.05)',
-                    color: integratorMode === mode.id ? 'white' : '#9ca3af',
-                    border: 'none',
+                    backgroundColor: integratorMode === mode.id 
+                      ? '#2563eb' 
+                      : (mode.highlight ? 'rgba(37, 99, 235, 0.15)' : 'rgba(255,255,255,0.05)'),
+                    color: integratorMode === mode.id 
+                      ? 'white' 
+                      : (mode.highlight ? '#60a5fa' : '#9ca3af'),
+                    border: mode.highlight && integratorMode !== mode.id ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid transparent',
                     borderRadius: '4px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    fontWeight: integratorMode === mode.id ? 600 : 400,
-                    whiteSpace: 'nowrap'
+                    fontWeight: integratorMode === mode.id || mode.highlight ? 600 : 400,
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
                   {mode.label}
+                  {mode.badge && (
+                    <span style={{
+                      fontSize: '8px',
+                      backgroundColor: integratorMode === mode.id ? 'rgba(255,255,255,0.2)' : 'rgba(37, 99, 235, 0.2)',
+                      padding: '1px 4px',
+                      borderRadius: '3px',
+                      color: integratorMode === mode.id ? 'white' : '#60a5fa'
+                    }}>
+                      {mode.badge}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
             <p style={{ fontSize: '11px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
-              {integratorMode === 'standard' && "Fixed time step. Fast but unstable at high speeds."}
-              {integratorMode === 'adaptive' && "Variable sub-stepping. Stable but slower."}
-              {integratorMode === 'wisdom-holman' && "Symplectic Map. Best for high-speed solar system simulation."}
-              {integratorMode === 'saba4' && "SABA4 Symplectic. Excellent for long-term stability (millions of years)."}
-              {integratorMode === 'high-precision' && "DOP853 (RK8). NASA/JPL level accuracy for ephemeris generation."}
+              {integratorMode === 'standard' && "Basic physics. Good for simple tests, but not accurate for real orbits."}
+              {integratorMode === 'adaptive' && "Good stability for crashing planets, but slow for normal orbits."}
+              {integratorMode === 'wisdom-holman' && "The standard for solar system sims. Fast and stable for planets."}
+              {integratorMode === 'saba4' && (
+                <span>
+                  <strong style={{ color: '#60a5fa' }}>SABA4 (Symplectic Corrector)</strong>: 
+                  Fast, extremely stable, and best for long-running simulations (millions of years). 
+                  Preserves energy better than any other method.
+                </span>
+              )}
+              {integratorMode === 'high-precision' && (
+                <span>
+                  <strong style={{ color: '#60a5fa' }}>DOP853 (Runge-Kutta 8)</strong>: 
+                  NASA-grade accuracy. The most accurate mode available. 
+                  Best for precise ephemeris generation and mission planning.
+                </span>
+              )}
             </p>
           </div>
 
