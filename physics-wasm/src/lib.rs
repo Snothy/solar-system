@@ -339,10 +339,20 @@ impl PhysicsEngine {
             sun_delta.scale(dt / 2.0);
             self.bodies[s_idx].pos.add(&sun_delta);
             
+            let sun_pos_half = self.bodies[s_idx].pos;
+            let sun_vel_half = self.bodies[s_idx].vel; // Velocity constant for linear drift
+            
             // All other bodies: Kepler drift around Sun
+            // CRITICAL FIX: Drift relative to OLD Sun, restore relative to NEW Sun
             for i in 0..self.bodies.len() {
                 if i == s_idx { continue; }
-                drift_kepler(&mut self.bodies[i], dt / 2.0, sun_mass, &sun_pos_t, &sun_vel_t);
+                
+                // Drift in relative coordinates (uses sun_pos_t to convert to relative)
+                drift_kepler_relative(&mut self.bodies[i], dt / 2.0, sun_mass, &sun_pos_t, &sun_vel_t);
+                
+                // Restore absolute coordinates using NEW Sun position (sun_pos_half)
+                self.bodies[i].pos.add(&sun_pos_half);
+                self.bodies[i].vel.add(&sun_vel_half);
             }
             
             // 2. KICK (dt) - Perturbations only (Keplerian term already handled by drift)
@@ -364,7 +374,6 @@ impl PhysicsEngine {
                 false   // No parent subtraction - we're not using hierarchical
             );
             
-            // Update velocities with perturbations
             self.update_velocities(&accs, dt);
             
             // 3. DRIFT (dt/2) - Second half-step
@@ -378,10 +387,19 @@ impl PhysicsEngine {
             sun_delta.scale(dt / 2.0);
             self.bodies[s_idx].pos.add(&sun_delta);
             
+            let sun_pos_final = self.bodies[s_idx].pos;
+            let sun_vel_final = self.bodies[s_idx].vel;
+            
             // All other bodies: Kepler drift around Sun
             for i in 0..self.bodies.len() {
                 if i == s_idx { continue; }
-                drift_kepler(&mut self.bodies[i], dt / 2.0, sun_mass, &sun_pos_t_plus, &sun_vel_t_plus);
+                
+                // Drift relative to "Old" Sun (which is sun_pos_t_plus)
+                drift_kepler_relative(&mut self.bodies[i], dt / 2.0, sun_mass, &sun_pos_t_plus, &sun_vel_t_plus);
+                
+                // Restore relative to "New" Sun (sun_pos_final)
+                self.bodies[i].pos.add(&sun_pos_final);
+                self.bodies[i].vel.add(&sun_vel_final);
             }
         }
     }

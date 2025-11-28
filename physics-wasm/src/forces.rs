@@ -175,7 +175,9 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
         // Units: m/s²
         let gm_over_r2 = G * b1.mass / (dist * dist);
         let r_ratio_5 = (b1.radius / dist).powi(5);
-        let acc = 1.5 * (k2 / q) * gm_over_r2 * r_ratio_5;
+        
+        // 1. Dissipative Term (Lag)
+        let acc_dissipative = 1.5 * (k2 / q) * gm_over_r2 * r_ratio_5;
         
         // Determine direction based on relative angular velocity
         // F ~ (Omega_rot - Omega_orb) x r
@@ -190,14 +192,26 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
         
         let mut dir = delta_omega.cross(r_vec);
         
-        // If delta_omega is zero (locked), no tangential force? 
-        // Actually tidal bulge is aligned, so no torque/tangential force. Correct.
-        // But if dir is zero length, we return zero.
+        let mut total_force = Vector3::zero();
+        
         if dir.len_sq() > 1e-16 {
             dir.normalize();
-            dir.scale(acc * b2.mass); // Force = Mass * Acc
-            return dir;
+            dir.scale(acc_dissipative * b2.mass);
+            total_force.add(&dir);
         }
+        
+        // 2. Conservative Term (Radial)
+        // F_cons = -3 * k2 * (GM/r^2) * (R/r)^5 * m_sat
+        // Directed radially inward (towards primary)
+        // This causes apsidal precession
+        let acc_conservative = 3.0 * k2 * gm_over_r2 * r_ratio_5;
+        let mut radial_dir = *r_vec;
+        radial_dir.normalize();
+        radial_dir.scale(-acc_conservative * b2.mass); // Negative = Attractive (towards primary)
+        
+        total_force.add(&radial_dir);
+        
+        return total_force;
     }
     Vector3::zero()
 }

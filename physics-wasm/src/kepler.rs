@@ -60,9 +60,9 @@ fn solve_universal(dt: f64, r0: f64, v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f
     };
     
     // Better initial guess for all:
-    x = (mu).sqrt() * dt / r0;
+    // x = (mu).sqrt() * dt / r0; // REMOVED: This overwrote the smart guesses above!
 
-    let tolerance = 1e-9;
+    let tolerance = 1e-12; // Tightened from 1e-9
     let max_iter = 50;
 
     for _ in 0..max_iter {
@@ -81,7 +81,7 @@ fn solve_universal(dt: f64, r0: f64, v0_sq: f64, r_dot_v: f64, mu: f64, alpha: f
         
         let dt_dx = (r_dot_v / mu.sqrt()) * x * (1.0 - alpha * x * x * s) + (1.0 - alpha * r0) * x * x * c + r0;
         
-        if dt_dx.abs() < 1e-12 { break; }
+        if dt_dx.abs() < 1e-14 { break; }
         x += dt_err / dt_dx;
     }
     x
