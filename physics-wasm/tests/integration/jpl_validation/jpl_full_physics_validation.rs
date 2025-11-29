@@ -1,6 +1,4 @@
-mod common;
-
-use common::{load_bodies, load_jpl_vector, initialize_from_jpl};
+use crate::common::{load_bodies, load_jpl_vector, initialize_from_jpl};
 use physics_wasm::common::types::Vector3;
 use physics_wasm::integrators::*;
 use physics_wasm::dynamics::hierarchy::update_hierarchy;
