@@ -61,7 +61,7 @@ fn test_saba4_integration_vs_jpl() {
     }
     
     let parent_indices = update_hierarchy(&bodies);
-    let dt = 600.0; // 10 minute steps (6 per hour)
+    let dt = 60.0; // 1 minute steps (60 per hour)
     let steps_per_hour = 6;
     
     // Track errors: (pos_error_km, vel_error_ms, pos_mag_km, vel_mag_ms)
@@ -71,29 +71,32 @@ fn test_saba4_integration_vs_jpl() {
     
     for hour in 1..=duration_hours {
         let target_time = hour as f64 * 3600.0;
+        let time_to_advance = target_time - current_sim_time;
         
-        // SABA4 is fixed-step, so we must take multiple steps to reach the hour
-        // We need to ensure we land exactly on the hour.
-        // If dt=600, we need 6 steps.
-        let steps_needed = ((target_time - current_sim_time) / dt).round() as usize;
-        
-        for _ in 0..steps_needed {
-            step_saba4(
-                &mut bodies,
-                &parent_indices,
-                dt,
-                true, // relativity
-                true, // j2
-                true, // tidal
-                true, // srp
-                true, // yarkovsky
-                true, // drag
-                false, // eih
-                true, // pr_drag
-                true, // comet
-            );
+        if time_to_advance > 0.0 {
+            // SABA4 is fixed-step, so we must take multiple steps to reach the hour
+            // We need to ensure we land exactly on the hour.
+            let num_substeps = (time_to_advance / dt).round() as usize;
+            let step_size = time_to_advance / num_substeps as f64;
+            
+            for _ in 0..num_substeps {
+                step_saba4(
+                    &mut bodies,
+                    &parent_indices,
+                    step_size,
+                    true, // relativity
+                    true, // j2
+                    true, // tidal
+                    true, // srp
+                    true, // yarkovsky
+                    true, // drag
+                    false, // eih
+                    true, // pr_drag
+                    true, // comet
+                );
+            }
+            current_sim_time = target_time;
         }
-        current_sim_time = target_time;
         
         // Calculate errors at the hour mark
         for (i, (body_idx, data)) in bodies_with_data.iter().enumerate() {

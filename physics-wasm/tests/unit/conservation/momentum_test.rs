@@ -56,15 +56,18 @@ fn test_linear_momentum_conservation() {
         p_scale += body.mass * body.vel.len();
     }
     
-    if p0_mag < 1e-10 {
-        // If initial momentum is zero, check absolute change relative to scale
+    // Due to floating-point arithmetic, recentering cannot achieve perfect zero momentum
+    // when dealing with vastly different mass scales (Sun vs Earth).
+    // The residual momentum should be much smaller than the constituent momenta.
+    if p0_mag < 1e15 {
+        // If initial momentum is very small (< 1e15), check it's small relative to momentum scale
         let abs_change = dp.len();
         println!("Absolute change: {:.3e}", abs_change);
         println!("Momentum scale:  {:.3e}", p_scale);
         let rel_drift = abs_change / p_scale;
         println!("Relative drift (vs scale): {:.3e}", rel_drift);
         
-        // Allow 1e-5 drift (integrator might not strictly conserve linear momentum in this formulation)
+        // Allow 1e-5 drift (integrator might not strictly conserve linear momentum)
         assert!(rel_drift < 1e-5, "Momentum drift too large: {:.3e}", rel_drift);
     } else {
         let rel_change = dp.len() / p0_mag;

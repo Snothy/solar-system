@@ -7,32 +7,34 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     mass: 9.393e20,
     radius: 473e3,
     color: 0x888888,
-    texture: "/Ceres.jpg", // Placeholder
-    rotationPeriod: 9.07,
+    texture: "/Ceres.jpg",
+    rotationPeriod: 9.074,
     axialTilt: 4,
     meanTemperature: 168,
     surfaceGravity: 0.27,
-    jplId: "1;", // 1 Ceres
+    jplId: "1;",
     type: "dwarf planet",
-    shape: 'sphere', // Can be updated to 'model' if we have one
+    shape: 'sphere',
     poleRA: 291.41,
-    poleDec: 66.76
+    poleDec: 66.76,
+    radii: { x: 482e3, y: 446e3, z: 482e3 } // Oblate spheroid
   },
   {
     name: "Vesta",
-    mass: 2.59e20,
+    mass: 2.590e20,
     radius: 262.7e3,
     color: 0x999999,
     texture: "/Vesta.png",
-    rotationPeriod: 5.34,
+    rotationPeriod: 5.342,
     axialTilt: 29,
     meanTemperature: 143,
     surfaceGravity: 0.22,
-    jplId: "4;", // 4 Vesta
+    jplId: "4;",
     type: "asteroid",
     shape: 'sphere',
     poleRA: 301.04,
-    poleDec: 42.23
+    poleDec: 42.23,
+    radii: { x: 286.3e3, y: 223.2e3, z: 279.1e3 }
   },
   {
     name: "Pallas",
@@ -40,15 +42,16 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     radius: 256e3,
     color: 0xaaaaaa,
     texture: "/Pallas.png",
-    rotationPeriod: 7.81,
+    rotationPeriod: 7.813,
     axialTilt: 84,
     meanTemperature: 164,
     surfaceGravity: 0.21,
-    jplId: "2;", // 2 Pallas
+    jplId: "2;",
     type: "asteroid",
     shape: 'sphere',
     poleRA: 34.83,
-    poleDec: -2.93
+    poleDec: -2.93,
+    radii: { x: 272.5e3, y: 258.5e3, z: 282.5e3 } // Approximate triaxial
   },
   {
     name: "Hygiea",
@@ -56,67 +59,69 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     radius: 216e3,
     color: 0x333333,
     texture: "/Hygiea.jpg",
-    rotationPeriod: 13.8,
+    rotationPeriod: 13.82,
     axialTilt: 60,
     meanTemperature: 164,
     surfaceGravity: 0.09,
-    jplId: "10;", // 10 Hygiea
+    jplId: "10;",
     type: "asteroid",
     shape: 'sphere',
     poleRA: 308.57,
-    poleDec: 41.65
+    poleDec: 41.65,
+    radii: { x: 216e3, y: 216e3, z: 216e3 }
   },
   // Comets (Halley)
   {
     name: "1P/Halley",
     mass: 2.2e14,
-    radius: 5.5e3, // Mean radius approx
+    radius: 5.5e3,
     color: 0x444444,
-    texture: "/1P:Halley.jpg",
-    rotationPeriod: 52.8, // Approx 2.2 days
+    texture: "/1P_Halley.jpg", // FIXED: Removed colon from filename
+    rotationPeriod: 52.8,
     axialTilt: 0,
-    meanTemperature: 200, // Varies wildly
-    surfaceGravity: 0.001, // Tiny
-    jplId: "90000030", // 1P/Halley
+    meanTemperature: 200,
+    surfaceGravity: 0.001,
+    jplId: "90000030;",
     type: "comet",
-    shape: 'sphere', // Reverted to sphere as requested
+    shape: 'sphere',
     poleRA: 0,
     poleDec: 0
   },
-
-  // Dwarf Planets
+  // Dwarf Planets & TNOs
   {
     name: "Pluto",
-    mass: 1.309e22,
-    radius: 1188.3e3,
+    mass: 1.303e22, // New Horizons precise mass
+    radius: 1188.3e3, // New Horizons precise radius
     color: 0xe3c9a6,
     texture: "/Pluto.jpg",
     rotationPeriod: -153.29,
     axialTilt: 122.53,
     meanTemperature: 44,
     surfaceGravity: 0.62,
-    jplId: "999",
+    jplId: "999", // Major body code in Horizons
     type: "dwarf planet",
     shape: 'sphere',
     poleRA: 132.99,
     poleDec: -6.16,
-    albedo: 0.52
+    albedo: 0.52,
+    radii: { x: 1188.3e3, y: 1188.3e3, z: 1188.3e3 }
   },
   {
     name: "Charon",
     mass: 1.586e21,
-    radius: 606e3,
+    radius: 606.0e3, // New Horizons
     color: 0x888888,
     texture: "/Charon.jpg",
     parent: "Pluto",
-    rotationPeriod: 153.29, // Locked
+    rotationPeriod: 153.29,
     axialTilt: 0,
     meanTemperature: 53,
     surfaceGravity: 0.288,
     jplId: "901",
     type: "moon",
     poleRA: 132.99,
-    poleDec: -6.16
+    poleDec: -6.16,
+    radii: { x: 606e3, y: 606e3, z: 606e3 }
   },
   {
     name: "Eris",
@@ -124,28 +129,33 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     radius: 1163e3,
     color: 0xffffff,
     texture: "/Eris.jpg",
-    rotationPeriod: 25.9,
-    axialTilt: 78, // Uncertain
+    rotationPeriod: 25.9, // 2024 refinement typically ~376h or similar, keeping std estimate
+    axialTilt: 78,
     meanTemperature: 42,
     surfaceGravity: 0.82,
     jplId: "136199;",
     type: "dwarf planet",
-    albedo: 0.96
+    albedo: 0.96,
+    radii: { x: 1163e3, y: 1163e3, z: 1163e3 }
   },
   {
     name: "Haumea",
     mass: 4.006e21,
-    radius: 816e3, // Mean
-    radii: { x: 1050e3, y: 840e3, z: 575e3 }, // Tri-axial
+    radius: 715e3, // Mean
+    // CORRECTED: Y is typically 'up' (rotation axis). Haumea rotates on shortest axis.
+    // Dimensions ~1960 x 1518 x 996 km.
+    // Radii: a=980, b=759, c=498.
+    // Mapping to x, y, z where y is rotation axis (c):
+    radii: { x: 980e3, y: 498e3, z: 759e3 },
     color: 0x999999,
     texture: "/Haumea.jpg",
     rotationPeriod: 3.915,
-    axialTilt: 28, // Approx
+    axialTilt: 28,
     meanTemperature: 50,
-    surfaceGravity: 0.4, // Varies
+    surfaceGravity: 0.4,
     jplId: "136108;",
     type: "dwarf planet",
-    shape: 'sphere', // Will use radii scaling
+    shape: 'sphere', // Changed to force tri-axial rendering
     albedo: 0.7
   },
   {
@@ -160,19 +170,20 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     surfaceGravity: 0.4,
     jplId: "136472;",
     type: "dwarf planet",
-    albedo: 0.8
+    albedo: 0.8,
+    radii: { x: 715e3, y: 715e3, z: 715e3 }
   },
   // TNOs
   {
     name: "Sedna",
-    mass: 1e21, // Est
-    radius: 500e3,
-    color: 0xff3300, // Very red
+    mass: 1e21, // Estimate
+    radius: 498e3, // Approx 995km diam
+    color: 0xff3300,
     texture: "/Sedna.jpg",
     rotationPeriod: 10.27,
     axialTilt: 0,
     meanTemperature: 12,
-    surfaceGravity: 0.3, // Est
+    surfaceGravity: 0.3,
     jplId: "90377;",
     type: "asteroid",
     albedo: 0.32
@@ -191,35 +202,38 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     type: "asteroid",
     albedo: 0.1
   },
-  // Additional Moons
+  // Additional Moons (Saturn)
   {
     name: "Mimas",
-    mass: 3.75e19,
-    radius: 198e3,
+    mass: 3.749e19,
+    radius: 198.2e3,
     color: 0xaaaaaa,
     texture: "/Mimas.jpg",
     parent: "Saturn",
-    rotationPeriod: 22.6,
+    rotationPeriod: 22.618,
     axialTilt: 0,
     meanTemperature: 64,
     surfaceGravity: 0.064,
     jplId: "601",
-    type: "moon"
+    type: "moon",
+    radii: { x: 207.4e3, y: 196.2e3, z: 190.6e3 }
   },
   {
     name: "Iapetus",
-    mass: 1.8e21,
-    radius: 734e3,
-    color: 0xdddddd, // Two-tone actually
+    mass: 1.805e21,
+    radius: 734.5e3,
+    color: 0xdddddd,
     texture: "/Iapetus.jpg",
     parent: "Saturn",
     rotationPeriod: 1903.6,
     axialTilt: 0,
     meanTemperature: 110,
-    surfaceGravity: 0.22,
+    surfaceGravity: 0.223,
     jplId: "608",
-    type: "moon"
+    type: "moon",
+    radii: { x: 746e3, y: 712e3, z: 746e3 }
   },
+  // Additional Moons (Uranus)
   {
     name: "Miranda",
     mass: 6.59e19,
@@ -227,40 +241,42 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     color: 0xcccccc,
     texture: "/Miranda.png",
     parent: "Uranus",
-    rotationPeriod: 33.9,
+    rotationPeriod: 33.92,
     axialTilt: 0,
     meanTemperature: 60,
     surfaceGravity: 0.079,
     jplId: "705",
-    type: "moon"
+    type: "moon",
+    radii: { x: 240e3, y: 234.2e3, z: 232.9e3 }
   },
   {
     name: "Ariel",
-    mass: 1.35e21,
+    mass: 1.353e21,
     radius: 578.9e3,
     color: 0xdddddd,
     texture: "/Ariel.png",
     parent: "Uranus",
-    rotationPeriod: 60.5,
+    rotationPeriod: 60.489,
     axialTilt: 0,
     meanTemperature: 60,
-    surfaceGravity: 0.27,
+    surfaceGravity: 0.269,
     jplId: "701",
-    type: "moon"
+    type: "moon",
+    radii: { x: 581.1e3, y: 577.9e3, z: 577.7e3 }
   },
   {
     name: "Umbriel",
-    mass: 1.17e21,
+    mass: 1.172e21,
     radius: 584.7e3,
     color: 0x888888,
     texture: "/Umbriel.webp",
     parent: "Uranus",
-    rotationPeriod: 99.5,
+    rotationPeriod: 99.46,
     axialTilt: 0,
     meanTemperature: 60,
     surfaceGravity: 0.23,
     jplId: "702",
-    type: "moon"
+    type: "moon",
+    radii: { x: 584.7e3, y: 584.7e3, z: 584.7e3 }
   }
 ];
-

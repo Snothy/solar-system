@@ -133,29 +133,51 @@ fn run_jpl_validation(
     let mut vel_errors = Vec::new();
     
     // Simulate with FULL PHYSICS
-    for step in 1..=duration_hours {
+    // Simulate with FULL PHYSICS
+    let mut current_sim_time = 0.0;
+    let saba4_dt = 60.0; // Small fixed step for SABA4
+    
+    for hour in 1..=duration_hours {
+        let target_time = hour as f64 * 3600.0;
+        let time_to_advance = target_time - current_sim_time;
+        
+        if time_to_advance <= 0.0 { continue; }
+
         match integrator {
             "SABA4" => {
-                step_saba4(
-                    &mut bodies,
-                    &parent_indices,
-                    dt,
-                    full_physics, // relativity
-                    full_physics, // j2
-                    full_physics, // tidal
-                    full_physics, // srp
-                    full_physics, // yarkovsky
-                    full_physics, // drag
-                    false,        // use_eih (using PPN)
-                    full_physics, // pr_drag
-                    full_physics, // comet_forces
-                );
+                // SABA4: Must run in many small steps
+                let num_substeps = (time_to_advance / saba4_dt).round() as usize;
+                // Adjust dt slightly to hit target exactly if needed, though round() should be close
+                // Better: just run fixed steps and force sync at end if needed? 
+                // Actually, for validation, let's just run exactly N steps of (time_to_advance / N)
+                // to ensure we hit target_time exactly.
+                let step_size = time_to_advance / num_substeps as f64;
+                
+                for _ in 0..num_substeps {
+                    step_saba4(
+                        &mut bodies,
+                        &parent_indices,
+                        step_size,
+                        full_physics, // relativity
+                        full_physics, // j2
+                        full_physics, // tidal
+                        full_physics, // srp
+                        full_physics, // yarkovsky
+                        full_physics, // drag
+                        false,        // use_eih (using PPN)
+                        full_physics, // pr_drag
+                        full_physics, // comet_forces
+                    );
+                }
             },
             "WisdomHolman" => {
+                // WisdomHolman: Can take larger steps, but let's just take one big step for the hour
+                // or match the previous logic if it was working. 
+                // The previous logic used dt=3600.0. Let's stick to that.
                 step_wisdom_holman(
                     &mut bodies,
                     &parent_indices,
-                    dt,
+                    time_to_advance,
                     full_physics, full_physics, full_physics,
                     full_physics, full_physics, full_physics,
                     false, full_physics, full_physics
@@ -163,6 +185,11 @@ fn run_jpl_validation(
             },
             _ => panic!("Unknown integrator: {}", integrator),
         }
+        
+        current_sim_time = target_time;
+        
+        // Compare with JPL
+        let step = hour; // JPL data index corresponds to hour
         
         // Compare with JPL
         if step < jpl_data.len() {

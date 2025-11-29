@@ -25,6 +25,15 @@ fn test_solar_system_accuracy_vs_jpl() {
     // Set initial conditions from JPL data (first entry)
     common::initialize_from_jpl(&mut bodies[earth_idx], &jpl_data[0]);
     
+    // Initialize all other bodies from JPL data if available
+    for body in &mut bodies {
+        if let Some(body_jpl) = common::load_jpl_vector(&body.name) {
+            if !body_jpl.is_empty() {
+                common::initialize_from_jpl(body, &body_jpl[0]);
+            }
+        }
+    }
+    
     // Update hierarchy
     let parent_indices = update_hierarchy(&bodies);
     
@@ -35,7 +44,7 @@ fn test_solar_system_accuracy_vs_jpl() {
     let mut position_errors = Vec::new();
     let mut velocity_errors = Vec::new();
     
-    for step in 1..=num_steps {
+    for step in 0..num_steps {
         // Run one step of the simulation
         step_saba4(
             &mut bodies,
@@ -52,18 +61,20 @@ fn test_solar_system_accuracy_vs_jpl() {
             false, // comet
         );
         
-        // Compare with JPL data at this step
-        if step < jpl_data.len() {
+        // Compare with JPL data at this step (step+1 because we started from index 0)
+        if step + 1 < jpl_data.len() {
             let jpl_pos = Vector3::new(
-                jpl_data[step].pos[0],
-                jpl_data[step].pos[1],
-                jpl_data[step].pos[2],
+                jpl_data[step + 1].pos[0],
+                jpl_data[step + 1].pos[1],
+                jpl_data[step + 1].pos[2],
             );
             let jpl_vel = Vector3::new(
-                jpl_data[step].vel[0],
-                jpl_data[step].vel[1],
-                jpl_data[step].vel[2],
+                jpl_data[step + 1].vel[0],
+                jpl_data[step + 1].vel[1],
+                jpl_data[step + 1].vel[2],
             );
+            
+
             
             let pos_error = bodies[earth_idx].pos.distance_to(&jpl_pos);
             let vel_error = bodies[earth_idx].vel.distance_to(&jpl_vel);
@@ -120,6 +131,15 @@ fn test_multiple_bodies_vs_jpl() {
         return;
     }
     
+    // Initialize all other bodies from JPL data if available
+    for body in &mut bodies {
+        if let Some(body_jpl) = common::load_jpl_vector(&body.name) {
+            if !body_jpl.is_empty() {
+                common::initialize_from_jpl(body, &body_jpl[0]);
+            }
+        }
+    }
+    
     let parent_indices = update_hierarchy(&bodies);
     
     // Simulate for 168 hours (1 week)
@@ -128,7 +148,7 @@ fn test_multiple_bodies_vs_jpl() {
     
     let mut results = Vec::new();
     
-    for step in 1..=num_steps {
+    for step in 0..num_steps {
         step_saba4(
             &mut bodies,
             &parent_indices,
@@ -138,11 +158,11 @@ fn test_multiple_bodies_vs_jpl() {
         
         // Collect errors for all test bodies
         for (i, &body_idx) in body_indices.iter().enumerate() {
-            if step < jpl_datasets[i].len() {
+            if step + 1 < jpl_datasets[i].len() {
                 let jpl_pos = Vector3::new(
-                    jpl_datasets[i][step].pos[0],
-                    jpl_datasets[i][step].pos[1],
-                    jpl_datasets[i][step].pos[2],
+                    jpl_datasets[i][step + 1].pos[0],
+                    jpl_datasets[i][step + 1].pos[1],
+                    jpl_datasets[i][step + 1].pos[2],
                 );
                 
                 let pos_error = bodies[body_idx].pos.distance_to(&jpl_pos);
