@@ -1,4 +1,4 @@
-use physics_wasm::common::types::{Vector3, PhysicsBody};
+use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::forces::comet::apply_cometary_forces;
 
 /// Test cometary non-gravitational forces (Marsden-Sekanina model)
@@ -14,11 +14,14 @@ fn test_comet_nongravitational_forces() {
     comet.name = "1P/Halley".to_string();
     comet.mass = 2.2e14; // kg
     comet.radius = 5500.0; // meters
-    // Marsden-Sekanina parameters (A1, A2, A3)
-    // These model outgassing asymmetry
-    comet.comet_a1 = Some(1.0e-8); // Radial component
-    comet.comet_a2 = Some(0.0); // Transverse
-    comet.comet_a3 = Some(0.0); // Normal
+                           // Marsden-Sekanina parameters (A1, A2, A3)
+                           // These model outgassing asymmetry
+    comet.comet = Some(physics_wasm::common::types::CometParams {
+        comet_a1: Some(1.0e-8), // Radial component
+        comet_a2: Some(0.0), // Transverse
+        comet_a3: Some(0.0), // Normal
+        yorp_factor: None,
+    });
     comet.pos = Vector3::new(0.586e11, 0.0, 0.0); // Near perihelion
     comet.vel = Vector3::new(0.0, 54000.0, 0.0);
 
@@ -30,8 +33,10 @@ fn test_comet_nongravitational_forces() {
 
     // Comet should experience non-gravitational forces
     println!("Comet non-grav force: {:.6e} N", comet_force.len());
-    println!("Components: x={:.6e}, y={:.6e}, z={:.6e}", 
-        comet_force.x, comet_force.y, comet_force.z);
+    println!(
+        "Components: x={:.6e}, y={:.6e}, z={:.6e}",
+        comet_force.x, comet_force.y, comet_force.z
+    );
 }
 
 /// Test A1 parameter (radial outgassing)
@@ -52,13 +57,16 @@ fn test_comet_a1_radial() {
     let dist = r_vec.len();
 
     // With A1 only (radial outgassing)
-    comet.comet_a1 = Some(1.0e-8);
-    comet.comet_a2 = Some(0.0);
-    comet.comet_a3 = Some(0.0);
+    comet.comet = Some(physics_wasm::common::types::CometParams {
+        comet_a1: Some(1.0e-8),
+        comet_a2: Some(0.0),
+        comet_a3: Some(0.0),
+        yorp_factor: None,
+    });
     let force_a1 = apply_cometary_forces(&sun, &comet, &r_vec, dist);
 
     println!("Force with A1: {:.6e} N", force_a1.len());
-    
+
     // A1 causes radial acceleration (away from sun at post-perihelion)
 }
 
@@ -80,9 +88,12 @@ fn test_comet_a2_transverse() {
     let dist = r_vec.len();
 
     // With A2 only (transverse)
-    comet.comet_a1 = Some(0.0);
-    comet.comet_a2 = Some(1.0e-9);
-    comet.comet_a3 = Some(0.0);
+    comet.comet = Some(physics_wasm::common::types::CometParams {
+        comet_a1: Some(0.0),
+        comet_a2: Some(1.0e-9),
+        comet_a3: Some(0.0),
+        yorp_factor: None,
+    });
     let force_a2 = apply_cometary_forces(&sun, &comet, &r_vec, dist);
 
     println!("Force with A2: {:.6e} N", force_a2.len());
@@ -99,7 +110,12 @@ fn test_comet_distance_dependence() {
     let mut comet = PhysicsBody::default();
     comet.mass = 2.2e14;
     comet.radius = 5500.0;
-    comet.comet_a1 = Some(1.0e-8);
+    comet.comet = Some(physics_wasm::common::types::CometParams {
+        comet_a1: Some(1.0e-8),
+        comet_a2: None,
+        comet_a3: None,
+        yorp_factor: None,
+    });
     comet.vel = Vector3::new(0.0, 20000.0, 0.0);
 
     // Near Sun (0.5 AU)
@@ -116,7 +132,7 @@ fn test_comet_distance_dependence() {
 
     println!("Force at 0.5 AU: {:.6e} N", force_near.len());
     println!("Force at 3 AU: {:.6e} N", force_far.len());
-    
+
     // Outgassing is stronger closer to Sun (more heating)
     // Force should decrease with distance
 }
@@ -134,9 +150,7 @@ fn test_comet_forces_require_parameters() {
     asteroid.mass = 1e15;
     asteroid.radius = 1000.0;
     // No comet parameters
-    asteroid.comet_a1 = None;
-    asteroid.comet_a2 = None;
-    asteroid.comet_a3 = None;
+    asteroid.comet = None;
     asteroid.pos = Vector3::new(2e11, 0.0, 0.0);
     asteroid.vel = Vector3::new(0.0, 25000.0, 0.0);
 

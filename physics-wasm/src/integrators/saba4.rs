@@ -1,7 +1,7 @@
 use crate::common::types::PhysicsBody;
-use crate::common::utils::{update_positions, update_velocities};
-use crate::forces::calculate_accelerations;
-use crate::dynamics::kepler::drift_kepler_relative;
+use crate::common::config::PhysicsConfig;
+use crate::common::indices::ParentIndex;
+use crate::forces::{calculate_accelerations, ForceConfig, GravityMode};
 
 // SABA4 Coefficients (Laskar & Robutel 2001)
 // c coefficients (Drift)
@@ -13,19 +13,59 @@ pub const SABA4_C3: f64 = 0.33998104358485626;
 pub const SABA4_D1: f64 = 0.17392742256872693;
 pub const SABA4_D2: f64 = 0.3260725774312731;
 
+use crate::integrators::traits::Integrator;
+use crate::integrators::types::IntegratorQuality;
+
+pub struct Saba4Integrator;
+
+use crate::common::units::Seconds;
+
+impl Integrator for Saba4Integrator {
+    fn step(
+        &self,
+        bodies: &mut Vec<PhysicsBody>,
+        parent_indices: &[ParentIndex],
+        dt: Seconds,
+        config: &PhysicsConfig,
+        quality: IntegratorQuality,
+    ) {
+        // Handle substeps based on quality (similar to Symplectic)
+        let max_substep = match quality {
+            IntegratorQuality::Low => 120.0,
+            IntegratorQuality::Medium => 60.0,
+            IntegratorQuality::High => 30.0,
+            IntegratorQuality::Ultra => 10.0,
+        };
+
+        let mut time_remaining = dt;
+        while time_remaining > 0.0 {
+            let sub_dt = if time_remaining > max_substep { max_substep } else { time_remaining };
+            step_saba4_internal(bodies, parent_indices, sub_dt, config);
+            time_remaining -= sub_dt;
+        }
+    }
+
+    fn name(&self) -> &'static str {
+        "SABA4"
+    }
+}
+
 pub fn step_saba4(
     bodies: &mut Vec<PhysicsBody>,
-    parent_indices: &Vec<Option<usize>>,
+    parent_indices: &[ParentIndex],
+    dt: Seconds,
+    config: &PhysicsConfig,
+) {
+    // Legacy wrapper
+    let integrator = Saba4Integrator;
+    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium);
+}
+
+fn step_saba4_internal(
+    bodies: &mut Vec<PhysicsBody>,
+    parent_indices: &[ParentIndex],
     dt: f64,
-    enable_relativity: bool, 
-    enable_j2: bool, 
-    enable_tidal: bool,
-    enable_srp: bool,
-    enable_yarkovsky: bool,
-    enable_drag: bool,
-    use_eih: bool,
-    enable_pr_drag: bool,
-    enable_comet_forces: bool
+    config: &PhysicsConfig,
 ) {
     // SABA4: A B A B A B A B A
     // A = Drift (Kepler), B = Kick (Interaction)
@@ -34,25 +74,25 @@ pub fn step_saba4(
     drift_system_kepler(bodies, SABA4_C1 * dt);
     
     // Step 2: B(d1)
-    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
+    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, config);
     
     // Step 3: A(c2)
     drift_system_kepler(bodies, SABA4_C2 * dt);
     
     // Step 4: B(d2)
-    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
+    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, config);
     
     // Step 5: A(c3)
     drift_system_kepler(bodies, SABA4_C3 * dt);
     
     // Step 6: B(d2)
-    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
+    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, config);
     
     // Step 7: A(c2)
     drift_system_kepler(bodies, SABA4_C2 * dt);
     
     // Step 8: B(d1)
-    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, enable_relativity, enable_j2, enable_tidal, enable_srp, enable_yarkovsky, enable_drag, use_eih, enable_pr_drag, enable_comet_forces);
+    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, config);
     
     // Step 9: A(c1)
     drift_system_kepler(bodies, SABA4_C1 * dt);
@@ -75,44 +115,50 @@ fn drift_system_kepler(bodies: &mut Vec<PhysicsBody>, dt: f64) {
         
         for i in 0..bodies.len() {
             if i == s_idx { continue; }
-            drift_kepler_relative(&mut bodies[i], dt, sun_mass, &sun_pos_old, &sun_vel_old);
-            // Restore relative to NEW Sun
+            
+            // Convert to heliocentric coordinates
+            let mut rel_pos = bodies[i].pos;
+            rel_pos.sub(&sun_pos_old);
+            let mut rel_vel = bodies[i].vel;
+            rel_vel.sub(&sun_vel_old);
+            
+            // Drift in heliocentric frame using Kepler solver
+            let mu = crate::common::constants::G * (sun_mass + bodies[i].mass);
+            use crate::dynamics::kepler::solve_kepler_drift;
+            solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt, mu);
+            
+            // Convert back to absolute coordinates using NEW sun position
+            bodies[i].pos = rel_pos;
             bodies[i].pos.add(&sun_pos_new);
+            bodies[i].vel = rel_vel;
             bodies[i].vel.add(&sun_vel_new);
         }
     } else {
-        update_positions(bodies, dt);
+        // Fallback to linear drift if no Sun found
+        for body in bodies.iter_mut() {
+            let mut delta = body.vel;
+            delta.scale(dt);
+            body.pos.add(&delta);
+        }
     }
 }
 
 fn kick_system_interaction(
     bodies: &mut Vec<PhysicsBody>, 
-    parent_indices: &Vec<Option<usize>>,
+    parent_indices: &[ParentIndex],
     dt: f64,
-    enable_relativity: bool, 
-    enable_j2: bool, 
-    enable_tidal: bool,
-    enable_srp: bool,
-    enable_yarkovsky: bool,
-    enable_drag: bool,
-    use_eih: bool,
-    enable_pr_drag: bool,
-    enable_comet_forces: bool
+    config: &PhysicsConfig,
 ) {
-    let accs = calculate_accelerations(
-        bodies, 
+    let force_config = ForceConfig {
+        physics: config,
         parent_indices,
-        enable_relativity, 
-        enable_j2, 
-        enable_tidal, 
-        enable_srp, 
-        enable_yarkovsky, 
-        enable_drag, 
-        use_eih, 
-        enable_pr_drag, 
-        enable_comet_forces,
-        false, // include_sun_gravity (handled by drift)
-        false  // subtract_parent_gravity (not needed for SABA/WH)
-    );
-    update_velocities(bodies, &accs, dt);
+        gravity_mode: GravityMode::SplitDriftKick,
+    };
+    let accs = calculate_accelerations(bodies, &force_config);
+    
+    for (i, acc) in accs.iter().enumerate() {
+        let mut dv = *acc;
+        dv.scale(dt);
+        bodies[i].vel.add(&dv);
+    }
 }

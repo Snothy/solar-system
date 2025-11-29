@@ -1,75 +1,65 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
+pub use crate::math::Vector3;
+use crate::common::units::{Kilograms, Meters, MetersPerSecond, Newtons};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default)]
-pub struct Vector3 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-}
+/// Physical properties of a celestial body in the N-body simulation.
+///
+/// # Units Convention
+/// All physical quantities use **SI base units** (meters, kilograms, seconds).
+///
+/// # Coordinate System
+/// Position and velocity vectors are in the **heliocentric ecliptic J2000** frame.
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PhysicsBody {
+    /// Name of the celestial body (e.g., "Earth", "Mars")
+    pub name: String,
 
-impl Vector3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Self { Self { x, y, z } }
-    pub fn zero() -> Self { Self { x: 0.0, y: 0.0, z: 0.0 } }
-    
-    pub fn add(&mut self, other: &Vector3) { 
-        self.x += other.x; 
-        self.y += other.y; 
-        self.z += other.z; 
-    }
-    
-    pub fn sub(&mut self, other: &Vector3) { 
-        self.x -= other.x; 
-        self.y -= other.y; 
-        self.z -= other.z; 
-    }
-    
-    pub fn scale(&mut self, s: f64) { 
-        self.x *= s; 
-        self.y *= s; 
-        self.z *= s; 
-    }
+    /// Mass in kilograms (kg)
+    pub mass: Kilograms,
 
-    pub fn len_sq(&self) -> f64 { self.x*self.x + self.y*self.y + self.z*self.z }
-    pub fn len(&self) -> f64 { self.len_sq().sqrt() }
-    
-    pub fn normalize(&mut self) {
-        let l = self.len();
-        if l > 0.0 { self.scale(1.0/l); }
-    }
-    
-    pub fn dot(&self, other: &Vector3) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z
-    }
+    /// Mean radius in meters (m)
+    pub radius: Meters,
 
-    pub fn cross(&self, other: &Vector3) -> Vector3 {
-        Vector3 {
-            x: self.y * other.z - self.z * other.y,
-            y: self.z * other.x - self.x * other.z,
-            z: self.x * other.y - self.y * other.x,
-        }
-    }
+    /// Position vector in meters (m) - heliocentric ecliptic J2000
+    pub pos: Vector3,
 
-    pub fn distance_to(&self, other: &Vector3) -> f64 {
-        let dx = self.x - other.x;
-        let dy = self.y - other.y;
-        let dz = self.z - other.z;
-        (dx*dx + dy*dy + dz*dz).sqrt()
-    }
+    /// Velocity vector in meters per second (m/s) - heliocentric ecliptic J2000
+    pub vel: Vector3,
+
+    /// Accumulated force vector in Newtons (N) [internal use]
+    #[serde(default)]
+    pub force: Option<Vector3>,
+
+    #[serde(flatten)]
+    pub gravity_harmonics: Option<HarmonicsParams>,
+
+    #[serde(flatten)]
+    pub tidal: Option<TidalParams>,
+
+    #[serde(flatten)]
+    pub rotation: Option<RotationalParams>,
+
+    #[serde(flatten)]
+    pub atmosphere: Option<AtmosphereParams>,
+
+    #[serde(flatten)]
+    pub thermal: Option<ThermalParams>,
+
+    #[serde(flatten)]
+    pub precession: Option<PrecessionParams>,
+
+    #[serde(flatten)]
+    pub moon: Option<MoonParams>,
+
+    #[serde(flatten)]
+    pub comet: Option<CometParams>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct PhysicsBody {
-    pub name: String,
-    pub mass: f64,
-    pub radius: f64,
-    pub pos: Vector3,
-    pub vel: Vector3,
-    #[serde(default)]
-    pub force: Option<Vector3>,
-    
-    // Advanced Physics Properties
+pub struct HarmonicsParams {
     #[serde(default)]
     pub j2: Option<f64>,
     #[serde(default)]
@@ -82,20 +72,31 @@ pub struct PhysicsBody {
     pub s22: Option<f64>,
     #[serde(default)]
     pub pole_vector: Option<Vector3>,
-    
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TidalParams {
     #[serde(default)]
     pub k2: Option<f64>,
     #[serde(default)]
     pub tidal_q: Option<f64>,
-    
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct RotationalParams {
     #[serde(default)]
     pub angular_velocity: Option<Vector3>,
     #[serde(default)]
     pub moment_of_inertia: Option<f64>,
     #[serde(default)]
     pub torque: Option<Vector3>,
+}
 
-    // Atmosphere & Drag
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct AtmosphereParams {
     #[serde(default)]
     pub has_atmosphere: Option<bool>,
     #[serde(default)]
@@ -106,14 +107,20 @@ pub struct PhysicsBody {
     pub mean_temperature: Option<f64>,
     #[serde(default)]
     pub drag_coefficient: Option<f64>,
+}
 
-    // Yarkovsky
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ThermalParams {
     #[serde(default)]
     pub albedo: Option<f64>,
     #[serde(default)]
     pub thermal_inertia: Option<f64>,
+}
 
-    // Precession/Nutation
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PrecessionParams {
     #[serde(default)]
     pub pole_ra0: Option<f64>,
     #[serde(default)]
@@ -122,15 +129,20 @@ pub struct PhysicsBody {
     pub precession_rate: Option<f64>,
     #[serde(default)]
     pub nutation_amplitude: Option<f64>,
-    
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct MoonParams {
     #[serde(default)]
     pub libration: Option<f64>,
+}
 
-    // YORP Effect
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct CometParams {
     #[serde(default)]
     pub yorp_factor: Option<f64>,
-
-    // Cometary Non-Gravitational Forces (Marsden-Sekanina)
     #[serde(default)]
     pub comet_a1: Option<f64>,
     #[serde(default)]

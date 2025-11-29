@@ -1,0 +1,186 @@
+warning: unused import: `Vector3`
+ --> src/analysis/mod.rs:2:41
+  |
+2 | ...ody, Vector3};
+  |         ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `MetersPerSecond` and `Newtons`
+ --> src/common/types.rs:4:47
+  |
+4 | ...s, MetersPerSecond, Newtons};
+  |       ^^^^^^^^^^^^^^^  ^^^^^^^
+
+warning: unused imports: `Kilograms`, `MetersCubed`, `Meters`, and `Seconds`
+ --> src/common/constants.rs:1:28
+  |
+1 | ...::{MetersCubed, Kilograms, Seconds, Meters, W...
+  |       ^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^  ^^^^^^
+
+warning: unused import: `Meters`
+ --> src/core/simulation.rs:6:37
+  |
+6 | ...nds, Meters};
+  |         ^^^^^^
+
+warning: unused import: `crate::integrators`
+ --> src/core/simulation.rs:9:5
+  |
+9 | use crate::integrators;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::common::units::MetersPerSecondSquared`
+ --> src/forces/acceleration.rs:7:5
+  |
+7 | use crate::common::units::MetersPerSecondSquared;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Vector3`
+ --> src/integrators/high_precision.rs:1:28
+  |
+1 | ...es::{Vector3, Phy...
+  |         ^^^^^^^
+
+warning: unused import: `Vector3`
+ --> src/integrators/saba4.rs:1:28
+  |
+1 | ...es::{Vector3, Phy...
+  |         ^^^^^^^
+
+warning: unused import: `Vector3`
+ --> src/integrators/symplectic.rs:1:28
+  |
+1 | ...es::{Vector3, Phy...
+  |         ^^^^^^^
+
+warning: unused import: `Vector3`
+ --> src/integrators/wisdom_holman.rs:1:41
+  |
+1 | ...ody, Vector3};
+  |         ^^^^^^^
+
+warning: unused import: `Vector3`
+ --> src/physics_engine.rs:1:41
+  |
+1 | ...ody, Vector3};
+  |         ^^^^^^^
+
+warning: unused import: `js_sys::Float32Array`
+ --> src/physics_engine.rs:3:5
+  |
+3 | use js_sys::Float32Array;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: `physics-wasm` (lib) generated 12 warnings (run `cargo fix --lib -p physics-wasm` to apply 12 suggestions)
+warning: unused import: `PhysicsBody`
+ --> tests/integration/jpl_validation/dop853_test.rs:2:35
+  |
+2 | ...::{PhysicsBody, V...
+  |       ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `PhysicsBody`
+ --> tests/integration/jpl_validation/saba4_test.rs:2:35
+  |
+2 | ...::{PhysicsBody, V...
+  |       ^^^^^^^^^^^
+
+warning: unused variable: `dt`
+  --> tests/integration/jpl_validation/dop853_test.rs:64:9
+   |
+64 |     let dt = 3600.0...
+   |         ^^
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+help: if this is intentional, prefix it with an underscore
+   |
+64 |     let _dt = 3600.0; // 1 hour steps
+   |         +
+help: you might have meant to pattern match on the similarly named constant `MAJOR_MOON_VEL_THRESHOLD_MS`
+   |
+64 -     let dt = 3600.0; // 1 hour steps
+64 +     let integration::jpl_validation::jpl_full_physics_validation::MAJOR_MOON_VEL_THRESHOLD_MS = 3600.0; // 1 hour steps
+   |
+
+warning: unused variable: `dt`
+   --> tests/integration/jpl_validation/jpl_full_physics_validation.rs:146:9
+    |
+146 |     let dt = 3600....
+    |         ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+146 |     let _dt = 3600.0; // 1 hour timestep
+    |         +
+help: you might have meant to pattern match on the similarly named constant `MAJOR_MOON_VEL_THRESHOLD_MS`
+    |
+146 -     let dt = 3600.0; // 1 hour timestep
+146 +     let integration::jpl_validation::jpl_full_physics_validation::MAJOR_MOON_VEL_THRESHOLD_MS = 3600.0; // 1 hour timestep
+    |
+
+warning: unused variable: `steps_per_hour`
+  --> tests/integration/jpl_validation/saba4_test.rs:65:9
+   |
+65 | ...et steps_per_hour = 6;
+   |       ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_steps_per_hour`
+
+warning: field `final_vel_error_ms` is never read
+  --> tests/integration/jpl_validation/dop853_test.rs:13:5
+   |
+10 | struct SimulationResult {
+   |        ---------------- field in this struct
+...
+13 |     final_vel_error_ms: f64,
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `final_vel_error_ms` is never read
+  --> tests/integration/jpl_validation/saba4_test.rs:13:5
+   |
+10 | struct SimulationResult {
+   |        ---------------- field in this struct
+...
+13 |     final_vel_error_ms: f64,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: `physics-wasm` (test "integration_tests") generated 7 warnings (run `cargo fix --test "integration_tests"` to apply 4 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running tests/integration_tests.rs (target/debug/deps/integration_tests-2c77b9736b91b252)
+
+running 1 test
+Step 1: Sim Pos Vector3 { x: 60311804812.844154, y: 133666211700.13477, z: 12124389.207453031 }, JPL Pos Vector3 { x: 60277795911.74703, y: 133681176732.368, z: 12122059.4002232 }
+Step 720: Sim Pos Vector3 { x: 9193765754.499624, y: 141441963194.53262, z: 11237549.208077006 }, JPL Pos Vector3 { x: -16182452571.002048, y: 145451502710.841, z: 10941374.80605394 }
+
+=== EARTH 30-DAY VALIDATION ===
+Body: Earth
+Duration: 720 hours (30 days)
+Integrator: SABA4
+
+Position Error (km):
+  Mean:  13130923.528
+  Max:   25691026.911
+  Final: 25691026.911
+
+Velocity Error (m/s):
+  Mean:  480.191110
+  Max:   1429.018213
+  Final: 1429.018213
+
+Status: ❌ FAIL
+
+thread 'integration::jpl_validation::jpl_full_physics_validation::test_earth_full_physics_30days' (6995111) panicked at tests/integration/jpl_validation/jpl_full_physics_validation.rs:53:5:
+Earth FAILED: max position error 25691026.91 km > 100 km threshold
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test integration::jpl_validation::jpl_full_physics_validation::test_earth_full_physics_30days ... FAILED
+
+failures:
+
+failures:
+    integration::jpl_validation::jpl_full_physics_validation::test_earth_full_physics_30days
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 30.16s
+
+error: test failed, to rerun pass `--test integration_tests`

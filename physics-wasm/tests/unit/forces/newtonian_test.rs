@@ -1,8 +1,7 @@
-
-use physics_wasm::common::types::{Vector3, PhysicsBody};
-use physics_wasm::forces::gravity::{apply_newtonian, apply_j2};
-use physics_wasm::common::constants::G;
 use approx::assert_relative_eq;
+use physics_wasm::common::constants::G;
+use physics_wasm::common::types::{PhysicsBody, Vector3};
+use physics_wasm::forces::gravity::{apply_j2, apply_newtonian};
 
 #[test]
 fn test_newtonian_gravity() {
@@ -22,9 +21,9 @@ fn test_newtonian_gravity() {
 
     // F = G * m1 * m2 / r^2
     let expected_mag = (G * b1.mass * b2.mass) / dist_sq;
-    
+
     // Force should be attractive (towards b1, which is at origin)
-    // But apply_newtonian returns force on b2? 
+    // But apply_newtonian returns force on b2?
     // Let's check implementation:
     // f = r_vec.normalize() * f_mag
     // r_vec is b2.pos - b1.pos (vector from b1 to b2)
@@ -40,7 +39,7 @@ fn test_newtonian_gravity() {
     // Gravity on b2 should be b2->b1 (negative r_vec).
     // So `apply_newtonian` just calculates the magnitude along the r_vec line.
     // The caller handles the sign.
-    
+
     assert_relative_eq!(force.len(), expected_mag, epsilon = 1e-6);
     assert_relative_eq!(force.x, expected_mag, epsilon = 1e-6); // Pointing +X
     assert_relative_eq!(force.y, 0.0);
@@ -52,8 +51,11 @@ fn test_j2_force() {
     let mut primary = PhysicsBody::default();
     primary.mass = 5.972e24; // Earth
     primary.radius = 6378137.0;
-    primary.j2 = Some(0.0010826);
-    primary.pole_vector = Some(Vector3::new(0.0, 0.0, 1.0)); // Z-aligned pole
+    primary.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
+        j2: Some(0.0010826),
+        pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)), // Z-aligned pole
+        ..Default::default()
+    });
     primary.pos = Vector3::zero();
 
     let mut satellite = PhysicsBody::default();
@@ -74,9 +76,16 @@ fn test_j2_force() {
     // t1.scale(factor/dist)
     // So it returns -r_vec * factor/dist
     // Which is attractive (towards primary).
-    
+
     let r4 = dist_sq * dist_sq;
-    let factor = (3.0 * G * primary.mass * satellite.mass * primary.j2.unwrap() * primary.radius * primary.radius) / (2.0 * r4);
+    let factor = (3.0
+        * G
+        * primary.mass
+        * satellite.mass
+        * primary.gravity_harmonics.as_ref().unwrap().j2.unwrap()
+        * primary.radius
+        * primary.radius)
+        / (2.0 * r4);
     let expected_mag = factor; // Since it's along r_vec
 
     assert_relative_eq!(force.len(), expected_mag, epsilon = 1e-6);

@@ -85,6 +85,10 @@ export function App() {
     setEnableYORP,
     enableCometForces,
     setEnableCometForces,
+    enableGravitationalHarmonics,
+    setEnableGravitationalHarmonics,
+    enableSolarRadiationPressure,
+    setEnableSolarRadiationPressure,
     physicsCompute, // GPU/Worker compute interface
     addBody
   } = useSimulation(simulationData, simulationStartDate);
@@ -269,6 +273,10 @@ export function App() {
         onToggleYORP={setEnableYORP}
         enableCometForces={enableCometForces}
         onToggleCometForces={setEnableCometForces}
+        enableGravitationalHarmonics={enableGravitationalHarmonics}
+        onToggleGravitationalHarmonics={setEnableGravitationalHarmonics}
+        enableSolarRadiationPressure={enableSolarRadiationPressure}
+        onToggleSolarRadiationPressure={setEnableSolarRadiationPressure}
         useVisualScale={useVisualScale}
         onToggleVisualScale={(val) => {
             setUseVisualScale(val);

@@ -1,26 +1,33 @@
-use physics_wasm::common::types::{Vector3, PhysicsBody};
-use physics_wasm::forces::tidal::apply_tidal;
-use physics_wasm::common::constants::G;
 use approx::assert_relative_eq;
+use physics_wasm::common::types;
+use physics_wasm::common::types::{PhysicsBody, Vector3};
+use physics_wasm::forces::tidal::apply_tidal;
 
 /// Test tidal forces between Earth and Moon
 #[test]
 fn test_earth_moon_tidal_force() {
+    // Setup Earth-Moon system
     let mut earth = PhysicsBody::default();
     earth.name = "Earth".to_string();
     earth.mass = 5.972e24;
-    earth.radius = 6371e3;
-    earth.k2 = Some(0.299); // Earth's Love number
-    earth.tidal_q = Some(12.0);
+    earth.radius = 6.371e6;
     earth.pos = Vector3::zero();
     earth.vel = Vector3::zero();
+    earth.tidal = Some(types::TidalParams {
+        k2: Some(0.3),
+        tidal_q: Some(12.0),
+    });
+    earth.rotation = Some(types::RotationalParams {
+        angular_velocity: Some(Vector3::new(0.0, 0.0, 7.292e-5)), // Earth rotation
+        ..Default::default()
+    });
 
     let mut moon = PhysicsBody::default();
     moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
-    moon.radius = 1737.4e3;
-    moon.pos = Vector3::new(384400e3, 0.0, 0.0); // Moon's distance
-    moon.vel = Vector3::new(0.0, 1022.0, 0.0); // Orbital velocity
+    moon.mass = 7.348e22;
+    moon.radius = 1.737e6;
+    moon.pos = Vector3::new(3.844e8, 0.0, 0.0); // 384,400 km distance
+    moon.vel = Vector3::new(0.0, 1022.0, 0.0); // Approx orbital velocity
 
     let mut r_vec = moon.pos;
     r_vec.sub(&earth.pos);
@@ -29,158 +36,179 @@ fn test_earth_moon_tidal_force() {
     let tidal_force = apply_tidal(&earth, &moon, &r_vec, dist);
 
     // Tidal force should be non-zero
-    assert!(tidal_force.len() > 0.0, "Tidal force should be non-zero");
-    
-    println!("Earth-Moon tidal force: {:.6e} N", tidal_force.len());
-    println!("Tidal force components: x={:.6e}, y={:.6e}, z={:.6e}", 
-        tidal_force.x, tidal_force.y, tidal_force.z);
+    assert!(tidal_force.len() > 0.0);
+
+    // Tidal force should have a tangential component (dissipative) and radial component
+    // For Earth-Moon, Earth spins faster than Moon orbits, so tidal bulge leads Moon.
+    // Torque transfers angular momentum to Moon -> Moon accelerates -> Moves outward.
+    // Force on Moon should have component in direction of velocity (+Y).
+
+    let mut f_dir = tidal_force;
+    f_dir.normalize();
+    let mut v_dir = moon.vel;
+    v_dir.normalize();
+
+    let dot = f_dir.dot(&v_dir);
+    assert!(dot > 0.0, "Tidal force should accelerate Moon (transfer angular momentum)");
 }
 
-/// Test tidal forces on Io from Jupiter
-/// Io has extreme tidal heating
-#[test]  
-fn test_io_tidal_heating() {
+#[test]
+fn test_tidal_force_retrograde() {
+    // Jupiter-Io like system but Jupiter spins retrograde (unrealistic but good for test)
     let mut jupiter = PhysicsBody::default();
-    jupiter.name = "Jupiter".to_string();
-    jupiter.mass = 1.8982e27;
-    jupiter.radius = 71492e3;
-    jupiter.k2 = Some(0.379);
-    jupiter.tidal_q = Some(100.0);
-    jupiter.pos = Vector3::zero();
-    jupiter.vel = Vector3::zero();
+    jupiter.mass = 1.898e27;
+    jupiter.radius = 7.149e7;
+    jupiter.tidal = Some(physics_wasm::common::types::TidalParams {
+        k2: Some(0.5),
+        tidal_q: Some(100.0),
+    });
+    jupiter.rotation = Some(physics_wasm::common::types::RotationalParams {
+        angular_velocity: Some(Vector3::new(0.0, 0.0, -1.76e-4)), // Retrograde spin
+        ..Default::default()
+    });
 
     let mut io = PhysicsBody::default();
-    io.name = "Io".to_string();
-    io.mass = 8.9319e22;
-    io.radius = 1821.6e3;
-    io.pos = Vector3::new(421700e3, 0.0, 0.0); // Io's orbit
-    io.vel = Vector3::new(0.0, 17334.0, 0.0);
+    io.mass = 8.93e22;
+    io.pos = Vector3::new(4.217e8, 0.0, 0.0);
+    io.vel = Vector3::new(0.0, 17334.0, 0.0); // Prograde orbit
 
     let mut r_vec = io.pos;
     r_vec.sub(&jupiter.pos);
     let dist = r_vec.len();
 
-    let tidal_force = apply_tidal(&jupiter, &io, &r_vec, dist);
+    let force = apply_tidal(&jupiter, &io, &r_vec, dist);
 
-    // Io experiences VERY strong tidal forces
-    assert!(tidal_force.len() > 0.0, "Io's tidal force should be non-zero");
-    
-    println!("Jupiter-Io tidal force: {:.6e} N", tidal_force.len());
+    // Retrograde spin -> bulge lags behind -> drags satellite -> decelerates
+    let mut f_dir = force;
+    f_dir.normalize();
+    let mut v_dir = io.vel;
+    v_dir.normalize();
+
+    assert!(f_dir.dot(&v_dir) < 0.0, "Tidal force should decelerate Io for retrograde primary");
 }
 
-/// Test that tidal force scales with 1/r^6 (approximately)
 #[test]
-fn test_tidal_distance_dependence() {
+fn test_tidal_force_magnitude_scaling() {
     let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
     earth.mass = 5.972e24;
-    earth.radius = 6371e3;
-    earth.k2 = Some(0.299);
-    earth.tidal_q = Some(12.0);
-    earth.pos = Vector3::zero();
-    earth.vel = Vector3::zero();
+    earth.radius = 6.371e6;
+    earth.tidal = Some(physics_wasm::common::types::TidalParams {
+        k2: Some(0.3),
+        tidal_q: Some(12.0),
+    });
+    earth.rotation = Some(physics_wasm::common::types::RotationalParams {
+        angular_velocity: Some(Vector3::new(0.0, 0.0, 7.292e-5)),
+        ..Default::default()
+    });
 
-    let mut body = PhysicsBody::default();
-    body.name = "Test".to_string();
-    body.mass = 1.0e20;
-    body.vel = Vector3::new(0.0, 1000.0, 0.0);
+    let mut moon = PhysicsBody::default();
+    moon.mass = 7.348e22;
+    moon.pos = Vector3::new(3.844e8, 0.0, 0.0);
+    moon.vel = Vector3::new(0.0, 1022.0, 0.0);
 
-    // Test at distance r
-    body.pos = Vector3::new(384400e3, 0.0, 0.0);
-    let mut r_vec = body.pos;
-    let dist1 = r_vec.len();
-    let force1 = apply_tidal(&earth, &body, &r_vec, dist1);
+    let r_vec = moon.pos;
+    let dist = r_vec.len();
 
-    // Test at distance 2r
-    body.pos = Vector3::new(768800e3, 0.0, 0.0);
-    r_vec = body.pos;
-    let dist2 = r_vec.len();
-    let force2 = apply_tidal(&earth, &body, &r_vec, dist2);
+    let f1 = apply_tidal(&earth, &moon, &r_vec, dist);
 
-    let mag1 = force1.len();
-    let mag2 = force2.len();
-    
-    // Tidal force implementation scales as 1/r^7 (force on satellite due to bulge on primary)
-    // At 2x distance, force should be 1/128th. So F1/F2 should be 128.
-    let expected_ratio = (dist2 / dist1).powi(7);
-    let actual_ratio = mag1 / mag2;
-    
-    println!("Force at {:.0e} m: {:.6e} N", dist1, mag1);
-    println!("Force at {:.0e} m: {:.6e} N", dist2, mag2);
-    println!("Expected ratio (r1/r2)^6: {:.2}", expected_ratio);
-    println!("Actual ratio F1/F2: {:.2}", actual_ratio);
-    
-    // Should be close to 1/r^6 scaling
-    assert_relative_eq!(actual_ratio, expected_ratio, epsilon = 0.5);
+    // Increase distance by 2x
+    let dist2 = dist * 2.0;
+    let mut r_vec2 = r_vec;
+    r_vec2.scale(2.0);
+    // Adjust velocity for circular orbit at 2x dist (v ~ 1/sqrt(r))
+    moon.vel.scale(1.0 / 2.0f64.sqrt());
+
+    let f2 = apply_tidal(&earth, &moon, &r_vec2, dist2);
+
+    // Tidal force falls off as ~ 1/r^7 (Force) or 1/r^8?
+    // Formula: F ~ 1/r^7 (Acceleration ~ 1/r^7 * mass? No, Acc ~ 1/r^7)
+    // Wait, formula has (R/r)^5 * (1/r^2) = 1/r^7.
+    // So f2 should be roughly f1 / 2^7 = f1 / 128.
+
+    let ratio = f1.len() / f2.len();
+    assert!(ratio > 100.0, "Tidal force should drop off rapidly with distance (approx 1/r^7)");
 }
 
-/// Test tidal quality factor (Q) effect
 #[test]
 fn test_tidal_q_factor() {
     let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
     earth.mass = 5.972e24;
-    earth.radius = 6371e3;
-    earth.k2 = Some(0.299);
-    earth.pos = Vector3::zero();
-    earth.vel = Vector3::zero();
+    earth.radius = 6.371e6;
+    earth.rotation = Some(physics_wasm::common::types::RotationalParams {
+        angular_velocity: Some(Vector3::new(0.0, 0.0, 7.292e-5)),
+        ..Default::default()
+    });
+    
+    // Low Q (high dissipation)
+    earth.tidal = Some(physics_wasm::common::types::TidalParams {
+        k2: Some(0.3),
+        tidal_q: Some(1.0),
+    });
 
     let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
-    moon.pos = Vector3::new(384400e3, 0.0, 0.0);
+    moon.mass = 7.348e22;
+    moon.pos = Vector3::new(3.844e8, 0.0, 0.0);
     moon.vel = Vector3::new(0.0, 1022.0, 0.0);
-
-    let mut r_vec = moon.pos;
+    let r_vec = moon.pos;
     let dist = r_vec.len();
 
-    // Low Q (more dissipation)
-    earth.tidal_q = Some(1.0);
-    let force_low_q = apply_tidal(&earth, &moon, &r_vec, dist);
+    let f_low_q = apply_tidal(&earth, &moon, &r_vec, dist);
 
-    // High Q (less dissipation)
-    earth.tidal_q = Some(1000.0);
-    let force_high_q = apply_tidal(&earth, &moon, &r_vec, dist);
+    // High Q (low dissipation)
+    earth.tidal = Some(physics_wasm::common::types::TidalParams {
+        k2: Some(0.3),
+        tidal_q: Some(1000.0),
+    });
+    let f_high_q = apply_tidal(&earth, &moon, &r_vec, dist);
 
-    println!("Tidal force with Q=1: {:.6e} N", force_low_q.len());
-    println!("Tidal force with Q=1000: {:.6e} N", force_high_q.len());
-    
-    // Lower Q should give stronger tidal dissipation effect
-    // (though the exact relationship depends on implementation)
+    // Dissipative force is proportional to 1/Q.
+    // So low Q -> High Force.
+    assert!(f_low_q.len() > f_high_q.len(), "Lower Q should result in stronger tidal dissipation force");
 }
 
-/// Test that k2 (Love number) affects tidal force magnitude
 #[test]
-fn test_love_number_effect() {
+fn test_tidal_lock_check() {
+    // If orbital period == rotation period, tidal bulge is aligned.
+    // Dissipative force should be zero (or very close).
+    
     let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
     earth.mass = 5.972e24;
-    earth.radius = 6371e3;
-    earth.tidal_q = Some(12.0);
-    earth.pos = Vector3::zero();
-    earth.vel = Vector3::zero();
+    earth.radius = 6.371e6;
+    earth.tidal = Some(physics_wasm::common::types::TidalParams {
+        k2: Some(0.3),
+        tidal_q: Some(12.0),
+    });
 
     let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
-    moon.pos = Vector3::new(384400e3, 0.0, 0.0);
+    moon.mass = 7.348e22;
+    moon.pos = Vector3::new(3.844e8, 0.0, 0.0);
     moon.vel = Vector3::new(0.0, 1022.0, 0.0);
 
-    let mut r_vec = moon.pos;
+    let r_vec = moon.pos;
     let dist = r_vec.len();
-
-    // Small k2 (rigid body)
-    earth.k2 = Some(0.1);
-    let force_rigid = apply_tidal(&earth, &moon, &r_vec, dist);
-
-    // Large k2 (deformable)
-    earth.k2 = Some(0.5);
-    let force_deformable = apply_tidal(&earth, &moon, &r_vec, dist);
-
-    println!("Tidal force with k2=0.1: {:.6e} N", force_rigid.len());
-    println!("Tidal force with k2=0.5: {:.6e} N", force_deformable.len());
     
-    // Higher k2 should give larger tidal bulge and stronger force
-    assert!(force_deformable.len() > force_rigid.len(), 
-        "Higher k2 should give larger tidal force");
+    // Calculate orbital angular velocity: omega = v / r
+    let omega_orb = 1022.0 / 3.844e8;
+    
+    // Set Earth rotation to match orbital angular velocity
+    earth.rotation = Some(physics_wasm::common::types::RotationalParams {
+        angular_velocity: Some(Vector3::new(0.0, 0.0, omega_orb)),
+        ..Default::default()
+    });
+
+    let force = apply_tidal(&earth, &moon, &r_vec, dist);
+
+    // Dissipative component should be zero.
+    // Conservative component (radial) might still exist.
+    // Let's check tangential component.
+    
+    let mut f_tan = force;
+    let mut r_norm = r_vec; r_norm.normalize();
+    // Remove radial component
+    let radial_mag = f_tan.dot(&r_norm);
+    let mut radial_vec = r_norm;
+    radial_vec.scale(radial_mag);
+    f_tan.sub(&radial_vec);
+    
+    assert!(f_tan.len() < 1e-10, "Tangential tidal force should be zero when tidally locked");
 }

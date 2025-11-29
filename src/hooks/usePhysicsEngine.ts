@@ -37,7 +37,7 @@ function utcToTDB(utcTime: number): number {
   // Convert seconds to milliseconds and add to UTC time
   return utcTime + total_correction_seconds * 1000;
 }
-import init, { PhysicsEngine as WasmPhysicsEngine } from '../../physics-wasm/pkg/physics_wasm';
+import init, { FrontendSimulation as WasmPhysicsEngine } from '../../physics-wasm/pkg/physics_wasm';
 import { usePhysicsCompute } from './usePhysicsCompute';
 import type { IntegratorMode } from '../components/UI/PhysicsSettings';
 
@@ -139,6 +139,8 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   const [useTDBTime, setUseTDBTime] = useState(true);
   const [enableRelativity, setEnableRelativity] = useState(true);
   const [useEIH, setUseEIH] = useState(true);
+  const [enableGravitationalHarmonics, setEnableGravitationalHarmonics] = useState(true);
+  const [enableSolarRadiationPressure, setEnableSolarRadiationPressure] = useState(true);
   
   // Integrator Settings
   const [integratorMode, setIntegratorMode] = useState<IntegratorMode>('saba4'); // Default to best
@@ -296,23 +298,28 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
         const tdbTime = useTDBTime ? utcToTDB(currentSimTime) : currentSimTime;
         const jdTime = tdbTime / 86400000 + 2440587.5;
 
+        // Construct PhysicsConfig object
+        const config = {
+            relativity: enableRelativity,
+            gravitationalHarmonics: enableGravitationalHarmonics,
+            tidalForces: enableTidalEvolution,
+            solarRadiationPressure: enableSolarRadiationPressure,
+            yarkovskyEffect: enableYarkovsky,
+            atmosphericDrag: enableAtmosphericDrag,
+            useEih: useEIH,
+            poyntingRobertsonDrag: enablePRDrag,
+            yorpEffect: enableYORP,
+            cometForces: enableCometForces,
+            precession: enablePrecession,
+            nutation: enableNutation,
+            solarMassLoss: enableSolarMassLoss,
+            collisions: enableCollisions
+        };
+
         const simulatedDt = wasmEngineRef.current.step(
             dt,
             jdTime, // Pass Julian Date to WASM
-            enableRelativity, 
-            true, // enable_j2 (Always on for high fidelity, or use a setting)
-            enableTidalEvolution,
-            true, // enable_srp
-            enableYarkovsky,
-            enableAtmosphericDrag,
-            useEIH,
-            enablePrecession,
-            enableNutation,
-            enableSolarMassLoss,
-            enablePRDrag,
-            enableYORP,
-            enableCometForces,
-            enableCollisions,
+            config,
             integratorType,
             quality
         );
@@ -386,7 +393,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
         console.error(e);
         return 0;
     }
-  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, integratorMode, adaptiveQuality, wisdomHolmanQuality, sabaQuality]);
+  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, integratorMode, adaptiveQuality, wisdomHolmanQuality, sabaQuality, enableGravitationalHarmonics, enableSolarRadiationPressure, enableCometForces, enableYORP]);
 
   // Force update state when pausing to ensure UI is consistent
   useEffect(() => {
@@ -412,12 +419,10 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             observerPos.x,
             observerPos.y,
             observerPos.z,
-            visualScale,
-            useVisualScale,
+            0, 0, 0, // observer velocity (assuming 0 for now)
+            scaleFactor,
             useLightTimeDelay,
-            enableLightAberration,
-            focusedBodyIdx,
-            scaleFactor
+            enableLightAberration
         );
     } catch (e) {
         console.error("WASM get_visual_state failed", e);

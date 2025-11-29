@@ -1,8 +1,8 @@
-use crate::common::types::{Vector3, PhysicsBody};
+use crate::common::types::{PhysicsBody, Vector3};
 
 pub fn update_positions(bodies: &mut Vec<PhysicsBody>, dt: f64) {
     for b in bodies.iter_mut() {
-        let mut delta_r = b.vel; 
+        let mut delta_r = b.vel;
         delta_r.scale(dt);
         b.pos.add(&delta_r);
     }
@@ -16,48 +16,59 @@ pub fn update_velocities(bodies: &mut Vec<PhysicsBody>, accs: &Vec<Vector3>, dt:
     }
 }
 
-pub fn update_pole_orientation(bodies: &mut Vec<PhysicsBody>, time: f64, enable_precession: bool, enable_nutation: bool) {
+pub fn update_pole_orientation(
+    bodies: &mut Vec<PhysicsBody>,
+    time: f64,
+    enable_precession: bool,
+    enable_nutation: bool,
+) {
     // Time in centuries since J2000
     let t = (time - 2451545.0) / 36525.0;
-    
+
     for b in bodies.iter_mut() {
-        if let (Some(ra0), Some(dec0)) = (b.pole_ra0, b.pole_dec0) {
-            let mut ra = ra0;
-            let dec = dec0;
-            
-            if enable_precession {
-                if let Some(rate) = b.precession_rate {
-                    ra += rate * t;
+        // Access PrecessionParams
+        if let Some(precession) = &b.precession {
+            if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
+                let mut ra = ra0;
+                let dec = dec0;
+
+                if enable_precession {
+                    if let Some(rate) = precession.precession_rate {
+                        ra += rate * t;
+                    }
+                }
+
+                if enable_nutation {
+                    if let Some(amp) = precession.nutation_amplitude {
+                        let omega = 125.04 - 1934.136 * t;
+                        let d_psi = amp * (omega * std::f64::consts::PI / 180.0).sin();
+                        ra += d_psi;
+                    }
+                }
+
+                let ra_rad = ra.to_radians();
+                let dec_rad = dec.to_radians();
+
+                // Initial vector in Equatorial Frame (ICRF)
+                let x_eq = dec_rad.cos() * ra_rad.cos();
+                let y_eq = dec_rad.cos() * ra_rad.sin();
+                let z_eq = dec_rad.sin();
+
+                // Obliquity of the Ecliptic (J2000)
+                let epsilon = 23.43928_f64.to_radians();
+                let cos_eps = epsilon.cos();
+                let sin_eps = epsilon.sin();
+
+                // Rotate to Ecliptic Frame
+                let x_ecl = x_eq;
+                let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
+                let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
+
+                // Update HarmonicsParams pole_vector
+                if let Some(harmonics) = &mut b.gravity_harmonics {
+                    harmonics.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
                 }
             }
-            
-            if enable_nutation {
-                if let Some(amp) = b.nutation_amplitude {
-                    let omega = 125.04 - 1934.136 * t;
-                    let d_psi = amp * (omega * std::f64::consts::PI / 180.0).sin();
-                    ra += d_psi;
-                }
-            }
-            
-            let ra_rad = ra.to_radians();
-            let dec_rad = dec.to_radians();
-            
-            // Initial vector in Equatorial Frame (ICRF)
-            let x_eq = dec_rad.cos() * ra_rad.cos();
-            let y_eq = dec_rad.cos() * ra_rad.sin();
-            let z_eq = dec_rad.sin();
-            
-            // Obliquity of the Ecliptic (J2000)
-            let epsilon = 23.43928_f64.to_radians();
-            let cos_eps = epsilon.cos();
-            let sin_eps = epsilon.sin();
-            
-            // Rotate to Ecliptic Frame
-            let x_ecl = x_eq;
-            let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
-            let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
-            
-            b.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
         }
     }
 }
@@ -69,11 +80,11 @@ pub fn recenter_system(bodies: &mut Vec<PhysicsBody>) {
 
     for body in bodies.iter() {
         total_mass += body.mass;
-        
+
         let mut mass_pos = body.pos;
         mass_pos.scale(body.mass);
         center_of_mass.add(&mass_pos);
-        
+
         let mut momentum = body.vel;
         momentum.scale(body.mass);
         linear_momentum.add(&momentum);
@@ -82,11 +93,11 @@ pub fn recenter_system(bodies: &mut Vec<PhysicsBody>) {
     if total_mass > 0.0 {
         // center_of_mass.scale(1.0 / total_mass);
         linear_momentum.scale(1.0 / total_mass); // Velocity of COM
-        
+
         for body in bodies.iter_mut() {
             // Disable position recentering to prevent visual jumps when mass changes
             // body.pos.sub(&center_of_mass);
-            
+
             // Keep velocity correction to prevent system drift
             body.vel.sub(&linear_momentum);
         }

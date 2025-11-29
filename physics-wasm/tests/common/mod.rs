@@ -1,23 +1,25 @@
-
-use std::fs;
-use std::path::PathBuf;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use serde::Deserialize;
+use std::fs;
+use std::path::PathBuf;
 
 /// Load body definitions (without positions/velocities)
 /// Returns bodies with default zero positions/velocities
 pub fn load_bodies() -> Vec<PhysicsBody> {
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     path.push("tests/fixtures/bodies.json");
-    
+
     let data = fs::read_to_string(path).expect("Unable to read bodies.json");
-    
+
     // Deserialize to our simplified structure first
-    let simple_bodies: Vec<SimplifiedBody> = serde_json::from_str(&data)
-        .expect("Unable to parse bodies.json");
-    
+    let simple_bodies: Vec<SimplifiedBody> =
+        serde_json::from_str(&data).expect("Unable to parse bodies.json");
+
     // Convert to PhysicsBody with defaults
-    simple_bodies.into_iter().map(|sb| sb.to_physics_body()).collect()
+    simple_bodies
+        .into_iter()
+        .map(|sb| sb.to_physics_body())
+        .collect()
 }
 
 /// Initialize a body's position/velocity from JPL data
@@ -31,7 +33,7 @@ pub fn load_jpl_vector(body_name: &str) -> Option<Vec<JPLVector>> {
     path.push("../formatted_data");
     path.push(body_name);
     path.push("vector_data/data.json");
-    
+
     if !path.exists() {
         return None;
     }
@@ -83,31 +85,37 @@ impl SimplifiedBody {
             pos: Vector3::zero(),
             vel: Vector3::zero(),
             force: Some(Vector3::zero()),
-            j2: self.j2,
-            j3: self.j3,
-            j4: self.j4,
-            c22: self.c22,
-            s22: self.s22,
-            k2: self.k2,
+            gravity_harmonics: Some(physics_wasm::common::types::HarmonicsParams {
+                j2: self.j2,
+                j3: self.j3,
+                j4: self.j4,
+                c22: self.c22,
+                s22: self.s22,
+                pole_vector: None, // Will be set below
+                ..Default::default()
+            }),
+            tidal: Some(physics_wasm::common::types::TidalParams {
+                k2: self.k2,
+                ..Default::default()
+            }),
             ..Default::default()
         };
-        
-        // Calculate pole vector if pole_ra and pole_dec are available
+
         // Calculate pole vector if pole_ra and pole_dec are available
         if let (Some(ra), Some(dec)) = (self.pole_ra, self.pole_dec) {
             let ra_rad = ra.to_radians();
             let dec_rad = dec.to_radians();
-            
+
             // Initial vector in Equatorial Frame (ICRF)
             let x_eq = dec_rad.cos() * ra_rad.cos();
             let y_eq = dec_rad.cos() * ra_rad.sin();
             let z_eq = dec_rad.sin();
-            
+
             // Obliquity of the Ecliptic (J2000)
             let epsilon = 23.43928_f64.to_radians();
             let cos_eps = epsilon.cos();
             let sin_eps = epsilon.sin();
-            
+
             // Rotate to Ecliptic Frame
             // x_ecl = x_eq
             // y_ecl = y_eq * cos(eps) + z_eq * sin(eps)
@@ -115,8 +123,10 @@ impl SimplifiedBody {
             let x_ecl = x_eq;
             let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
             let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
-            
-            body.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
+
+            if let Some(harmonics) = &mut body.gravity_harmonics {
+                harmonics.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
+            }
         }
 
         body

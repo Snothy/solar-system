@@ -45,6 +45,10 @@ export interface PhysicsSettingsProps {
   onToggleYORP: (enabled: boolean) => void;
   enableCometForces: boolean;
   onToggleCometForces: (enabled: boolean) => void;
+  enableGravitationalHarmonics: boolean;
+  onToggleGravitationalHarmonics: (enabled: boolean) => void;
+  enableSolarRadiationPressure: boolean;
+  onToggleSolarRadiationPressure: (enabled: boolean) => void;
   useVisualScale: boolean;
   onToggleVisualScale: (enabled: boolean) => void;
   visualScale: number;
@@ -207,6 +211,10 @@ export function PhysicsSettings({
   onToggleYORP,
   enableCometForces,
   onToggleCometForces,
+  enableGravitationalHarmonics,
+  onToggleGravitationalHarmonics,
+  enableSolarRadiationPressure,
+  onToggleSolarRadiationPressure,
   useVisualScale,
   onToggleVisualScale,
   visualScale,
@@ -264,12 +272,28 @@ export function PhysicsSettings({
             </div>
           )}
           <ToggleItem
+            label="Gravitational Harmonics"
+            description={enableGravitationalHarmonics
+              ? "Enabled: J2/J3/J4/C22/S22 terms. Essential for satellite orbits around non-spherical bodies."
+              : "Disabled: Point-mass gravity only."}
+            checked={enableGravitationalHarmonics}
+            onChange={onToggleGravitationalHarmonics}
+          />
+          <ToggleItem
             label="Tidal Evolution"
             description={enableTidalEvolution
               ? "Enabled: Simulates tidal forces. Moon recedes ~3.8cm/yr and Earth's rotation slows."
               : "Disabled: No tidal friction. Moon's orbit and Earth's day length remain constant."}
             checked={enableTidalEvolution}
             onChange={onToggleTidalEvolution}
+          />
+          <ToggleItem
+            label="Solar Radiation Pressure"
+            description={enableSolarRadiationPressure
+              ? "Enabled: Photons push against bodies. Significant for small asteroids/dust."
+              : "Disabled: Gravity only."}
+            checked={enableSolarRadiationPressure}
+            onChange={onToggleSolarRadiationPressure}
           />
           <ToggleItem
             label="Atmospheric Drag"
