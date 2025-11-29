@@ -26,3 +26,4 @@ physics-wasm/target
 physics-wasm/pkg
 data
 formatted_data
+output

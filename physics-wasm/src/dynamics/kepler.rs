@@ -81,8 +81,17 @@ fn solve_universal(dt: f64, r0: f64, _v0_sq: f64, r_dot_v: f64, mu: f64, alpha: 
         
         let dt_dx = (r_dot_v / mu.sqrt()) * x * (1.0 - alpha * x * x * s) + (1.0 - alpha * r0) * x * x * c + r0;
         
-        if dt_dx.abs() < 1e-14 { break; }
-        x += dt_err / dt_dx;
+        if dt_dx.abs() < 1e-14 { 
+            // Derivative is too small, Newton-Raphson fails.
+            // This can happen for circular orbits if x is near 0? No.
+            // Just break to avoid NaN.
+            break; 
+        }
+        
+        let step = dt_err / dt_dx;
+        if step.is_nan() { break; }
+        
+        x += step;
     }
     x
 }

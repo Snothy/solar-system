@@ -10,7 +10,8 @@
     "build": "npm run build:wasm && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "pull-data": "npx tsx scripts/pull-data.ts"
+    "pull-data": "npx tsx scripts/pull-data.ts",
+    "unit-test": "node scripts/generate-test-report.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
