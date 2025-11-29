@@ -66,29 +66,36 @@ fn test_dop853_integration_vs_jpl() {
     // Track errors: (pos_error_km, vel_error_ms, pos_mag_km, vel_mag_ms)
     let mut body_errors: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); bodies_with_data.len()];
     
-    for step in 1..=duration_hours {
-        let sim_time = (step - 1) as f64 * dt;
-        step_high_precision(
-            &mut bodies,
-            &parent_indices,
-            dt,
-            sim_time,
-            true, // relativity
-            true, // j2
-            true, // tidal
-            true, // srp
-            true, // yarkovsky
-            true, // drag
-            false, // eih
-            true, // pr_drag
-            true, // comet
-        );
+    let mut current_sim_time = 0.0;
+    
+    for hour in 1..=duration_hours {
+        let target_time = hour as f64 * 3600.0;
+        let dt_step = target_time - current_sim_time;
+        
+        if dt_step > 0.0 {
+            step_high_precision(
+                &mut bodies,
+                &parent_indices,
+                dt_step,
+                current_sim_time,
+                true, // relativity
+                true, // j2
+                true, // tidal
+                true, // srp
+                true, // yarkovsky
+                true, // drag
+                false, // eih
+                true, // pr_drag
+                true, // comet
+            );
+            current_sim_time = target_time;
+        }
         
         // Calculate errors
         for (i, (body_idx, data)) in bodies_with_data.iter().enumerate() {
-            if step < data.len() {
-                let jpl_pos = Vector3::new(data[step].pos[0], data[step].pos[1], data[step].pos[2]);
-                let jpl_vel = Vector3::new(data[step].vel[0], data[step].vel[1], data[step].vel[2]);
+            if hour < data.len() {
+                let jpl_pos = Vector3::new(data[hour].pos[0], data[hour].pos[1], data[hour].pos[2]);
+                let jpl_vel = Vector3::new(data[hour].vel[0], data[hour].vel[1], data[hour].vel[2]);
                 
                 let pos_error_km = bodies[*body_idx].pos.distance_to(&jpl_pos) / 1000.0;
                 let vel_error_ms = bodies[*body_idx].vel.distance_to(&jpl_vel);

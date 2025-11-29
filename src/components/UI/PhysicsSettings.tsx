@@ -29,6 +29,8 @@ export interface PhysicsSettingsProps {
   onSetAdaptiveQuality: (quality: number) => void;
   wisdomHolmanQuality: number;
   onSetWisdomHolmanQuality: (quality: number) => void;
+  sabaQuality: number;
+  onSetSabaQuality: (quality: number) => void;
   
   // New Props
   enableSolarMassLoss: boolean;
@@ -189,6 +191,8 @@ export function PhysicsSettings({
   onSetAdaptiveQuality,
   wisdomHolmanQuality,
   onSetWisdomHolmanQuality,
+  sabaQuality,
+  onSetSabaQuality,
   
   // New Props
   enableSolarMassLoss,
@@ -401,7 +405,7 @@ export function PhysicsSettings({
                 { id: 'adaptive', label: 'Adaptive' },
                 { id: 'wisdom-holman', label: 'Wisdom-Holman' },
                 { id: 'saba4', label: 'SABA4', highlight: true, badge: 'STABLE' },
-                { id: 'high-precision', label: 'High Precision', highlight: true, badge: 'ACCURATE' }
+                { id: 'high-precision', label: 'DOP853', highlight: true, badge: 'ACCURATE' }
               ].map((mode) => (
                 <button
                   key={mode.id}
@@ -457,7 +461,7 @@ export function PhysicsSettings({
                 <span>
                   <strong style={{ color: '#60a5fa' }}>DOP853 (Runge-Kutta 8)</strong>: 
                   NASA-grade accuracy. The most accurate mode available. 
-                  Best for precise ephemeris generation and mission planning.
+                  Adaptive tolerance: 1e-13. Best for precise ephemeris generation.
                 </span>
               )}
             </p>
@@ -471,10 +475,10 @@ export function PhysicsSettings({
                 </label>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
-                    { l: 'Low', v: 0, d: '60s' },
-                    { l: 'Med', v: 1, d: '30s' },
-                    { l: 'High', v: 2, d: '10s' },
-                    { l: 'Ultra', v: 3, d: '1s' }
+                    { l: 'Low (60s)', v: 0, d: '60s' },
+                    { l: 'Med (30s)', v: 1, d: '30s' },
+                    { l: 'High (10s)', v: 2, d: '10s' },
+                    { l: 'Ultra (1s)', v: 3, d: '1s' }
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -508,10 +512,10 @@ export function PhysicsSettings({
 </label>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
-                    { l: 'Low', v: 0, d: '300s' },
-                    { l: 'Med', v: 1, d: '180s' },
-                    { l: 'High', v: 2, d: '100s' },
-                    { l: 'Ultra', v: 3, d: '60s' }
+                    { l: 'Low (300s)', v: 0, d: '300s' },
+                    { l: 'Med (180s)', v: 1, d: '180s' },
+                    { l: 'High (100s)', v: 2, d: '100s' },
+                    { l: 'Ultra (60s)', v: 3, d: '60s' }
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -522,6 +526,43 @@ export function PhysicsSettings({
                         fontSize: '10px',
                         backgroundColor: wisdomHolmanQuality === opt.v ? '#2563eb' : 'rgba(255,255,255,0.05)',
                         color: wisdomHolmanQuality === opt.v ? 'white' : '#9ca3af',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      title={`Max Substep: ${opt.d}`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {integratorMode === 'saba4' && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginBottom: '8px' }}>
+              <div style={{ padding: '8px 0' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+                  SABA4 Quality (Max Substep)
+                </label>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[
+                    { l: 'Low (1200s)', v: 0, d: '1200s' },
+                    { l: 'Med (600s)', v: 1, d: '600s' },
+                    { l: 'High (300s)', v: 2, d: '300s' },
+                    { l: 'Ultra (150s)', v: 3, d: '150s' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onSetSabaQuality(opt.v)}
+                      style={{
+                        flex: 1,
+                        padding: '4px',
+                        fontSize: '10px',
+                        backgroundColor: sabaQuality === opt.v ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                        color: sabaQuality === opt.v ? 'white' : '#9ca3af',
                         border: 'none',
                         borderRadius: '4px',
                         cursor: 'pointer',

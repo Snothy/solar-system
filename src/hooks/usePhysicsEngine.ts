@@ -70,6 +70,8 @@ export interface PhysicsEngine {
   setAdaptiveQuality: React.Dispatch<React.SetStateAction<number>>;
   wisdomHolmanQuality: number;
   setWisdomHolmanQuality: React.Dispatch<React.SetStateAction<number>>;
+  sabaQuality: number;
+  setSabaQuality: React.Dispatch<React.SetStateAction<number>>;
   
   // New Toggles
   enableSolarMassLoss: boolean;
@@ -142,6 +144,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   const [integratorMode, setIntegratorMode] = useState<IntegratorMode>('saba4'); // Default to best
   const [adaptiveQuality, setAdaptiveQuality] = useState(2); // High default
   const [wisdomHolmanQuality, setWisdomHolmanQuality] = useState(1); // Medium default
+  const [sabaQuality, setSabaQuality] = useState(1); // Medium default
 
   // New Toggles
   const [enableSolarMassLoss, setEnableSolarMassLoss] = useState(true);
@@ -279,10 +282,10 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             quality = wisdomHolmanQuality;
         } else if (integratorMode === 'saba4') {
             integratorType = 2;
-            quality = wisdomHolmanQuality; // Reuse WH quality for now
+            quality = sabaQuality;
         } else if (integratorMode === 'high-precision') {
             integratorType = 3;
-            quality = 3; // Ultra
+            quality = 3; // Ultra (Unused for DOP853 currently)
         } else {
             // Adaptive
             integratorType = 0;
@@ -383,7 +386,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
         console.error(e);
         return 0;
     }
-  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, integratorMode, adaptiveQuality, wisdomHolmanQuality]);
+  }, [bodies, useTDBTime, enablePrecession, enableNutation, physicsCompute, setParticles, enableTidalEvolution, enableAtmosphericDrag, enableYarkovsky, enableRelativity, useEIH, wasmReady, enableSolarMassLoss, enablePRDrag, enableCollisions, integratorMode, adaptiveQuality, wisdomHolmanQuality, sabaQuality]);
 
   // Force update state when pausing to ensure UI is consistent
   useEffect(() => {
@@ -466,6 +469,8 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     setAdaptiveQuality,
     wisdomHolmanQuality,
     setWisdomHolmanQuality,
+    sabaQuality,
+    setSabaQuality,
     useEIH,
     setUseEIH,
     enableSolarMassLoss,

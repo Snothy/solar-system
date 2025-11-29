@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "pull-data": "npx tsx scripts/pull-data.ts",
-    "unit-test": "node scripts/generate-test-report.js"
+    "unit-test": "node scripts/generate-test-report.js",
+    "test:integration": "cd physics-wasm && cargo test integration --release -- --nocapture"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

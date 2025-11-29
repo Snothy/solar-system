@@ -70,6 +70,8 @@ export function App() {
     setAdaptiveQuality,
     wisdomHolmanQuality,
     setWisdomHolmanQuality,
+    sabaQuality,
+    setSabaQuality,
     // New Toggles
     enableSolarMassLoss,
     setEnableSolarMassLoss,
@@ -251,6 +253,8 @@ export function App() {
         onSetAdaptiveQuality={setAdaptiveQuality}
         wisdomHolmanQuality={wisdomHolmanQuality}
         onSetWisdomHolmanQuality={setWisdomHolmanQuality}
+        sabaQuality={sabaQuality}
+        onSetSabaQuality={setSabaQuality}
         
         // New Props
         enableSolarMassLoss={enableSolarMassLoss}

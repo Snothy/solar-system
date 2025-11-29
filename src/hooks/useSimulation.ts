@@ -526,6 +526,8 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setIntegratorMode: physics.setIntegratorMode,
     wisdomHolmanQuality: physics.wisdomHolmanQuality,
     setWisdomHolmanQuality: physics.setWisdomHolmanQuality,
+    sabaQuality: physics.sabaQuality,
+    setSabaQuality: physics.setSabaQuality,
     
     updatePhysics,
 
