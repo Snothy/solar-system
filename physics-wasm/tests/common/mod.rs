@@ -56,21 +56,21 @@ struct SimplifiedBody {
     name: String,
     mass: f64,
     radius: f64,
-    #[serde(default)]
+    #[serde(default, alias = "J2")]
     j2: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "J3")]
     j3: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "J4")]
     j4: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "C22")]
     c22: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "S22")]
     s22: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "K2")]
     k2: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "poleRA")]
     pole_ra: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "poleDec")]
     pole_dec: Option<f64>,
 }
 
@@ -93,16 +93,32 @@ impl SimplifiedBody {
         };
         
         // Calculate pole vector if pole_ra and pole_dec are available
+        // Calculate pole vector if pole_ra and pole_dec are available
         if let (Some(ra), Some(dec)) = (self.pole_ra, self.pole_dec) {
             let ra_rad = ra.to_radians();
             let dec_rad = dec.to_radians();
-            body.pole_vector = Some(Vector3::new(
-                dec_rad.cos() * ra_rad.cos(),
-                dec_rad.cos() * ra_rad.sin(),
-                dec_rad.sin(),
-            ));
+            
+            // Initial vector in Equatorial Frame (ICRF)
+            let x_eq = dec_rad.cos() * ra_rad.cos();
+            let y_eq = dec_rad.cos() * ra_rad.sin();
+            let z_eq = dec_rad.sin();
+            
+            // Obliquity of the Ecliptic (J2000)
+            let epsilon = 23.43928_f64.to_radians();
+            let cos_eps = epsilon.cos();
+            let sin_eps = epsilon.sin();
+            
+            // Rotate to Ecliptic Frame
+            // x_ecl = x_eq
+            // y_ecl = y_eq * cos(eps) + z_eq * sin(eps)
+            // z_ecl = -y_eq * sin(eps) + z_eq * cos(eps)
+            let x_ecl = x_eq;
+            let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
+            let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
+            
+            body.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
         }
-        
+
         body
     }
 }

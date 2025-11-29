@@ -42,11 +42,22 @@ pub fn update_pole_orientation(bodies: &mut Vec<PhysicsBody>, time: f64, enable_
             let ra_rad = ra.to_radians();
             let dec_rad = dec.to_radians();
             
-            let x = dec_rad.cos() * ra_rad.cos();
-            let y = dec_rad.cos() * ra_rad.sin();
-            let z = dec_rad.sin();
+            // Initial vector in Equatorial Frame (ICRF)
+            let x_eq = dec_rad.cos() * ra_rad.cos();
+            let y_eq = dec_rad.cos() * ra_rad.sin();
+            let z_eq = dec_rad.sin();
             
-            b.pole_vector = Some(Vector3::new(x, y, z));
+            // Obliquity of the Ecliptic (J2000)
+            let epsilon = 23.43928_f64.to_radians();
+            let cos_eps = epsilon.cos();
+            let sin_eps = epsilon.sin();
+            
+            // Rotate to Ecliptic Frame
+            let x_ecl = x_eq;
+            let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
+            let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
+            
+            b.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
         }
     }
 }
