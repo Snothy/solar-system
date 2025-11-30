@@ -157,7 +157,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
   {
     name: "Mars",
     mass: 6.4171e23,
-    radius: 3389.5e3,
+    radius: 3396200.0,
     radii: { x: 3396.2e3, y: 3376.2e3, z: 3396.2e3 },
     color: 0xff4500,
     texture: "/Mars.jpeg",
@@ -408,7 +408,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
   {
     name: "Uranus",
     mass: 8.6810e25,
-    radius: 25362e3,
+    radius: 25559e3,
     radii: { x: 25559e3, y: 24973e3, z: 25559e3 },
     color: 0xadd8e6,
     texture: "/Uranus.jpg",
