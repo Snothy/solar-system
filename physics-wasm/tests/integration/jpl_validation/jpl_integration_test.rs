@@ -200,9 +200,25 @@ fn test_multiple_bodies_vs_jpl() {
 
 #[test]
 fn generate_comprehensive_test_report() {
+    // Get timestamp from env (set by npm script) or use current time
+    let timestamp = std::env::var("TEST_TIMESTAMP").unwrap_or_else(|_| {
+        chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string()
+    });
+
+    let output_dir = std::path::Path::new("../output_integration").join(&timestamp);
+    if !output_dir.exists() {
+        std::fs::create_dir_all(&output_dir).expect("Failed to create output directory");
+    }
+
     // This test generates a detailed Markdown report
     let mut report = String::new();
     report.push_str("# Physics Engine Test Report\n\n");
+    
+    // Add Date/Time to header
+    let pretty_date = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    report.push_str(&format!("**Date:** {}\n", pretty_date));
+    report.push_str(&format!("**Run ID:** {}\n\n", timestamp));
+
     report.push_str("## Summary\n\n");
     report.push_str(
         "This report contains comprehensive test results for the Rust physics engine.\n\n",
@@ -224,9 +240,10 @@ fn generate_comprehensive_test_report() {
     report.push_str("Tests comparing simulation results against JPL Horizons data.\n\n");
 
     // Write report to file
-    let mut file = File::create("test_report.md").expect("Failed to create test_report.md");
+    let report_path = output_dir.join("test_report.md");
+    let mut file = File::create(&report_path).expect("Failed to create test_report.md");
     file.write_all(report.as_bytes())
         .expect("Failed to write to test_report.md");
 
-    println!("\n✅ Test report generated: test_report.md");
+    println!("\n✅ Test report generated: {:?}", report_path);
 }

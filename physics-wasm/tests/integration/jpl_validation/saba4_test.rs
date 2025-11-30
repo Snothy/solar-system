@@ -158,12 +158,31 @@ fn test_saba4_integration_vs_jpl() {
 
 fn generate_report(results: &[SimulationResult], duration_hours: usize) {
     let output_dir = Path::new("../output_integration");
+    
+    // Get timestamp from env (set by npm script) or use current time
+    let timestamp = std::env::var("TEST_TIMESTAMP").unwrap_or_else(|_| {
+        chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string()
+    });
+
+    // Create historical directory
+    let history_dir = output_dir.join(&timestamp);
+    if !history_dir.exists() {
+        fs::create_dir_all(&history_dir).expect("Failed to create history directory");
+    }
+    
+    // Ensure base output dir exists (create_dir_all handles recursion so history_dir creation might have done it, but to be safe)
     if !output_dir.exists() {
         fs::create_dir_all(output_dir).expect("Failed to create output directory");
     }
 
     let mut report = String::new();
     report.push_str("# SABA4 Integration Test Report\n\n");
+    
+    // Add Date/Time to header
+    let pretty_date = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    report.push_str(&format!("**Date:** {}\n", pretty_date));
+    report.push_str(&format!("**Run ID:** {}\n\n", timestamp));
+
     report.push_str(&format!(
         "**Duration:** {} hours ({} days)\n\n",
         duration_hours,
@@ -193,10 +212,11 @@ fn generate_report(results: &[SimulationResult], duration_hours: usize) {
         ));
     }
 
-    let report_path = output_dir.join("saba4_validation.md");
-    let mut file = File::create(&report_path).expect("Failed to create report file");
+    // Write to historical file
+    let history_path = history_dir.join("saba4_validation.md");
+    let mut file = File::create(&history_path).expect("Failed to create historical report file");
     file.write_all(report.as_bytes())
-        .expect("Failed to write report");
+        .expect("Failed to write historical report");
 
-    println!("SABA4 Report generated at {:?}", report_path);
+    println!("SABA4 Report generated at {:?}", history_path);
 }

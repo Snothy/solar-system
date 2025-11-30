@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "pull-data": "npx tsx scripts/pull-data.ts",
     "unit-test": "node scripts/generate-test-report.js",
-    "test:integration": "cd physics-wasm && cargo test integration --release -- --nocapture"
+    "test:integration": "export TEST_TIMESTAMP=$(date +%Y-%m-%dT%H-%M-%S) && cd physics-wasm && cargo test integration --release -- --nocapture",
+    "export-bodies": "npx tsx scripts/export_bodies.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
