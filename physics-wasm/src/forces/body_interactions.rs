@@ -95,8 +95,8 @@ pub fn apply_body_interactions(
                 }
 
                 // --- Gravitational Harmonics (J2, J3, J4, C22/S22) ---
-                // Also skip harmonics for parent-child pairs in WH mode
-                if enable_j2 && !skip_parent_child {
+                // Harmonics are perturbations and must be applied to all pairs, including parent-child
+                if enable_j2 {
                     // b1 as primary
                     let f_j2 = apply_j2(b1, b2, &r_vec, dist, dist_sq);
                     let mut a_sat = f_j2; a_sat.scale(1.0 / b2.mass);
