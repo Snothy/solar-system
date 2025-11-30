@@ -1,4 +1,5 @@
-use crate::common::types::{PhysicsBody, Vector3};
+use crate::common::types::PhysicsBody;
+use crate::common::time::unix_timestamp_to_jd;
 use crate::core::Simulation;
 
 use wasm_bindgen::prelude::*;
@@ -11,10 +12,11 @@ pub struct PhysicsEngine {
 #[wasm_bindgen]
 impl PhysicsEngine {
     #[wasm_bindgen(constructor)]
-    pub fn new(bodies_js: JsValue) -> PhysicsEngine {
+    pub fn new(bodies_js: JsValue, initial_timestamp_ms: f64) -> PhysicsEngine {
         let bodies: Vec<PhysicsBody> = serde_wasm_bindgen::from_value(bodies_js).unwrap();
+        let initial_jd = unix_timestamp_to_jd(initial_timestamp_ms);
         PhysicsEngine {
-            sim: Simulation::new(bodies),
+            sim: Simulation::new(bodies, initial_jd),
         }
     }
 

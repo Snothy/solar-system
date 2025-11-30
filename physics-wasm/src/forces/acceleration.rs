@@ -21,12 +21,14 @@ use super::body_interactions::apply_body_interactions;
 /// # Arguments
 /// - `bodies`: Slice of all bodies in the simulation
 /// - `config`: Configuration struct containing flags and parameters
+/// - `current_jd`: Current Julian Date (for body rotation angles)
 ///
 /// # Returns
 /// Vector of accelerations (m/s²) for each body.
 pub fn calculate_accelerations(
     bodies: &Vec<PhysicsBody>, 
     config: &ForceConfig,
+    current_jd: f64,
 ) -> Vec<Vector3> {
     let n = bodies.len();
     let mut accs = vec![Vector3::zero(); n];
@@ -38,14 +40,7 @@ pub fn calculate_accelerations(
     }
 
     // 2. Body-Body Interactions (Gravity, Harmonics, Relativity, Tidal, Drag)
-    apply_body_interactions(bodies, &mut accs, config, sun_idx);
-
-    if let Some(earth_idx) = bodies.iter().position(|b| b.name == "Earth") {
-        if accs[earth_idx].len() == 0.0 {
-             // println!("WARNING: Earth acceleration is ZERO");
-        }
-        // println!("Earth Acc: {:?}", accs[earth_idx]);
-    }
+    apply_body_interactions(bodies, &mut accs, config, sun_idx, current_jd);
     
     accs
 }

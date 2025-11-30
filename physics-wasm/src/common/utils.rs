@@ -1,4 +1,5 @@
 use crate::common::types::{PhysicsBody, Vector3};
+use std::f64::consts::PI;
 
 pub fn update_positions(bodies: &mut Vec<PhysicsBody>, dt: f64) {
     for b in bodies.iter_mut() {
@@ -16,55 +17,65 @@ pub fn update_velocities(bodies: &mut Vec<PhysicsBody>, accs: &Vec<Vector3>, dt:
     }
 }
 
+
+
 pub fn update_pole_orientation(
     bodies: &mut Vec<PhysicsBody>,
     time: f64,
     enable_precession: bool,
     enable_nutation: bool,
 ) {
-    // Time in centuries since J2000
+    // Time in Julian Centuries since J2000
     let t = (time - 2451545.0) / 36525.0;
 
+    // Obliquity of the Ecliptic (J2000)
+    // FIX: Added _f64 suffix to resolve ambiguity
+    let epsilon_deg = 23.43928_f64; 
+    let epsilon_rad = epsilon_deg.to_radians();
+    let cos_eps = epsilon_rad.cos();
+    let sin_eps = epsilon_rad.sin();
+
     for b in bodies.iter_mut() {
-        // Access PrecessionParams
         if let Some(precession) = &b.precession {
             if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
-                let mut ra = ra0;
-                let dec = dec0;
+                
+                // 1. ASSUMPTION: Based on your original code working, inputs are RADIANS.
+                let mut ra_rad = ra0;
+                let dec_rad = dec0;
 
+                // 2. Apply Precession
                 if enable_precession {
                     if let Some(rate) = precession.precession_rate {
-                        ra += rate * t;
+                        // Rate is usually small, assumed to be in compatible units (Radians/Century)
+                        ra_rad += rate * t;
                     }
                 }
 
+                // 3. Apply Nutation
                 if enable_nutation {
                     if let Some(amp) = precession.nutation_amplitude {
-                        let omega = 125.04 - 1934.136 * t;
-                        let d_psi = amp * (omega * std::f64::consts::PI / 180.0).sin();
-                        ra += d_psi;
+                        // Astronomical constants for Omega are usually in DEGREES
+                        let omega_deg = 125.04 - 1934.136 * t;
+                        let omega_rad = omega_deg.to_radians();
+                        
+                        // If 'amp' is in Degrees (standard), the result is degrees.
+                        // We must convert the result to Radians to add it to 'ra_rad'.
+                        let d_psi_deg = amp * omega_rad.sin();
+                        ra_rad += d_psi_deg.to_radians();
                     }
                 }
 
-                let ra_rad = ra.to_radians();
-                let dec_rad = dec.to_radians();
-
-                // Initial vector in Equatorial Frame (ICRF)
+                // 4. Calculate Vector in Equatorial Frame (ICRF)
                 let x_eq = dec_rad.cos() * ra_rad.cos();
                 let y_eq = dec_rad.cos() * ra_rad.sin();
                 let z_eq = dec_rad.sin();
 
-                // Obliquity of the Ecliptic (J2000)
-                let epsilon = 23.43928_f64.to_radians();
-                let cos_eps = epsilon.cos();
-                let sin_eps = epsilon.sin();
-
-                // Rotate to Ecliptic Frame
+                // 5. Rotate to Ecliptic Frame
+                // This rotation aligns the Equatorial pole with your Ecliptic simulation.
                 let x_ecl = x_eq;
                 let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
                 let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
 
-                // Update HarmonicsParams pole_vector
                 if let Some(harmonics) = &mut b.gravity_harmonics {
                     harmonics.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
                 }

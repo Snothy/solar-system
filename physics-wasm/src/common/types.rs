@@ -55,24 +55,50 @@ pub struct PhysicsBody {
 
     #[serde(flatten)]
     pub comet: Option<CometParams>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+}/// Gravitational harmonics parameters for non-spherical mass distributions.
+///
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HarmonicsParams {
-    #[serde(default)]
-    pub j2: Option<f64>,
-    #[serde(default)]
-    pub j3: Option<f64>,
-    #[serde(default)]
-    pub j4: Option<f64>,
+    /// New: Generic zonal harmonic coefficients [J2, J3, J4, J5, ...]
+    /// J2 is at index 0, J3 at index 1, etc.
+    #[serde(default, alias = "J")]
+    pub zonal_coeffs: Option<Vec<f64>>,
+
+    /// Tesseral harmonics (C22, S22) - degree 2, order 2
     #[serde(default)]
     pub c22: Option<f64>,
     #[serde(default)]
     pub s22: Option<f64>,
+
+    /// Pole vector (rotation axis) in Ecliptic J2000
     #[serde(default)]
     pub pole_vector: Option<Vector3>,
 }
+
+impl Default for HarmonicsParams {
+    fn default() -> Self {
+        Self {
+            zonal_coeffs: None,
+            c22: None,
+            s22: None,
+            pole_vector: None,
+        }
+    }
+}
+
+impl HarmonicsParams {
+    /// Get the effective zonal coefficients.
+    ///
+    /// Returns a vector where index i contains J_{i+2}.
+    pub fn get_zonal_coeffs(&self) -> Vec<f64> {
+        if let Some(coeffs) = &self.zonal_coeffs {
+            return coeffs.clone();
+        }
+        Vec::new()
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -121,14 +147,20 @@ pub struct ThermalParams {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PrecessionParams {
-    #[serde(default)]
+    #[serde(default, alias = "poleRA")]
     pub pole_ra0: Option<f64>,
-    #[serde(default)]
+    #[serde(default, alias = "poleDec")]
     pub pole_dec0: Option<f64>,
     #[serde(default)]
     pub precession_rate: Option<f64>,
     #[serde(default)]
     pub nutation_amplitude: Option<f64>,
+    
+    // Rotational elements for body orientation (IAU)
+    #[serde(default, alias = "W0")]
+    pub w0: Option<f64>,      // Prime meridian angle at J2000 (degrees)
+    #[serde(default, alias = "Wdot")]
+    pub wdot: Option<f64>,    // Rotation rate (degrees/day)
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]

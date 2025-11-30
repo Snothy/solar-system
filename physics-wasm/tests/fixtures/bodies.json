@@ -17,8 +17,9 @@
     "meanTemperature": 5772,
     "surfaceGravity": 274,
     "jplId": "10",
-    "J2": 2.2e-7,
-    "J4": 0,
+    "J": [
+      2.2e-7
+    ],
     "poleRA": 286.13,
     "poleDec": 63.87,
     "W0": 84.176,
@@ -41,7 +42,9 @@
     "surfaceGravity": 3.7,
     "jplId": "199",
     "type": "planet",
-    "J2": 0.00006,
+    "J": [
+      0.00006
+    ],
     "C22": 0.00001,
     "k2": 0.4,
     "poleRA": 281.01,
@@ -70,7 +73,9 @@
     "surfaceGravity": 8.87,
     "jplId": "299",
     "type": "planet",
-    "J2": 0.000004458,
+    "J": [
+      0.000004458
+    ],
     "k2": 0.295,
     "poleRA": 272.76,
     "poleDec": 67.16,
@@ -102,9 +107,11 @@
     "surfaceGravity": 9.807,
     "jplId": "399",
     "type": "planet",
-    "J2": 0.00108263,
-    "J3": -0.00000253,
-    "J4": -0.00000162,
+    "J": [
+      0.00108263,
+      -0.00000253,
+      -0.00000162
+    ],
     "C22": 0.00000243,
     "S22": -0.0000014,
     "k2": 0.299,
@@ -152,7 +159,9 @@
     "surfaceGravity": 1.62,
     "jplId": "301",
     "type": "moon",
-    "J2": 0.0002034,
+    "J": [
+      0.0002034
+    ],
     "C22": 0.0000224,
     "k2": 0.0202,
     "tidalQ": 26.5,
@@ -179,9 +188,11 @@
     "surfaceGravity": 3.721,
     "jplId": "499",
     "type": "planet",
-    "J2": 0.00196045,
-    "J3": 0.0000315,
-    "J4": -0.0000155,
+    "J": [
+      0.00196045,
+      0.0000315,
+      -0.0000155
+    ],
     "k2": 0.148,
     "tidalQ": 92,
     "poleRA": 317.68,
@@ -215,7 +226,9 @@
     "surfaceGravity": 0.0057,
     "jplId": "401",
     "type": "moon",
-    "J2": 0.105,
+    "J": [
+      0.105
+    ],
     "tidalQ": 100,
     "poleRA": 317.68,
     "poleDec": 52.9,
@@ -269,9 +282,11 @@
     "surfaceGravity": 24.79,
     "jplId": "599",
     "type": "planet",
-    "J2": 0.014696,
-    "J3": -0.0000042,
-    "J4": -0.000587,
+    "J": [
+      0.014696,
+      -0.0000042,
+      -0.000587
+    ],
     "poleRA": 268.057,
     "poleDec": 64.495,
     "W0": 284.95,
@@ -304,7 +319,9 @@
     "surfaceGravity": 1.796,
     "jplId": "501",
     "type": "moon",
-    "J2": 0.001863,
+    "J": [
+      0.001863
+    ],
     "poleRA": 268.05,
     "poleDec": 64.5
   },
@@ -326,7 +343,9 @@
     "surfaceGravity": 1.315,
     "jplId": "502",
     "type": "moon",
-    "J2": 0.0004355,
+    "J": [
+      0.0004355
+    ],
     "poleRA": 268.08,
     "poleDec": 64.51
   },
@@ -348,7 +367,9 @@
     "surfaceGravity": 1.428,
     "jplId": "503",
     "type": "moon",
-    "J2": 0.000127,
+    "J": [
+      0.000127
+    ],
     "poleRA": 268.2,
     "poleDec": 64.57
   },
@@ -370,7 +391,9 @@
     "surfaceGravity": 1.236,
     "jplId": "504",
     "type": "moon",
-    "J2": 0.0000327,
+    "J": [
+      0.0000327
+    ],
     "poleRA": 268.72,
     "poleDec": 64.83
   },
@@ -393,9 +416,11 @@
     "surfaceGravity": 10.44,
     "jplId": "699",
     "type": "planet",
-    "J2": 0.01629,
-    "J3": -0.0000059,
-    "J4": -0.000935,
+    "J": [
+      0.01629,
+      -0.0000059,
+      -0.000935
+    ],
     "poleRA": 40.58,
     "poleDec": 83.54,
     "W0": 38.9,
@@ -426,7 +451,9 @@
     "surfaceGravity": 1.352,
     "jplId": "606",
     "type": "moon",
-    "J2": 0.0000317,
+    "J": [
+      0.0000317
+    ],
     "poleRA": 36.41,
     "poleDec": 83.94
   },
@@ -468,9 +495,11 @@
     "surfaceGravity": 8.69,
     "jplId": "799",
     "type": "planet",
-    "J2": 0.003343,
-    "J3": -0.0000042,
-    "J4": -0.000034,
+    "J": [
+      0.003343,
+      -0.0000042,
+      -0.000034
+    ],
     "poleRA": 257.31,
     "poleDec": -15.17,
     "W0": 203.81,
@@ -544,9 +573,11 @@
     "surfaceGravity": 11.15,
     "jplId": "899",
     "type": "planet",
-    "J2": 0.003411,
-    "J3": -0.000004,
-    "J4": -0.000033,
+    "J": [
+      0.003411,
+      -0.000004,
+      -0.000033
+    ],
     "poleRA": 299.36,
     "poleDec": 41.28,
     "W0": 253.18,
@@ -922,7 +953,7 @@
       "z": 531100
     },
     "color": 13421772,
-    "texture": "/1P_Halley.jpg",
+    "texture": "/Umbriel.webp",
     "parent": "Saturn",
     "rotationPeriod": 45.307,
     "axialTilt": 0,
@@ -941,7 +972,7 @@
       "z": 561400
     },
     "color": 10066329,
-    "texture": "/1P_Halley.jpg",
+    "texture": "/Umbriel.webp",
     "parent": "Saturn",
     "rotationPeriod": 65.685,
     "axialTilt": 0,
@@ -960,7 +991,7 @@
       "z": 763800
     },
     "color": 11184810,
-    "texture": "/1P_Halley.jpg",
+    "texture": "/Umbriel.webp",
     "parent": "Saturn",
     "rotationPeriod": 108.418,
     "axialTilt": 0,

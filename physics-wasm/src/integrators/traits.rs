@@ -14,6 +14,7 @@ pub trait Integrator {
     /// * `dt` - Time step in seconds.
     /// * `config` - Physics configuration.
     /// * `quality` - Quality setting for the integrator (if applicable).
+    /// * `current_jd` - Current Julian Date (for body rotation angles).
     fn step(
         &self,
         bodies: &mut Vec<PhysicsBody>,
@@ -21,6 +22,7 @@ pub trait Integrator {
         dt: Seconds,
         config: &PhysicsConfig,
         quality: IntegratorQuality,
+        current_jd: f64,
     );
 
     /// Get the name of the integrator.

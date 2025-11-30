@@ -20,11 +20,12 @@ impl Integrator for HighPrecisionIntegrator {
         dt: Seconds,
         config: &PhysicsConfig,
         quality: IntegratorQuality,
+        current_jd: f64,
     ) {
         // DOP853 is adaptive, so we don't need manual substeps.
         // However, we must ensure the initial step guess (dx) in the internal function
         // is reasonable to prevent the solver from stalling.
-        step_high_precision_internal(bodies, parent_indices, dt, config, quality);
+        step_high_precision_internal(bodies, parent_indices, dt, config, quality, current_jd);
     }
 
     fn name(&self) -> &'static str {
@@ -40,7 +41,7 @@ pub fn step_high_precision(
 ) {
     // Legacy wrapper - default to High quality
     let integrator = HighPrecisionIntegrator;
-    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::High);
+    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::High, 2451545.0);
 }
 
 fn step_high_precision_internal(
@@ -49,6 +50,7 @@ fn step_high_precision_internal(
     dt: f64,
     config: &PhysicsConfig,
     quality: IntegratorQuality,
+    current_jd: f64,
 ) {
     let n = bodies.len();
     
@@ -70,6 +72,7 @@ fn step_high_precision_internal(
         bodies: RefCell<Vec<PhysicsBody>>,
         parent_indices: &'a [ParentIndex],
         config: &'a PhysicsConfig,
+        current_jd: f64,
     }
 
     impl<'a> System<DVector<f64>> for SolarSystem<'a> {
@@ -95,7 +98,7 @@ fn step_high_precision_internal(
                 gravity_mode: GravityMode::FullNBody,
             };
             
-            let accs = calculate_accelerations(&bodies_ref, &force_config);
+            let accs = calculate_accelerations(&bodies_ref, &force_config, self.current_jd);
             
             // Fill derivative vector dy
             for i in 0..n {
@@ -117,6 +120,7 @@ fn step_high_precision_internal(
         bodies: RefCell::new(bodies.clone()),
         parent_indices, // passed as reference, no clone needed
         config,         // passed as reference, no clone needed
+        current_jd,
     };
 
     // 4. Setup Tolerances

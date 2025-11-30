@@ -17,9 +17,7 @@ export interface SolarSystemData {
   poleDec?: number;
   
   // Advanced Physics Properties
-  J2?: number;
-  J3?: number;
-  J4?: number;
+  J?: number[];
   C22?: number;
   S22?: number;
   k2?: number;

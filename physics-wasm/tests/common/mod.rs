@@ -1,4 +1,5 @@
-use physics_wasm::common::types::{PhysicsBody, Vector3};
+use physics_wasm::common::types::{PhysicsBody, Vector3, HarmonicsParams, PrecessionParams};
+use physics_wasm::common::time::parse_jpl_date;
 use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
@@ -20,6 +21,18 @@ pub fn load_bodies() -> Vec<PhysicsBody> {
         .into_iter()
         .map(|sb| sb.to_physics_body())
         .collect()
+}
+
+/// Get initial Julian Date from JPL vector data.
+/// Returns the JD from the first data point, or J2000.0 if parsing fails.
+pub fn get_initial_jd(jpl_data: &[JPLVector]) -> f64 {
+    if let Some(first) = jpl_data.first() {
+        if let Some(jd) = parse_jpl_date(&first.date) {
+            return jd;
+        }
+    }
+    // Fallback to J2000.0
+    2451545.0
 }
 
 /// Initialize a body's position/velocity from JPL data
@@ -58,77 +71,111 @@ struct SimplifiedBody {
     name: String,
     mass: f64,
     radius: f64,
-    #[serde(default, alias = "J2")]
-    j2: Option<f64>,
-    #[serde(default, alias = "J3")]
-    j3: Option<f64>,
-    #[serde(default, alias = "J4")]
-    j4: Option<f64>,
-    #[serde(default, alias = "C22")]
+    #[serde(default)]
+    pos: [f64; 3],
+    #[serde(default)]
+    vel: [f64; 3],
+    
+    #[serde(default, alias = "J")]
+    zonal_coeffs: Option<Vec<f64>>,
+    
+    #[serde(default)]
     c22: Option<f64>,
-    #[serde(default, alias = "S22")]
+    
+    #[serde(default)]
     s22: Option<f64>,
-    #[serde(default, alias = "K2")]
+    
+    #[serde(default)]
     k2: Option<f64>,
+    
     #[serde(default, alias = "poleRA")]
     pole_ra: Option<f64>,
+    
     #[serde(default, alias = "poleDec")]
     pole_dec: Option<f64>,
+
+    #[serde(default, alias = "precessionRate")]
+    precession_rate: Option<f64>,
+    
+    #[serde(default, alias = "nutationAmplitude")]
+    nutation_amplitude: Option<f64>,
+
+    #[serde(default, alias = "W0")]
+    w0: Option<f64>,
+
+    #[serde(default, alias = "Wdot")]
+    wdot: Option<f64>,
 }
 
 impl SimplifiedBody {
     fn to_physics_body(self) -> PhysicsBody {
-        let mut body = PhysicsBody {
-            name: self.name,
-            mass: self.mass,
-            radius: self.radius,
-            pos: Vector3::zero(),
-            vel: Vector3::zero(),
-            force: Some(Vector3::zero()),
-            gravity_harmonics: Some(physics_wasm::common::types::HarmonicsParams {
-                j2: self.j2,
-                j3: self.j3,
-                j4: self.j4,
-                c22: self.c22,
-                s22: self.s22,
-                pole_vector: None, // Will be set below
-                ..Default::default()
-            }),
-            tidal: Some(physics_wasm::common::types::TidalParams {
-                k2: self.k2,
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-
-        // Calculate pole vector if pole_ra and pole_dec are available
+        let mut harmonics = HarmonicsParams::default();
+        
+        // Handle generic zonal coefficients
+        if let Some(coeffs) = &self.zonal_coeffs {
+            harmonics.zonal_coeffs = Some(coeffs.clone());
+        }
+        
+        harmonics.c22 = self.c22;
+        harmonics.s22 = self.s22;
+        
+        // Calculate pole vector if RA/Dec are provided
         if let (Some(ra), Some(dec)) = (self.pole_ra, self.pole_dec) {
             let ra_rad = ra.to_radians();
             let dec_rad = dec.to_radians();
-
-            // Initial vector in Equatorial Frame (ICRF)
+            
+            // Convert to Cartesian (Equatorial J2000)
             let x_eq = dec_rad.cos() * ra_rad.cos();
             let y_eq = dec_rad.cos() * ra_rad.sin();
             let z_eq = dec_rad.sin();
-
+            
             // Obliquity of the Ecliptic (J2000)
             let epsilon = 23.43928_f64.to_radians();
             let cos_eps = epsilon.cos();
             let sin_eps = epsilon.sin();
-
-            // Rotate to Ecliptic Frame
-            // x_ecl = x_eq
-            // y_ecl = y_eq * cos(eps) + z_eq * sin(eps)
-            // z_ecl = -y_eq * sin(eps) + z_eq * cos(eps)
+            
+            // Rotate to Ecliptic J2000
             let x_ecl = x_eq;
             let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
             let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
-
-            if let Some(harmonics) = &mut body.gravity_harmonics {
-                harmonics.pole_vector = Some(Vector3::new(x_ecl, y_ecl, z_ecl));
-            }
+            
+            let mut v = Vector3::new(x_ecl, y_ecl, z_ecl);
+            v.normalize();
+            harmonics.pole_vector = Some(v);
         }
+        
+        let mut precession = PrecessionParams::default();
+        if let (Some(ra), Some(dec)) = (self.pole_ra, self.pole_dec) {
+            precession.pole_ra0 = Some(ra.to_radians());
+            precession.pole_dec0 = Some(dec.to_radians());
+        }
+        if let Some(rate) = self.precession_rate {
+            // Rate is in arcseconds/year (e.g. 50.29)
+            // Convert to degrees/century: (rate / 3600.0) * 100.0
+            precession.precession_rate = Some(((rate / 3600.0) * 100.0).to_radians());
+        }
+        if let Some(amp) = self.nutation_amplitude {
+            // Amplitude is in arcseconds (e.g. 9.2)
+            // Convert to degrees first: amp / 3600.0
+            precession.nutation_amplitude = Some((amp / 3600.0).to_radians());
+        }
+        
+        precession.w0 = self.w0;
+        precession.wdot = self.wdot;
 
-        body
+        PhysicsBody {
+            name: self.name,
+            mass: self.mass,
+            radius: self.radius,
+            pos: Vector3::new(self.pos[0], self.pos[1], self.pos[2]),
+            vel: Vector3::new(self.vel[0], self.vel[1], self.vel[2]),
+            gravity_harmonics: Some(harmonics),
+            tidal: Some(physics_wasm::common::types::TidalParams {
+                k2: self.k2,
+                ..Default::default()
+            }),
+            precession: Some(precession),
+            ..Default::default()
+        }
     }
 }

@@ -42,11 +42,17 @@ export interface CelestialBodyData {
   rel_node?: number;        // Longitude of Ascending Node (deg)
   rel_peri?: number;        // Argument of Periapsis (deg)
   rel_M?: number;           // Mean Anomaly (deg)
-  J2?: number;              // J2 spherical harmonic coefficient
   poleRA?: number;          // Right Ascension of North Pole (degrees)
   poleDec?: number;         // Declination of North Pole (degrees)
   W0?: number;              // Prime Meridian angle at J2000 (degrees)
   Wdot?: number;            // Rotation rate (degrees/day)
+  
+  // Physical Properties
+  J?: number[];             // Zonal harmonic coefficients [J2, J3, J4, ...]
+  C22?: number;             // Tesseral harmonic C22
+  S22?: number;             // Tesseral harmonic S22
+  k2?: number;              // Love number k2
+  tidalQ?: number;          // Tidal quality factor Q(degrees/day)
   modelPath?: string;       // Path to GLB/GLTF model
   shape?: 'sphere' | 'model'; // Explicit shape type
   modelScale?: number;      // Scale factor for the model
@@ -55,16 +61,7 @@ export interface CelestialBodyData {
   ringTexture?: string;     // Path to ring texture (1D/2D)
   ringOpacity?: number;     // Ring opacity (0.0 - 1.0)
   
-  // Higher-order gravity harmonics
-  J3?: number;              // Third zonal harmonic
-  J4?: number;              // Fourth zonal harmonic
-  C22?: number;             // Sectoral harmonic (equatorial ellipticity)
-  S22?: number;             // Sectoral harmonic
-  
-  // Tidal parameters
-  k2?: number;              // Tidal Love number
-  tidalQ?: number;          // Tidal dissipation factor
-  
+
   // Atmospheric properties
   hasAtmosphere?: boolean;
   surfacePressure?: number; // Pascals
@@ -89,12 +86,10 @@ export interface PhysicsBody {
   force: THREE.Vector3;   // Force in Newtons
   acc?: THREE.Vector3;    // Acceleration in m/s^2
   parentName?: string;    // For moons
-  J2?: number;            // J2 coefficient
+  J?: number[];           // Zonal harmonic coefficients [J2, J3, J4, ...]
   poleVector?: THREE.Vector3; // North pole direction vector
   
   // Higher-order gravity harmonics
-  J3?: number;
-  J4?: number;
   C22?: number;
   S22?: number;
   

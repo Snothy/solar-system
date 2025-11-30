@@ -18,6 +18,7 @@ impl Integrator for SymplecticIntegrator {
         dt: Seconds,
         config: &PhysicsConfig,
         quality: IntegratorQuality,
+        current_jd: f64,
     ) {
         // Handle substeps based on quality
         let max_substep = match quality {
@@ -28,10 +29,12 @@ impl Integrator for SymplecticIntegrator {
         };
 
         let mut time_remaining = dt;
+        let mut current_time = current_jd;
         while time_remaining > 0.0 {
             let sub_dt = if time_remaining > max_substep { max_substep } else { time_remaining };
-            step_symplectic_4_internal(bodies, parent_indices, sub_dt, config);
+            step_symplectic_4_internal(bodies, parent_indices, sub_dt, config, current_time);
             time_remaining -= sub_dt;
+            current_time += sub_dt / 86400.0; // Update JD for next substep
         }
     }
 
@@ -49,7 +52,7 @@ pub fn step_symplectic_4(
     // Legacy wrapper for tests/compatibility
     // Default to Medium quality if called directly
     let integrator = SymplecticIntegrator;
-    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium);
+    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium, 2451545.0);
 }
 
 fn step_symplectic_4_internal(
@@ -57,6 +60,7 @@ fn step_symplectic_4_internal(
     parent_indices: &[ParentIndex],
     dt: f64,
     config: &PhysicsConfig,
+    current_jd: f64,
 ) {
     // Yoshida 4th order coefficients
     const W0: f64 = -1.7024143839193153; // 2^(1/3) / (2 - 2^(1/3))
@@ -80,7 +84,7 @@ fn step_symplectic_4_internal(
         parent_indices,
         gravity_mode: GravityMode::FullNBody,
     };
-    let accs = calculate_accelerations(bodies, &force_config);
+    let accs = calculate_accelerations(bodies, &force_config, current_jd);
     
     for i in 0..n {
         let mut dv = accs[i]; dv.scale(d[0] * dt);
@@ -95,7 +99,7 @@ fn step_symplectic_4_internal(
     }
 
     // 4. Second Kick
-    let accs = calculate_accelerations(bodies, &force_config);
+    let accs = calculate_accelerations(bodies, &force_config, current_jd);
     
     for i in 0..n {
         let mut dv = accs[i]; dv.scale(d[1] * dt);
@@ -110,7 +114,7 @@ fn step_symplectic_4_internal(
     }
 
     // 6. Third Kick
-    let accs = calculate_accelerations(bodies, &force_config);
+    let accs = calculate_accelerations(bodies, &force_config, current_jd);
     
     for i in 0..n {
         let mut dv = accs[i]; dv.scale(d[2] * dt);

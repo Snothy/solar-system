@@ -18,6 +18,7 @@ impl Integrator for WisdomHolmanIntegrator {
         dt: Seconds,
         config: &PhysicsConfig,
         quality: IntegratorQuality,
+        current_jd: f64,
     ) {
         // Handle substeps based on quality
         let max_substep = match quality {
@@ -28,10 +29,12 @@ impl Integrator for WisdomHolmanIntegrator {
         };
 
         let mut time_remaining = dt;
+        let mut current_time = current_jd;
         while time_remaining > 0.0 {
             let sub_dt = if time_remaining > max_substep { max_substep } else { time_remaining };
-            step_wisdom_holman_internal(bodies, parent_indices, sub_dt, config);
+            step_wisdom_holman_internal(bodies, parent_indices, sub_dt, config, current_time);
             time_remaining -= sub_dt;
+            current_time += sub_dt / 86400.0;
         }
     }
 
@@ -48,7 +51,7 @@ pub fn step_wisdom_holman(
 ) {
     // Legacy wrapper
     let integrator = WisdomHolmanIntegrator;
-    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium);
+    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium, 2451545.0);
 }
 
 fn step_wisdom_holman_internal(
@@ -56,6 +59,7 @@ fn step_wisdom_holman_internal(
     parent_indices: &[ParentIndex],
     dt: f64,
     config: &PhysicsConfig,
+    current_jd: f64,
 ) {
     let sun_idx = bodies.iter().position(|b| b.name == "Sun");
     
@@ -105,7 +109,7 @@ fn step_wisdom_holman_internal(
             parent_indices,
             gravity_mode: GravityMode::SplitDriftKick,
         };
-        let accs = calculate_accelerations(bodies, &force_config);
+        let accs = calculate_accelerations(bodies, &force_config, current_jd);
         
         for (i, acc) in accs.iter().enumerate() {
             let mut dv = *acc;
@@ -157,7 +161,7 @@ fn step_wisdom_holman_internal(
             parent_indices,
             gravity_mode: GravityMode::HierarchicalSubtraction,
         };
-        let accs = calculate_accelerations(bodies, &force_config);
+        let accs = calculate_accelerations(bodies, &force_config, current_jd);
         
         for (i, acc) in accs.iter().enumerate() {
             let mut dv = *acc;

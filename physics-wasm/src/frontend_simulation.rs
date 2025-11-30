@@ -1,4 +1,5 @@
 use crate::common::types::{PhysicsBody, Vector3};
+use crate::common::time::unix_timestamp_to_jd;
 use crate::core::Simulation;
 use js_sys::Float32Array;
 use wasm_bindgen::prelude::*;
@@ -160,11 +161,12 @@ pub struct FrontendSimulation {
 #[wasm_bindgen]
 impl FrontendSimulation {
     #[wasm_bindgen(constructor)]
-    pub fn new(bodies_js: JsValue) -> FrontendSimulation {
+    pub fn new(bodies_js: JsValue, initial_timestamp_ms: f64) -> FrontendSimulation {
         let bodies: Vec<PhysicsBody> = serde_wasm_bindgen::from_value(bodies_js).unwrap();
         let n_bodies = bodies.len();
+        let initial_jd = unix_timestamp_to_jd(initial_timestamp_ms);
         FrontendSimulation {
-            sim: Simulation::new(bodies),
+            sim: Simulation::new(bodies, initial_jd),
             frontend_state: FrontendState::new(n_bodies),
         }
     }

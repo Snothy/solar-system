@@ -1,11 +1,10 @@
 use crate::common::{initialize_from_jpl, load_bodies, load_jpl_vector, get_initial_jd, JPLVector};
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::common::config::PhysicsConfig;
-use physics_wasm::dynamics::hierarchy::update_hierarchy;
-use physics_wasm::integrators::high_precision::HighPrecisionIntegrator;
-use physics_wasm::integrators::traits::Integrator;
-use physics_wasm::integrators::types::IntegratorQuality;
-
+use physics_wasm::core::Simulation;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::Path;
 
 struct SimulationResult {
     body_name: String,
@@ -18,7 +17,7 @@ struct SimulationResult {
 }
 
 #[test]
-fn test_dop853_integration_vs_jpl() {
+fn test_dop853_physics_vs_jpl() {
     // 1. Load all bodies
     let mut bodies = load_bodies();
 
@@ -52,16 +51,13 @@ fn test_dop853_integration_vs_jpl() {
         return;
     }
 
-    // 4. Run DOP853 Simulation
-    println!("Testing DOP853 integrator for {} hours...", duration_hours);
+    // 4. Run Physics Engine Simulation with DOP853
+    println!("Testing DOP853 via physics engine for {} hours...", duration_hours);
 
     // Initialize from JPL data at t=0
     for (idx, data) in &bodies_with_data {
         initialize_from_jpl(&mut bodies[*idx], &data[0]);
     }
-
-    let parent_indices = update_hierarchy(&bodies);
-    let dt = 3600.0; // 1 hour steps
 
     // Extract initial JD from first data point
     let initial_jd = if let Some((_, data)) = bodies_with_data.first() {
@@ -69,7 +65,11 @@ fn test_dop853_integration_vs_jpl() {
     } else {
         2451545.0 // Fallback to J2000
     };
-    let mut current_jd = initial_jd;
+
+    // Create Simulation instance
+    let mut simulation = Simulation::new(bodies, initial_jd);
+
+    let dt = 3600.0; // 1 hour steps
 
     // Track errors: (pos_error_km, vel_error_ms, pos_mag_km, vel_mag_ms)
     let mut body_errors: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); bodies_with_data.len()];
@@ -91,24 +91,21 @@ fn test_dop853_integration_vs_jpl() {
     config.nutation = true;
     config.solar_mass_loss = true;
     config.collisions = true;
-
-    let integrator = HighPrecisionIntegrator;
+    
 
     for hour in 1..=duration_hours {
         let target_time = hour as f64 * 3600.0;
         let dt_step = target_time - current_sim_time;
 
         if dt_step > 0.0 {
-            integrator.step(
-                &mut bodies,
-                &parent_indices,
+            simulation.step(
                 dt_step,
+                current_sim_time,
                 &config,
-                IntegratorQuality::High,
-                current_jd,
+                3, // DOP853 (HighPrecision)
+                2, // High quality
             );
             current_sim_time = target_time;
-            current_jd += dt_step / 86400.0; // Update JD (seconds to days)
         }
 
         // Calculate errors
@@ -117,8 +114,8 @@ fn test_dop853_integration_vs_jpl() {
                 let jpl_pos = Vector3::new(data[hour].pos[0], data[hour].pos[1], data[hour].pos[2]);
                 let jpl_vel = Vector3::new(data[hour].vel[0], data[hour].vel[1], data[hour].vel[2]);
 
-                let pos_error_km = bodies[*body_idx].pos.distance_to(&jpl_pos) / 1000.0;
-                let vel_error_ms = bodies[*body_idx].vel.distance_to(&jpl_vel);
+                let pos_error_km = simulation.bodies[*body_idx].pos.distance_to(&jpl_pos) / 1000.0;
+                let vel_error_ms = simulation.bodies[*body_idx].vel.distance_to(&jpl_vel);
 
                 let pos_mag_km = jpl_pos.len() / 1000.0;
                 let vel_mag_ms = jpl_vel.len();
@@ -153,7 +150,7 @@ fn test_dop853_integration_vs_jpl() {
             .fold(0.0f64, f64::max);
 
         results.push(SimulationResult {
-            body_name: bodies[*body_idx].name.clone(),
+            body_name: simulation.bodies[*body_idx].name.clone(),
             final_pos_error_km: final_error.0,
             final_vel_error_ms: final_error.1,
             max_pos_error_km: max_pos_error,
@@ -163,16 +160,73 @@ fn test_dop853_integration_vs_jpl() {
         });
     }
 
-    // Validation: Print summary (report generation moved to dop853_physics_validation.rs)
-    println!("\n=== DOP853 Integrator Test Results ===");
-    for result in &results {
-        println!(
-            "{}: Max Pos Error = {:.3} km ({:.6}%), Max Vel Error = {:.6} m/s ({:.6}%)",
-            result.body_name,
-            result.max_pos_error_km,
-            result.max_pos_error_percent,
-            result.max_vel_error_ms,
-            result.max_vel_error_percent
-        );
+    // 5. Generate Report
+    generate_report(&results, duration_hours);
+}
+
+fn generate_report(results: &[SimulationResult], duration_hours: usize) {
+    let output_dir = Path::new("../output_integration");
+    
+    // Get timestamp from env (set by npm script) or use current time
+    let timestamp = std::env::var("TEST_TIMESTAMP").unwrap_or_else(|_| {
+        chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string()
+    });
+
+    // Create historical directory
+    let history_dir = output_dir.join(&timestamp);
+    if !history_dir.exists() {
+        fs::create_dir_all(&history_dir).expect("Failed to create history directory");
     }
+    
+    // Ensure base output dir exists
+    if !output_dir.exists() {
+        fs::create_dir_all(output_dir).expect("Failed to create output directory");
+    }
+
+    let mut report = String::new();
+    report.push_str("# DOP853 Physics Engine Validation Report\n\n");
+    
+    // Add Date/Time to header
+    let pretty_date = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    report.push_str(&format!("**Date:** {}\n", pretty_date));
+    report.push_str(&format!("**Run ID:** {}\n\n", timestamp));
+
+    report.push_str(&format!(
+        "**Duration:** {} hours ({} days)\n\n",
+        duration_hours,
+        duration_hours / 24
+    ));
+
+    report.push_str("**Test Type:** Full Physics Engine (via `Simulation` module)\n\n");
+
+    report.push_str("| Body | Max Pos Error % | Max Pos Error (km) | Final Pos Error (km) | Max Vel Error % | Max Vel Error (m/s) |\n");
+    report.push_str("|------|-----------------|--------------------|----------------------|-----------------|---------------------|\n");
+
+    // Sort by max position error percentage descending
+    let mut sorted_results: Vec<&SimulationResult> = results.iter().collect();
+    sorted_results.sort_by(|a, b| {
+        b.max_pos_error_percent
+            .partial_cmp(&a.max_pos_error_percent)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    for result in sorted_results {
+        report.push_str(&format!(
+            "| {} | {:.6}% | {:.3} | {:.3} | {:.6}% | {:.6} |\n",
+            result.body_name,
+            result.max_pos_error_percent,
+            result.max_pos_error_km,
+            result.final_pos_error_km,
+            result.max_vel_error_percent,
+            result.max_vel_error_ms
+        ));
+    }
+
+    // Write to historical file
+    let history_path = history_dir.join("dop853_validation.md");
+    let mut file = File::create(&history_path).expect("Failed to create historical report file");
+    file.write_all(report.as_bytes())
+        .expect("Failed to write historical report");
+
+    println!("DOP853 Physics Engine Report generated at {:?}", history_path);
 }

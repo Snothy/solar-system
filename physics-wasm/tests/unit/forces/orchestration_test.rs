@@ -45,6 +45,7 @@ fn test_newtonian_gravity_full() {
     let accs = calculate_accelerations(
         &bodies,
         &force_config,
+        2451545.0, // J2000.0
     );
 
     // Earth should feel Sun's gravity
@@ -86,6 +87,7 @@ fn test_wisdom_holman_mode() {
     let accs = calculate_accelerations(
         &bodies,
         &force_config,
+        2451545.0, // J2000.0
     );
 
     // 1. Earth (Index 1)
@@ -136,7 +138,7 @@ fn test_j2_enable() {
 
     // Enable J2 on Earth
     bodies[1].gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
-        j2: Some(0.0010826),
+        zonal_coeffs: Some(vec![0.0010826]),
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
         ..Default::default()
     });
@@ -153,6 +155,7 @@ fn test_j2_enable() {
     let accs = calculate_accelerations(
         &bodies,
         &force_config,
+        2451545.0, // J2000.0
     );
 
     // Moon should feel Earth's J2

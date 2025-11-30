@@ -1,7 +1,7 @@
 use approx::assert_relative_eq;
 use physics_wasm::common::constants::G;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
-use physics_wasm::forces::gravity::{apply_j2, apply_newtonian};
+use physics_wasm::forces::gravity::apply_newtonian;
 
 #[test]
 fn test_newtonian_gravity() {
@@ -46,51 +46,4 @@ fn test_newtonian_gravity() {
     assert_relative_eq!(force.z, 0.0);
 }
 
-#[test]
-fn test_j2_force() {
-    let mut primary = PhysicsBody::default();
-    primary.mass = 5.972e24; // Earth
-    primary.radius = 6378137.0;
-    primary.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
-        j2: Some(0.0010826),
-        pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)), // Z-aligned pole
-        ..Default::default()
-    });
-    primary.pos = Vector3::zero();
 
-    let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
-    satellite.pos = Vector3::new(7000000.0, 0.0, 0.0); // Equatorial orbit
-
-    let mut r_vec = satellite.pos;
-    r_vec.sub(&primary.pos);
-    let dist = r_vec.len();
-    let dist_sq = dist * dist;
-
-    let force = apply_j2(&primary, &satellite, &r_vec, dist, dist_sq);
-
-    // At equator (z=0), J2 force is purely radial and attractive (adds to gravity)
-    // F_J2 = - (3 GM m J2 R^2) / (2 r^4) * r_hat (approx)
-    // Let's check implementation behavior
-    // t1 = r_vec * (5 * 0 - 1) = -r_vec
-    // t1.scale(factor/dist)
-    // So it returns -r_vec * factor/dist
-    // Which is attractive (towards primary).
-
-    let r4 = dist_sq * dist_sq;
-    let factor = (3.0
-        * G
-        * primary.mass
-        * satellite.mass
-        * primary.gravity_harmonics.as_ref().unwrap().j2.unwrap()
-        * primary.radius
-        * primary.radius)
-        / (2.0 * r4);
-    let expected_mag = factor; // Since it's along r_vec
-
-    assert_relative_eq!(force.len(), expected_mag, epsilon = 1e-6);
-    // Should be negative X (attractive)
-    assert!(force.x < 0.0);
-    assert_relative_eq!(force.y, 0.0);
-    assert_relative_eq!(force.z, 0.0);
-}

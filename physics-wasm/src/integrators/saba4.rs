@@ -28,6 +28,7 @@ impl Integrator for Saba4Integrator {
         dt: Seconds,
         config: &PhysicsConfig,
         quality: IntegratorQuality,
+        current_jd: f64,
     ) {
         // Handle substeps based on quality (similar to Symplectic)
         let max_substep = match quality {
@@ -38,10 +39,12 @@ impl Integrator for Saba4Integrator {
         };
 
         let mut time_remaining = dt;
+        let mut current_time = current_jd;
         while time_remaining > 0.0 {
             let sub_dt = if time_remaining > max_substep { max_substep } else { time_remaining };
-            step_saba4_internal(bodies, parent_indices, sub_dt, config);
+            step_saba4_internal(bodies, parent_indices, sub_dt, config, current_time);
             time_remaining -= sub_dt;
+            current_time += sub_dt / 86400.0;
         }
     }
 
@@ -58,7 +61,7 @@ pub fn step_saba4(
 ) {
     // Legacy wrapper
     let integrator = Saba4Integrator;
-    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium);
+    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium, 2451545.0);
 }
 
 fn step_saba4_internal(
@@ -66,6 +69,7 @@ fn step_saba4_internal(
     parent_indices: &[ParentIndex],
     dt: f64,
     config: &PhysicsConfig,
+    current_jd: f64,
 ) {
     // SABA4: A B A B A B A B A
     // A = Drift (Kepler), B = Kick (Interaction)
@@ -74,25 +78,25 @@ fn step_saba4_internal(
     drift_system_kepler(bodies, SABA4_C1 * dt);
     
     // Step 2: B(d1)
-    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, config);
+    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, config, current_jd);
     
     // Step 3: A(c2)
     drift_system_kepler(bodies, SABA4_C2 * dt);
     
     // Step 4: B(d2)
-    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, config);
+    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, config, current_jd);
     
     // Step 5: A(c3)
     drift_system_kepler(bodies, SABA4_C3 * dt);
     
     // Step 6: B(d2)
-    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, config);
+    kick_system_interaction(bodies, parent_indices, SABA4_D2 * dt, config, current_jd);
     
     // Step 7: A(c2)
     drift_system_kepler(bodies, SABA4_C2 * dt);
     
     // Step 8: B(d1)
-    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, config);
+    kick_system_interaction(bodies, parent_indices, SABA4_D1 * dt, config, current_jd);
     
     // Step 9: A(c1)
     drift_system_kepler(bodies, SABA4_C1 * dt);
@@ -148,13 +152,14 @@ fn kick_system_interaction(
     parent_indices: &[ParentIndex],
     dt: f64,
     config: &PhysicsConfig,
+    current_jd: f64,
 ) {
     let force_config = ForceConfig {
         physics: config,
         parent_indices,
         gravity_mode: GravityMode::SplitDriftKick,
     };
-    let accs = calculate_accelerations(bodies, &force_config);
+    let accs = calculate_accelerations(bodies, &force_config, current_jd);
     
     for (i, acc) in accs.iter().enumerate() {
         let mut dv = *acc;

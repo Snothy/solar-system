@@ -11,6 +11,8 @@ fn test_earth_precession() {
         pole_dec0: Some(90.0),
         precession_rate: Some(50.29), // arcsec/year
         nutation_amplitude: None,
+        w0: None,
+        wdot: None,
     });
     earth.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
@@ -38,6 +40,8 @@ fn test_earth_nutation() {
         pole_dec0: Some(90.0),
         nutation_amplitude: Some(9.2), // arcseconds
         precession_rate: None,
+        w0: None,
+        wdot: None,
     });
     earth.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
@@ -66,6 +70,8 @@ fn test_pole_vector_normalization() {
         pole_dec0: Some(60.0),
         precession_rate: None,
         nutation_amplitude: None,
+        w0: None,
+        wdot: None,
     });
     body.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
         pole_vector: None, // Will be calculated

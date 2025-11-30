@@ -13,15 +13,17 @@ use crate::integrators;
 pub struct Simulation {
     pub bodies: Vec<PhysicsBody>,
     pub parent_indices: Vec<ParentIndex>,
+    pub current_jd: f64, // Current Julian Date (for body rotation angles)
 }
 
 impl Simulation {
-    pub fn new(bodies: Vec<PhysicsBody>) -> Self {
+    pub fn new(bodies: Vec<PhysicsBody>, initial_jd: f64) -> Self {
         let parent_indices = update_hierarchy(&bodies);
 
         Self {
             bodies,
             parent_indices,
+            current_jd: initial_jd,
         }
     }
 
@@ -40,7 +42,7 @@ impl Simulation {
         // Update Pole Orientation
         update_pole_orientation(
             &mut self.bodies,
-            sim_time,
+            self.current_jd,
             config.precession,
             config.nutation,
         );
@@ -71,7 +73,8 @@ impl Simulation {
             &self.parent_indices,
             dt,
             config,
-            quality_enum
+            quality_enum,
+            self.current_jd,
         );
 
         // Apply Torques (Tidal, YORP)
@@ -79,6 +82,9 @@ impl Simulation {
         // For higher fidelity with small dt, this should ideally be integrated within the substeps
         // of the symplectic integrators, but for now this approximation is sufficient.
         apply_all_torques(&mut self.bodies, dt, config);
+
+        // Update Julian Date
+        self.current_jd += dt / 86400.0; // Convert seconds to days
 
         // Collisions
         if config.collisions {

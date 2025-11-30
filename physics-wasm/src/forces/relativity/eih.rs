@@ -2,6 +2,12 @@ use crate::common::constants::{C_LIGHT, G};
 use crate::common::types::{PhysicsBody, Vector3};
 
 /// Apply Einstein-Infeld-Hoffmann (EIH) relativistic correction.
+/// 
+/// This is a 1st Post-Newtonian (1PN) correction to the equation of motion.
+/// It accounts for:
+/// 1. Time dilation and length contraction effects (v^2/c^2)
+/// 2. Non-linearities in the gravitational field (GM/rc^2)
+/// 3. Gravito-magnetic effects (spin-orbit coupling equivalent)
 pub fn apply_relativity_eih(
     b1: &PhysicsBody,
     b2: &PhysicsBody,
@@ -9,55 +15,84 @@ pub fn apply_relativity_eih(
     dist: f64,
     dist_sq: f64,
 ) -> (Vector3, Vector3) {
+    let c_sq = C_LIGHT * C_LIGHT;
+    
+    // r12 points from b2 -> b1 (Standard EIH notation uses vector pointing TO the body)
     let mut r12 = *r_vec;
-    r12.scale(-1.0);
+    r12.scale(-1.0); 
+    
+    // v12 = v1 - v2
     let mut v12 = b1.vel;
     v12.sub(&b2.vel);
 
     let v1_sq = b1.vel.len_sq();
     let v2_sq = b2.vel.len_sq();
     let v1_dot_v2 = b1.vel.dot(&b2.vel);
+    
+    // Dot products with position vector r12
     let r_dot_v1 = r12.dot(&b1.vel);
     let r_dot_v2 = r12.dot(&b2.vel);
 
-    let a_scalar = (4.0 * G * b2.mass / dist) - v1_sq - 2.0 * v2_sq
-        + 4.0 * v1_dot_v2
-        + 1.5 * ((r_dot_v2 * r_dot_v2) / dist_sq);
+    // --- Force on Body 1 ---
+    // A_scalar represents the scaling of the position vector n_12
+    // Correction: Added (5.0 * G * b1.mass / dist)
+    let a_scalar = (4.0 * G * b2.mass / dist) 
+                 + (5.0 * G * b1.mass / dist) 
+                 - v1_sq 
+                 - 2.0 * v2_sq
+                 + 4.0 * v1_dot_v2
+                 + 1.5 * ((r_dot_v2 * r_dot_v2) / dist_sq);
+                 
+    // B_scalar represents the scaling of the velocity difference vector v_12
     let b_scalar = 4.0 * r_dot_v1 - 3.0 * r_dot_v2;
 
     let mut term1 = r12;
     term1.scale(a_scalar);
+    
     let mut term2 = v12;
     term2.scale(b_scalar);
 
     let mut acc_rel = Vector3::zero();
     acc_rel.add(&term1);
     acc_rel.add(&term2);
-    acc_rel.scale(G * b2.mass / (C_LIGHT * C_LIGHT * dist * dist * dist));
+    
+    // Scale by Common Factor: G * m2 / (c^2 * r^3)
+    // Note: We divide by dist^3 because term1/term2 use the full vector r, not unit vector n.
+    acc_rel.scale(G * b2.mass / (c_sq * dist * dist_sq));
 
     let mut f1 = acc_rel;
     f1.scale(b1.mass);
 
-    let r21 = *r_vec;
+    // --- Force on Body 2 (Symmetric Calculation) ---
+    
+    let r21 = *r_vec; // Points from b1 -> b2
     let mut v21 = b2.vel;
-    v21.sub(&b1.vel);
+    v21.sub(&b1.vel); // v2 - v1
+    
     let r_dot_v1_b = r21.dot(&b1.vel);
     let r_dot_v2_b = r21.dot(&b2.vel);
 
-    let a_scalar_b = (4.0 * G * b1.mass / dist) - v2_sq - 2.0 * v1_sq
-        + 4.0 * v1_dot_v2
-        + 1.5 * ((r_dot_v1_b * r_dot_v1_b) / dist_sq);
+    // Correction: Added (5.0 * G * b2.mass / dist)
+    let a_scalar_b = (4.0 * G * b1.mass / dist) 
+                   + (5.0 * G * b2.mass / dist)
+                   - v2_sq 
+                   - 2.0 * v1_sq
+                   + 4.0 * v1_dot_v2
+                   + 1.5 * ((r_dot_v1_b * r_dot_v1_b) / dist_sq);
+                   
     let b_scalar_b = 4.0 * r_dot_v2_b - 3.0 * r_dot_v1_b;
 
     let mut term1_b = r21;
     term1_b.scale(a_scalar_b);
+    
     let mut term2_b = v21;
     term2_b.scale(b_scalar_b);
 
     let mut acc_rel_b = Vector3::zero();
     acc_rel_b.add(&term1_b);
     acc_rel_b.add(&term2_b);
-    acc_rel_b.scale(G * b1.mass / (C_LIGHT * C_LIGHT * dist * dist * dist));
+    
+    acc_rel_b.scale(G * b1.mass / (c_sq * dist * dist_sq));
 
     let mut f2 = acc_rel_b;
     f2.scale(b2.mass);

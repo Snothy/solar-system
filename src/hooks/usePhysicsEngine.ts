@@ -195,9 +195,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
           radius: b.radius,
           pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
           vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
-          j2: b.J2,
-          j3: b.J3,
-          j4: b.J4,
+          J: b.J,
           c22: b.C22,
           s22: b.S22,
           pole_vector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : { x: 0, y: 1, z: 0 },
@@ -222,11 +220,10 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
       
       if (!wasmEngineRef.current) {
         // Create engine for the first time
-        wasmEngineRef.current = new WasmPhysicsEngine(wasmBodies);
-        wasmEngineRef.current = new WasmPhysicsEngine(wasmBodies);
+        // Pass initial time as Unix timestamp (milliseconds)
+        wasmEngineRef.current = new WasmPhysicsEngine(wasmBodies, initialTime);
       } else {
         // Update existing engine
-        wasmEngineRef.current.update_bodies(wasmBodies);
         wasmEngineRef.current.update_bodies(wasmBodies);
       }
     } catch (e) {
@@ -246,9 +243,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
           radius: b.radius,
           pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
           vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
-          j2: b.J2,
-          j3: b.J3,
-          j4: b.J4,
+          J: b.J,
           c22: b.C22,
           s22: b.S22,
           pole_vector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : { x: 0, y: 1, z: 0 },
@@ -271,7 +266,6 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
         };
       });
       
-      wasmEngineRef.current.update_bodies(wasmBodies);
       wasmEngineRef.current.update_bodies(wasmBodies);
     } catch (e) {
       console.error("Failed to sync bodies to WASM:", e);

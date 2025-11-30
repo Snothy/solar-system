@@ -1,16 +1,17 @@
 use crate::common::types::{PhysicsBody, Vector3};
+use crate::common::rotation::{calculate_earth_rotation_angle, calculate_body_rotation_angle};
 use crate::forces::{ForceConfig, GravityMode};
-use crate::forces::gravity::{apply_newtonian, apply_j2, apply_j3, apply_j4, apply_c22_s22};
+use crate::forces::gravity::{apply_newtonian, apply_zonal_harmonics, apply_sectorial_harmonics};
 use crate::forces::relativity::{apply_relativity_eih, apply_relativity_ppn};
 use crate::forces::tidal::apply_tidal;
 use crate::forces::drag::apply_drag;
 
-/// Apply forces between bodies (Gravity, Harmonics, Relativity, Tidal, Drag).
 pub fn apply_body_interactions(
     bodies: &[PhysicsBody],
     accs: &mut [Vector3],
     config: &ForceConfig,
     sun_idx: Option<usize>,
+    current_jd: f64,
 ) {
     let n = bodies.len();
     
@@ -23,20 +24,44 @@ pub fn apply_body_interactions(
     let gravity_mode = config.gravity_mode;
     let parent_indices = &config.parent_indices;
 
+    // --- Optimization: Pre-calculate Rotation Angles ---
+    // Avoids calculating Earth GMST N^2 times
+    let mut rotation_angles = vec![0.0; n];
+    if enable_j2 {
+        for (i, body) in bodies.iter().enumerate() {
+            rotation_angles[i] = if body.name == "Earth" {
+                calculate_earth_rotation_angle(current_jd)
+            } else if let Some(precession) = &body.precession {
+                if let (Some(w0), Some(wdot)) = (precession.w0, precession.wdot) {
+                    calculate_body_rotation_angle(current_jd, w0, wdot)
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            };
+        }
+    }
+
     // --- Atmospheric Drag ---
     if enable_drag {
-         for j in 0..n { // j is the body with the atmosphere
+         for j in 0..n {
              if let Some(atmosphere) = &bodies[j].atmosphere {
                  if atmosphere.has_atmosphere == Some(true) {
-                     for i in 0..n { // i is the body experiencing drag
+                     for i in 0..n {
                          if i == j { continue; }
-                         let atmo_body = &bodies[j];
-                         let dragged_body = &bodies[i];
-                         let mut r_vec = dragged_body.pos; r_vec.sub(&atmo_body.pos);
+                         let mut r_vec = bodies[i].pos; 
+                         r_vec.sub(&bodies[j].pos);
                          let dist = r_vec.len();
-                         let f = apply_drag(atmo_body, dragged_body, &r_vec, dist);
-                         let mut a = f; a.scale(1.0 / dragged_body.mass);
-                         accs[i].add(&a);
+                         
+                         // Optimization: Skip expensive drag calculation if far outside atmosphere
+                         // Assuming 2000km buffer above radius
+                         if dist < bodies[j].radius + 2_000_000.0 { 
+                            let f = apply_drag(&bodies[j], &bodies[i], &r_vec, dist);
+                            let mut a = f; 
+                            a.scale(1.0 / bodies[i].mass);
+                            accs[i].add(&a);
+                         }
                      }
                  }
              }
@@ -57,18 +82,17 @@ pub fn apply_body_interactions(
             if dist > 0.0 {
                 let is_sun_interaction = sun_idx.is_some() && (i == sun_idx.unwrap() || j == sun_idx.unwrap());
                 
-                // Check if this is a parent-child pair that should be skipped
-                let skip_parent_child = match gravity_mode {
-                    GravityMode::HierarchicalSubtraction => {
-                        let i_is_parent_of_j = parent_indices[j].map(|p| p.as_usize()) == Some(i);
-                        let j_is_parent_of_i = parent_indices[i].map(|p| p.as_usize()) == Some(j);
-                        i_is_parent_of_j || j_is_parent_of_i
-                    }
-                    _ => false,
+                // Determine if this is a parent-child pair
+                let is_parent_child = if let GravityMode::HierarchicalSubtraction = gravity_mode {
+                    let i_is_parent_of_j = parent_indices[j].map(|p| p.as_usize()) == Some(i);
+                    let j_is_parent_of_i = parent_indices[i].map(|p| p.as_usize()) == Some(j);
+                    i_is_parent_of_j || j_is_parent_of_i
+                } else {
+                    false
                 };
                 
-                // --- Newtonian Gravity (non-Sun pairs) ---
-                if !is_sun_interaction && !skip_parent_child {
+                // --- Newtonian Gravity ---
+                if !is_sun_interaction && !is_parent_child {
                     let f = apply_newtonian(b1, b2, &r_vec, dist_sq);
                     let mut a1 = f; a1.scale(1.0 / b1.mass);
                     let mut a2 = f; a2.scale(-1.0 / b2.mass);
@@ -77,71 +101,45 @@ pub fn apply_body_interactions(
                 }
 
                 // --- Post-Newtonian Relativity ---
-                // Also skip relativity for parent-child pairs in WH mode
-                if enable_relativity && !skip_parent_child {
-                    if use_eih {
-                         let (f1, f2) = apply_relativity_eih(b1, b2, &r_vec, dist, dist_sq);
-                         let mut a1 = f1; a1.scale(1.0 / b1.mass);
-                         let mut a2 = f2; a2.scale(1.0 / b2.mass);
-                         accs[i].add(&a1);
-                         accs[j].add(&a2);
+                if enable_relativity {
+                    let (f1, f2) = if use_eih {
+                         apply_relativity_eih(b1, b2, &r_vec, dist, dist_sq)
                     } else {
-                         let (f1, f2) = apply_relativity_ppn(b1, b2, &r_vec, dist, dist_sq);
-                         let mut a1 = f1; a1.scale(1.0 / b1.mass);
-                         let mut a2 = f2; a2.scale(1.0 / b2.mass);
-                         accs[i].add(&a1);
-                         accs[j].add(&a2);
-                    }
+                         apply_relativity_ppn(b1, b2, &r_vec, dist, dist_sq)
+                    };
+                    let mut a1 = f1; a1.scale(1.0 / b1.mass);
+                    let mut a2 = f2; a2.scale(1.0 / b2.mass);
+                    accs[i].add(&a1);
+                    accs[j].add(&a2);
                 }
 
-                // --- Gravitational Harmonics (J2, J3, J4, C22/S22) ---
-                // Harmonics are perturbations and must be applied to all pairs, including parent-child
+                // --- Gravitational Harmonics ---
                 if enable_j2 {
-                    // b1 as primary
-                    let f_j2 = apply_j2(b1, b2, &r_vec, dist, dist_sq);
-                    let mut a_sat = f_j2; a_sat.scale(1.0 / b2.mass);
-                    accs[j].add(&a_sat);
-                    let mut a_pri = f_j2; a_pri.scale(-1.0 / b1.mass);
-                    accs[i].add(&a_pri);
+                    let rot_b1 = rotation_angles[i];
+                    let rot_b2 = rotation_angles[j];
                     
-                    // b2 as primary
+                    // 1. b1 acts on b2
+                    let a_zonal = apply_zonal_harmonics(b1, b2, &r_vec, dist, dist_sq);
+                    let a_sectorial = apply_sectorial_harmonics(b1, &r_vec, dist_sq, rot_b1);
+                    let mut a_total = a_zonal; a_total.add(&a_sectorial);
+                    
+                    accs[j].add(&a_total);
+                    // Reaction
+                    let mut a_reaction = a_total; a_reaction.scale(-b2.mass / b1.mass); accs[i].add(&a_reaction);
+                    
+                    // 2. b2 acts on b1
                     let mut r_vec_neg = r_vec; r_vec_neg.scale(-1.0);
-                    let f_j2_b = apply_j2(b2, b1, &r_vec_neg, dist, dist_sq);
-                    let mut a_sat_b = f_j2_b; a_sat_b.scale(1.0 / b1.mass);
-                    accs[i].add(&a_sat_b);
-                    let mut a_pri_b = f_j2_b; a_pri_b.scale(-1.0 / b2.mass);
-                    accs[j].add(&a_pri_b);
+                    let a_zonal_b = apply_zonal_harmonics(b2, b1, &r_vec_neg, dist, dist_sq);
+                    let a_sectorial_b = apply_sectorial_harmonics(b2, &r_vec_neg, dist_sq, rot_b2);
+                    let mut a_total_b = a_zonal_b; a_total_b.add(&a_sectorial_b);
                     
-                    // J3, J4, C22/S22 (similar pattern)
-                    let f_j3 = apply_j3(b1, b2, &r_vec, dist, dist_sq);
-                    let mut a_sat = f_j3; a_sat.scale(1.0 / b2.mass); accs[j].add(&a_sat);
-                    let mut a_pri = f_j3; a_pri.scale(-1.0 / b1.mass); accs[i].add(&a_pri);
-                    
-                    let f_j4 = apply_j4(b1, b2, &r_vec, dist, dist_sq);
-                    let mut a_sat = f_j4; a_sat.scale(1.0 / b2.mass); accs[j].add(&a_sat);
-                    let mut a_pri = f_j4; a_pri.scale(-1.0 / b1.mass); accs[i].add(&a_pri);
-                    
-                    let f_c22 = apply_c22_s22(b1, b2, &r_vec, dist);
-                    let mut a_sat = f_c22; a_sat.scale(1.0 / b2.mass); accs[j].add(&a_sat);
-                    let mut a_pri = f_c22; a_pri.scale(-1.0 / b1.mass); accs[i].add(&a_pri);
-                    
-                    // Reverse for b2 as primary
-                    let f_j3_b = apply_j3(b2, b1, &r_vec_neg, dist, dist_sq);
-                    let mut a_sat_b = f_j3_b; a_sat_b.scale(1.0 / b1.mass); accs[i].add(&a_sat_b);
-                    let mut a_pri_b = f_j3_b; a_pri_b.scale(-1.0 / b2.mass); accs[j].add(&a_pri_b);
-                    
-                    let f_j4_b = apply_j4(b2, b1, &r_vec_neg, dist, dist_sq);
-                    let mut a_sat_b = f_j4_b; a_sat_b.scale(1.0 / b1.mass); accs[i].add(&a_sat_b);
-                    let mut a_pri_b = f_j4_b; a_pri_b.scale(-1.0 / b2.mass); accs[j].add(&a_pri_b);
-                    
-                    let f_c22_b = apply_c22_s22(b2, b1, &r_vec_neg, dist);
-                    let mut a_sat_b = f_c22_b; a_sat_b.scale(1.0 / b1.mass); accs[i].add(&a_sat_b);
-                    let mut a_pri_b = f_c22_b; a_pri_b.scale(-1.0 / b2.mass); accs[j].add(&a_pri_b);
+                    accs[i].add(&a_total_b);
+                    // Reaction
+                    let mut a_reaction_b = a_total_b; a_reaction_b.scale(-b1.mass / b2.mass); accs[j].add(&a_reaction_b);
                 }
                 
                 // --- Tidal Forces ---
-                // Also skip tidal for parent-child pairs in WH mode
-                if enable_tidal && !skip_parent_child {
+                if enable_tidal {
                     if b1.mass > b2.mass {
                         let f = apply_tidal(b1, b2, &r_vec, dist);
                         let mut a_sat = f; a_sat.scale(1.0 / b2.mass); accs[j].add(&a_sat);

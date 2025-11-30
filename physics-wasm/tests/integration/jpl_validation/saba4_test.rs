@@ -1,11 +1,11 @@
-use crate::common::{initialize_from_jpl, load_bodies, load_jpl_vector, JPLVector};
+use crate::common::{initialize_from_jpl, load_bodies, load_jpl_vector, get_initial_jd, JPLVector};
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::common::config::PhysicsConfig;
 use physics_wasm::dynamics::hierarchy::update_hierarchy;
-use physics_wasm::integrators::step_saba4;
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::Path;
+use physics_wasm::integrators::saba4::Saba4Integrator;
+use physics_wasm::integrators::traits::Integrator;
+use physics_wasm::integrators::types::IntegratorQuality;
+
 
 struct SimulationResult {
     body_name: String,
@@ -64,6 +64,14 @@ fn test_saba4_integration_vs_jpl() {
     let dt = 60.0; // 1 minute steps (60 per hour)
     let steps_per_hour = 6;
 
+    // Extract initial JD from first data point
+    let initial_jd = if let Some((_, data)) = bodies_with_data.first() {
+        get_initial_jd(data)
+    } else {
+        2451545.0 // Fallback to J2000
+    };
+    let mut current_jd = initial_jd;
+
     // Track errors: (pos_error_km, vel_error_ms, pos_mag_km, vel_mag_ms)
     let mut body_errors: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); bodies_with_data.len()];
 
@@ -76,8 +84,16 @@ fn test_saba4_integration_vs_jpl() {
     config.solar_radiation_pressure = true;
     config.yarkovsky_effect = true;
     config.atmospheric_drag = true;
+    config.use_eih = true;
     config.poynting_robertson_drag = true;
+    config.yorp_effect = true;
     config.comet_forces = true;
+    config.precession = true;
+    config.nutation = true;
+    config.solar_mass_loss = true;
+    config.collisions = true;
+
+    let integrator = Saba4Integrator;
 
     for hour in 1..=duration_hours {
         let target_time = hour as f64 * 3600.0;
@@ -90,12 +106,15 @@ fn test_saba4_integration_vs_jpl() {
             let step_size = time_to_advance / num_substeps as f64;
 
             for _ in 0..num_substeps {
-                step_saba4(
+                integrator.step(
                     &mut bodies,
                     &parent_indices,
                     step_size,
                     &config,
+                    IntegratorQuality::Medium,
+                    current_jd,
                 );
+                current_jd += step_size / 86400.0; // Update JD (seconds to days)
             }
             current_sim_time = target_time;
         }
@@ -152,71 +171,16 @@ fn test_saba4_integration_vs_jpl() {
         });
     }
 
-    // 5. Generate Report
-    generate_report(&results, duration_hours);
-}
-
-fn generate_report(results: &[SimulationResult], duration_hours: usize) {
-    let output_dir = Path::new("../output_integration");
-    
-    // Get timestamp from env (set by npm script) or use current time
-    let timestamp = std::env::var("TEST_TIMESTAMP").unwrap_or_else(|_| {
-        chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string()
-    });
-
-    // Create historical directory
-    let history_dir = output_dir.join(&timestamp);
-    if !history_dir.exists() {
-        fs::create_dir_all(&history_dir).expect("Failed to create history directory");
-    }
-    
-    // Ensure base output dir exists (create_dir_all handles recursion so history_dir creation might have done it, but to be safe)
-    if !output_dir.exists() {
-        fs::create_dir_all(output_dir).expect("Failed to create output directory");
-    }
-
-    let mut report = String::new();
-    report.push_str("# SABA4 Integration Test Report\n\n");
-    
-    // Add Date/Time to header
-    let pretty_date = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-    report.push_str(&format!("**Date:** {}\n", pretty_date));
-    report.push_str(&format!("**Run ID:** {}\n\n", timestamp));
-
-    report.push_str(&format!(
-        "**Duration:** {} hours ({} days)\n\n",
-        duration_hours,
-        duration_hours / 24
-    ));
-
-    report.push_str("| Body | Max Pos Error % | Max Pos Error (km) | Final Pos Error (km) | Max Vel Error % | Max Vel Error (m/s) |\n");
-    report.push_str("|------|-----------------|--------------------|----------------------|-----------------|---------------------|\n");
-
-    // Sort by max position error percentage descending
-    let mut sorted_results: Vec<&SimulationResult> = results.iter().collect();
-    sorted_results.sort_by(|a, b| {
-        b.max_pos_error_percent
-            .partial_cmp(&a.max_pos_error_percent)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-
-    for result in sorted_results {
-        report.push_str(&format!(
-            "| {} | {:.6}% | {:.3} | {:.3} | {:.6}% | {:.6} |\n",
+    // Validation: Print summary (report generation moved to saba4_physics_validation.rs)
+    println!("\n=== SABA4 Integrator Test Results ===");
+    for result in &results {
+        println!(
+            "{}: Max Pos Error = {:.3} km ({:.6}%), Max Vel Error = {:.6} m/s ({:.6}%)",
             result.body_name,
-            result.max_pos_error_percent,
             result.max_pos_error_km,
-            result.final_pos_error_km,
-            result.max_vel_error_percent,
-            result.max_vel_error_ms
-        ));
+            result.max_pos_error_percent,
+            result.max_vel_error_ms,
+            result.max_vel_error_percent
+        );
     }
-
-    // Write to historical file
-    let history_path = history_dir.join("saba4_validation.md");
-    let mut file = File::create(&history_path).expect("Failed to create historical report file");
-    file.write_all(report.as_bytes())
-        .expect("Failed to write historical report");
-
-    println!("SABA4 Report generated at {:?}", history_path);
 }
