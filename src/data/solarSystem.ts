@@ -1,12 +1,12 @@
 import type { CelestialBodyData } from '../types';
 import { EXTENDED_BODIES } from './extendedBodies';
 
-const AU = 1.495978707e11; // metres
+const AU = 1.495978707e11; 
 
 export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
   {
     name: "Sun",
-    mass: 1.98841e30, // IAU nominal
+    mass: 1.98841e30, 
     radius: 695700e3,
     radii: { x: 695700e3, y: 695700e3, z: 695700e3 },
     color: 0xffdd00,
@@ -46,11 +46,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     W0: 329.5469,
     Wdot: 6.1385025,
     albedo: 0.142,
-    // Orbital (J2000 mean)
+    
     rel_a: 0.38709893 * AU,
     rel_e: 0.20563069,
     rel_i: 7.00487,
-    // Ω, ω, M (mean longitude variants) left undefined here — can add epoch-specific if needed
+    
   },
 
   {
@@ -77,7 +77,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     scaleHeight: 15.9,
     dragCoefficient: 2.2,
     albedo: 0.76,
-    // Orbital (J2000 mean)
+    
     rel_a: 0.723332 * AU,
     rel_e: 0.006772,
     rel_i: 3.39458
@@ -101,7 +101,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     S22: -1.40e-6,
     k2: 0.299,
     tidalQ: 12,
-    // Note: IAU/IAU-derived pole coords for Earth are reference-frame dependent; many sims use poleRA=0, poleDec=90 for internal convenience.
+    
     poleRA: 0.0,
     poleDec: 90.0,
     W0: 100.21,
@@ -119,7 +119,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     emissiveMap: "/EarthNight.jpg",
     cloudMap: "/EarthClouds.png",
     cloudTransparency: 0.8,
-    // Orbital (J2000 mean)
+    
     rel_a: 1.0 * AU,
     rel_e: 0.01671123,
     rel_i: 0.00005
@@ -184,11 +184,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     rel_i: 1.850
   },
 
-  {
+ {
     name: "Phobos",
-    mass: 1.060e16,
-    radius: 11.1e3,
-    radii: { x: 13.0e3, y: 9.1e3, z: 11.4e3 },
+    mass: 1.0659e16,
+    radius: 11266.7, 
+    radii: { x: 13000.0, y: 11400.0, z: 9100.0 },
     color: 0x888888,
     texture: "/Phobos.png",
     parent: "Mars",
@@ -199,6 +199,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "401",
     type: "moon",
     J: [0.105],
+    C22: 0.015,
+    S22: 0.0,
     tidalQ: 100,
     poleRA: 317.68,
     poleDec: 52.90,
@@ -212,8 +214,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
   {
     name: "Deimos",
     mass: 1.4762e15,
-    radius: 6.2e3,
-    radii: { x: 7.5e3, y: 5.2e3, z: 6.1e3 },
+    radius: 6200.0,
+    radii: { x: 7500.0, y: 6100.0, z: 5200.0 },
     color: 0x777777,
     texture: "/Deimos.png",
     parent: "Mars",
@@ -223,6 +225,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 0.003,
     jplId: "402",
     type: "moon",
+    J: [0.08],
     tidalQ: 100,
     poleRA: 316.65,
     poleDec: 53.52,
@@ -340,7 +343,6 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
 {
     name: "Saturn",
-    // 1. KEEP THIS. This is the "Calibrated Mass" we proved works for Mimas.
     mass: 5.6829e26, 
     radius: 60268e3, 
     radii: { x: 60268e3, y: 54364e3, z: 60268e3 },

@@ -210,12 +210,12 @@
   },
   {
     "name": "Phobos",
-    "mass": 10600000000000000,
-    "radius": 11100,
+    "mass": 10659000000000000,
+    "radius": 11266.7,
     "radii": {
       "x": 13000,
-      "y": 9100,
-      "z": 11400
+      "y": 11400,
+      "z": 9100
     },
     "color": 8947848,
     "texture": "/Phobos.png",
@@ -229,6 +229,8 @@
     "J": [
       0.105
     ],
+    "C22": 0.015,
+    "S22": 0,
     "tidalQ": 100,
     "poleRA": 317.68,
     "poleDec": 52.9,
@@ -244,8 +246,8 @@
     "radius": 6200,
     "radii": {
       "x": 7500,
-      "y": 5200,
-      "z": 6100
+      "y": 6100,
+      "z": 5200
     },
     "color": 7829367,
     "texture": "/Deimos.png",
@@ -256,6 +258,9 @@
     "surfaceGravity": 0.003,
     "jplId": "402",
     "type": "moon",
+    "J": [
+      0.08
+    ],
     "tidalQ": 100,
     "poleRA": 316.65,
     "poleDec": 53.52,
@@ -401,7 +406,7 @@
   },
   {
     "name": "Saturn",
-    "mass": 5.6829e+26,
+    "mass": 5.6839e+26,
     "radius": 60268000,
     "radii": {
       "x": 60268000,
@@ -971,9 +976,9 @@
     "mass": 1.09545e+21,
     "radius": 561400,
     "radii": {
-      "x": 561400,
-      "y": 561400,
-      "z": 561400
+      "x": 563800,
+      "y": 561000,
+      "z": 559600
     },
     "color": 10066329,
     "texture": "/Umbriel.webp",
@@ -983,7 +988,13 @@
     "meanTemperature": 87,
     "surfaceGravity": 0.232,
     "jplId": "604",
-    "type": "moon"
+    "type": "moon",
+    "J": [
+      0.0014
+    ],
+    "poleRA": 40.66,
+    "poleDec": 83.52,
+    "albedo": 0.6
   },
   {
     "name": "Rhea",

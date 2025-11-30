@@ -315,7 +315,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     name: "Dione",
     mass: 1.09545e21,
     radius: 561.4e3,
-    radii: { x: 561.4e3, y: 561.4e3, z: 561.4e3 },
+    radii: { x: 563.8e3, y: 561.0e3, z: 559.6e3 },
     color: 0x999999,
     texture: "/Umbriel.webp",
     parent: "Saturn",
@@ -324,7 +324,11 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 87,
     surfaceGravity: 0.232,
     jplId: "604",
-    type: "moon"
+    type: "moon",
+    J: [0.0014],
+    poleRA: 40.66,
+    poleDec: 83.52,
+    albedo: 0.6
   },
 
   {
