@@ -235,8 +235,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Jupiter",
-    mass: 1.89819e27,
-    radius: 69911e3,
+    mass: 1.898125e27,
+    radius: 71492e3,
     radii: { x: 71492e3, y: 66854e3, z: 71492e3 },
     color: 0xd8ca9d,
     texture: "/Jupiter.jpeg",
@@ -246,7 +246,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 24.79,
     jplId: "599",
     type: "planet",
-    J: [1.4696e-2, -4.2e-6, -5.87e-4],
+    J: [1.4696572e-2, 0.0, -5.87146e-4, 0.0, 3.4255e-5],
     poleRA: 268.057,
     poleDec: 64.495,
     W0: 284.95,
@@ -340,8 +340,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Saturn",
-    mass: 5.6834e26,
-    radius: 58232e3,
+    mass: 5.6829e26,
+    radius: 60268e3,
     radii: { x: 60268e3, y: 54364e3, z: 60268e3 },
     color: 0xf4d03f,
     ringColor: 0xa89f91,
@@ -353,7 +353,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 10.44,
     jplId: "699",
     type: "planet",
-    J: [1.629e-2, -5.9e-6, -9.35e-4],
+    J: [1.629071e-2, 0.0, -9.3583e-4, 0.0, 8.614e-5],
     poleRA: 40.58,
     poleDec: 83.54,
     W0: 38.90,
