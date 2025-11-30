@@ -85,7 +85,7 @@ impl Simulation {
             self.handle_collisions();
         }
 
-        sim_time + dt
+        dt
     }
 
     fn handle_collisions(&mut self) {

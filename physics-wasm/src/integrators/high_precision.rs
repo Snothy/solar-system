@@ -3,6 +3,7 @@ use crate::common::config::PhysicsConfig;
 use crate::common::indices::ParentIndex;
 use crate::forces::{calculate_accelerations, ForceConfig, GravityMode};
 use ode_solvers::{DVector, Dop853, System};
+use std::cell::RefCell;
 
 use crate::integrators::traits::Integrator;
 use crate::integrators::types::IntegratorQuality;
@@ -20,6 +21,9 @@ impl Integrator for HighPrecisionIntegrator {
         config: &PhysicsConfig,
         quality: IntegratorQuality,
     ) {
+        // DOP853 is adaptive, so we don't need manual substeps.
+        // However, we must ensure the initial step guess (dx) in the internal function
+        // is reasonable to prevent the solver from stalling.
         step_high_precision_internal(bodies, parent_indices, dt, config, quality);
     }
 
@@ -47,8 +51,9 @@ fn step_high_precision_internal(
     quality: IntegratorQuality,
 ) {
     let n = bodies.len();
-    let mut state = DVector::from_element(n * 6, 0.0);
     
+    // 1. Setup initial state vector y
+    let mut state = DVector::from_element(n * 6, 0.0);
     for (i, b) in bodies.iter().enumerate() {
         state[i*6 + 0] = b.pos.x;
         state[i*6 + 1] = b.pos.y;
@@ -58,40 +63,47 @@ fn step_high_precision_internal(
         state[i*6 + 5] = b.vel.z;
     }
     
-    struct SolarSystem {
-        bodies: Vec<PhysicsBody>,
-        parent_indices: Vec<ParentIndex>,
-        config: PhysicsConfig,
+    // 2. Define System with Interior Mutability
+    struct SolarSystem<'a> {
+        // Use RefCell so we can mutate positions inside the immutable 'system' call
+        // without allocating new memory every time.
+        bodies: RefCell<Vec<PhysicsBody>>,
+        parent_indices: &'a [ParentIndex],
+        config: &'a PhysicsConfig,
     }
 
-    impl System<DVector<f64>> for SolarSystem {
+    impl<'a> System<DVector<f64>> for SolarSystem<'a> {
         fn system(&self, _t: f64, y: &DVector<f64>, dy: &mut DVector<f64>) {
-            let n = self.bodies.len();
+            // Borrow the scratch buffer mutably
+            let mut bodies_ref = self.bodies.borrow_mut();
+            let n = bodies_ref.len();
             
-            // Update temp bodies from y state
-            let mut temp_bodies = self.bodies.clone();
+            // Update the scratch buffer from the solver's current state 'y'
             for i in 0..n {
-                temp_bodies[i].pos.x = y[i*6 + 0];
-                temp_bodies[i].pos.y = y[i*6 + 1];
-                temp_bodies[i].pos.z = y[i*6 + 2];
-                temp_bodies[i].vel.x = y[i*6 + 3];
-                temp_bodies[i].vel.y = y[i*6 + 4];
-                temp_bodies[i].vel.z = y[i*6 + 5];
+                bodies_ref[i].pos.x = y[i*6 + 0];
+                bodies_ref[i].pos.y = y[i*6 + 1];
+                bodies_ref[i].pos.z = y[i*6 + 2];
+                bodies_ref[i].vel.x = y[i*6 + 3];
+                bodies_ref[i].vel.y = y[i*6 + 4];
+                bodies_ref[i].vel.z = y[i*6 + 5];
             }
             
-            // Calculate accelerations
+            // Calculate accelerations using the scratch buffer
             let force_config = ForceConfig {
-                physics: &self.config,
-                parent_indices: &self.parent_indices,
+                physics: self.config,
+                parent_indices: self.parent_indices,
                 gravity_mode: GravityMode::FullNBody,
             };
-            let accs = calculate_accelerations(&temp_bodies, &force_config);
             
-            // Fill dy (derivative)
+            let accs = calculate_accelerations(&bodies_ref, &force_config);
+            
+            // Fill derivative vector dy
             for i in 0..n {
-                dy[i*6 + 0] = temp_bodies[i].vel.x;
-                dy[i*6 + 1] = temp_bodies[i].vel.y;
-                dy[i*6 + 2] = temp_bodies[i].vel.z;
+                // dy/dt (pos) = vel
+                dy[i*6 + 0] = bodies_ref[i].vel.x;
+                dy[i*6 + 1] = bodies_ref[i].vel.y;
+                dy[i*6 + 2] = bodies_ref[i].vel.z;
+                // dv/dt (vel) = acc
                 dy[i*6 + 3] = accs[i].x;
                 dy[i*6 + 4] = accs[i].y;
                 dy[i*6 + 5] = accs[i].z;
@@ -99,34 +111,47 @@ fn step_high_precision_internal(
         }
     }
 
+    // 3. Initialize System
+    // We clone bodies ONCE here to create the scratch buffer
     let system = SolarSystem {
-        bodies: bodies.clone(),
-        parent_indices: parent_indices.to_vec(),
-        config: config.clone(),
+        bodies: RefCell::new(bodies.clone()),
+        parent_indices, // passed as reference, no clone needed
+        config,         // passed as reference, no clone needed
     };
 
-    // Map quality to tolerance levels
+    // 4. Setup Tolerances
     let (rtol, atol) = match quality {
-        IntegratorQuality::Low => (1e-9, 1e-9),      // Fast but less accurate
-        IntegratorQuality::Medium => (1e-11, 1e-11), // Balanced
-        IntegratorQuality::High => (1e-13, 1e-13),   // High precision
-        IntegratorQuality::Ultra => (1e-15, 1e-15),  // Maximum precision
+        IntegratorQuality::Low => (1e-7, 1e-7),
+        IntegratorQuality::Medium => (1e-9, 1e-9),
+        IntegratorQuality::High => (1e-12, 1e-12),
+        IntegratorQuality::Ultra => (1e-14, 1e-14),
     };
 
-    // t_start = 0.0, t_end = dt
-    let mut stepper = Dop853::new(system, 0.0, dt, dt, state, rtol, atol);
+    // 5. Integrate
+    // Initial step size guess (dx)
+    // Cap initial step at 1 day (86400s) or dt if smaller.
+    let dx = if dt > 86400.0 { 86400.0 } else { dt };
+    
+    let mut stepper = Dop853::new(system, 0.0, dt, dx, state, rtol, atol);
     let res = stepper.integrate();
 
-    if let Ok(_) = res {
-        if let Some(y_final) = stepper.y_out().last() {
-            for i in 0..n {
-                bodies[i].pos.x = y_final[i * 6 + 0];
-                bodies[i].pos.y = y_final[i * 6 + 1];
-                bodies[i].pos.z = y_final[i * 6 + 2];
-                bodies[i].vel.x = y_final[i * 6 + 3];
-                bodies[i].vel.y = y_final[i * 6 + 4];
-                bodies[i].vel.z = y_final[i * 6 + 5];
+    // 6. Handle Result
+    match res {
+        Ok(_) => {
+            if let Some(y_final) = stepper.y_out().last() {
+                for i in 0..n {
+                    bodies[i].pos.x = y_final[i * 6 + 0];
+                    bodies[i].pos.y = y_final[i * 6 + 1];
+                    bodies[i].pos.z = y_final[i * 6 + 2];
+                    bodies[i].vel.x = y_final[i * 6 + 3];
+                    bodies[i].vel.y = y_final[i * 6 + 4];
+                    bodies[i].vel.z = y_final[i * 6 + 5];
+                }
             }
+        }
+        Err(_e) => {
+            // Log error if needed, but for now we just fail silently or could log to console
+            // web_sys::console::error_1(&format!("Integrator failed: {:?}", e).into());
         }
     }
 }

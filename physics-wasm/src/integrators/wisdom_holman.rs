@@ -21,10 +21,10 @@ impl Integrator for WisdomHolmanIntegrator {
     ) {
         // Handle substeps based on quality
         let max_substep = match quality {
-            IntegratorQuality::Low => 300.0,
-            IntegratorQuality::Medium => 180.0,
-            IntegratorQuality::High => 100.0,
-            IntegratorQuality::Ultra => 60.0,
+            IntegratorQuality::Low => 432000.0,  // 5 days
+            IntegratorQuality::Medium => 86400.0,// 1 day
+            IntegratorQuality::High => 8640.0,   // 0.1 day
+            IntegratorQuality::Ultra => 864.0,   // 0.01 day
         };
 
         let mut time_remaining = dt;

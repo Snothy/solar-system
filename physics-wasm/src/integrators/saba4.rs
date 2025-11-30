@@ -31,10 +31,10 @@ impl Integrator for Saba4Integrator {
     ) {
         // Handle substeps based on quality (similar to Symplectic)
         let max_substep = match quality {
-            IntegratorQuality::Low => 120.0,
-            IntegratorQuality::Medium => 60.0,
-            IntegratorQuality::High => 30.0,
-            IntegratorQuality::Ultra => 10.0,
+            IntegratorQuality::Low => 86400.0,   // 1 day
+            IntegratorQuality::Medium => 8640.0, // 0.1 day
+            IntegratorQuality::High => 864.0,    // 0.01 day
+            IntegratorQuality::Ultra => 60.0,    // 1 minute
         };
 
         let mut time_remaining = dt;

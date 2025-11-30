@@ -21,10 +21,10 @@ impl Integrator for SymplecticIntegrator {
     ) {
         // Handle substeps based on quality
         let max_substep = match quality {
-            IntegratorQuality::Low => 60.0,
-            IntegratorQuality::Medium => 30.0,
-            IntegratorQuality::High => 10.0,
-            IntegratorQuality::Ultra => 1.0,
+            IntegratorQuality::Low => 8640.0,    // 0.1 day
+            IntegratorQuality::Medium => 864.0,  // 0.01 day
+            IntegratorQuality::High => 60.0,     // 1 minute
+            IntegratorQuality::Ultra => 10.0,    // 10 seconds
         };
 
         let mut time_remaining = dt;

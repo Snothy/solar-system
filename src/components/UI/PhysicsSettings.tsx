@@ -31,6 +31,8 @@ export interface PhysicsSettingsProps {
   onSetWisdomHolmanQuality: (quality: number) => void;
   sabaQuality: number;
   onSetSabaQuality: (quality: number) => void;
+  highPrecisionQuality: number;
+  onSetHighPrecisionQuality: (quality: number) => void;
   
   // New Props
   enableSolarMassLoss: boolean;
@@ -197,6 +199,8 @@ export function PhysicsSettings({
   onSetWisdomHolmanQuality,
   sabaQuality,
   onSetSabaQuality,
+  highPrecisionQuality,
+  onSetHighPrecisionQuality,
   
   // New Props
   enableSolarMassLoss,
@@ -499,10 +503,10 @@ export function PhysicsSettings({
                 </label>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
-                    { l: 'Low (60s)', v: 0, d: '60s' },
-                    { l: 'Med (30s)', v: 1, d: '30s' },
-                    { l: 'High (10s)', v: 2, d: '10s' },
-                    { l: 'Ultra (1s)', v: 3, d: '1s' }
+                    { l: 'Low (2.4h)', v: 0, d: '2.4 hours' },
+                    { l: 'Med (14m)', v: 1, d: '14.4 minutes' },
+                    { l: 'High (1m)', v: 2, d: '1 minute' },
+                    { l: 'Ultra (10s)', v: 3, d: '10 seconds' }
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -533,13 +537,13 @@ export function PhysicsSettings({
               <div style={{ padding: '8px 0' }}>
                 <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
                   Wisdom-Holman Quality (Max Substep)
-</label>
+                </label>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
-                    { l: 'Low (300s)', v: 0, d: '300s' },
-                    { l: 'Med (180s)', v: 1, d: '180s' },
-                    { l: 'High (100s)', v: 2, d: '100s' },
-                    { l: 'Ultra (60s)', v: 3, d: '60s' }
+                    { l: 'Low (5d)', v: 0, d: '5 days' },
+                    { l: 'Med (1d)', v: 1, d: '1 day' },
+                    { l: 'High (2.4h)', v: 2, d: '2.4 hours' },
+                    { l: 'Ultra (14m)', v: 3, d: '14.4 minutes' }
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -573,10 +577,10 @@ export function PhysicsSettings({
                 </label>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
-                    { l: 'Low (1200s)', v: 0, d: '1200s' },
-                    { l: 'Med (600s)', v: 1, d: '600s' },
-                    { l: 'High (300s)', v: 2, d: '300s' },
-                    { l: 'Ultra (150s)', v: 3, d: '150s' }
+                    { l: 'Low (1d)', v: 0, d: '1 day' },
+                    { l: 'Med (2.4h)', v: 1, d: '2.4 hours' },
+                    { l: 'High (14m)', v: 2, d: '14.4 minutes' },
+                    { l: 'Ultra (1m)', v: 3, d: '1 minute' }
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -593,6 +597,43 @@ export function PhysicsSettings({
                         transition: 'all 0.2s'
                       }}
                       title={`Max Substep: ${opt.d}`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {integratorMode === 'high-precision' && (
+            <div style={{ marginLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginBottom: '8px' }}>
+              <div style={{ padding: '8px 0' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+                  DOP853 Quality (Error Tolerance)
+                </label>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[
+                    { l: 'Low (1e-7)', v: 0, d: '1e-7 Tolerance' },
+                    { l: 'Med (1e-9)', v: 1, d: '1e-9 Tolerance' },
+                    { l: 'High (1e-12)', v: 2, d: '1e-12 Tolerance' },
+                    { l: 'Ultra (1e-14)', v: 3, d: '1e-14 Tolerance' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onSetHighPrecisionQuality(opt.v)}
+                      style={{
+                        flex: 1,
+                        padding: '4px',
+                        fontSize: '10px',
+                        backgroundColor: highPrecisionQuality === opt.v ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                        color: highPrecisionQuality === opt.v ? 'white' : '#9ca3af',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      title={`Error Tolerance: ${opt.d}`}
                     >
                       {opt.l}
                     </button>

@@ -72,6 +72,8 @@ export function App() {
     setWisdomHolmanQuality,
     sabaQuality,
     setSabaQuality,
+    highPrecisionQuality,
+    setHighPrecisionQuality,
     // New Toggles
     enableSolarMassLoss,
     setEnableSolarMassLoss,
@@ -241,16 +243,16 @@ export function App() {
         useTDBTime={useTDBTime}
         enableLightAberration={enableLightAberration}
         useLightTimeDelay={useLightTimeDelay}
-        onToggleTidalEvolution={(val) => { console.log('App: Setting Tidal to', val); setEnableTidalEvolution(val); }}
-        onToggleAtmosphericDrag={(val) => { console.log('App: Setting Drag to', val); setEnableAtmosphericDrag(val); }}
-        onToggleYarkovsky={(val) => { console.log('App: Setting Yarkovsky to', val); setEnableYarkovsky(val); }}
+        onToggleTidalEvolution={setEnableTidalEvolution}
+        onToggleAtmosphericDrag={setEnableAtmosphericDrag}
+        onToggleYarkovsky={setEnableYarkovsky}
         onTogglePrecession={setEnablePrecession}
         onToggleNutation={setEnableNutation}
         onToggleTDBTime={setUseTDBTime}
         onToggleLightAberration={setEnableLightAberration}
         onToggleLightTimeDelay={setUseLightTimeDelay}
         enableRelativity={enableRelativity}
-        onToggleRelativity={(val) => { console.log('App: Setting Relativity to', val); setEnableRelativity(val); }}
+        onToggleRelativity={setEnableRelativity}
         integratorMode={integratorMode}
         onSetIntegratorMode={setIntegratorMode}
         adaptiveQuality={adaptiveQuality}
@@ -259,6 +261,8 @@ export function App() {
         onSetWisdomHolmanQuality={setWisdomHolmanQuality}
         sabaQuality={sabaQuality}
         onSetSabaQuality={setSabaQuality}
+        highPrecisionQuality={highPrecisionQuality}
+        onSetHighPrecisionQuality={setHighPrecisionQuality}
         
         // New Props
         enableSolarMassLoss={enableSolarMassLoss}

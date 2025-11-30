@@ -179,15 +179,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
                  initialPos = pos_final.add(parentBody.pos);
                  initialVel = vel_final.add(parentBody.vel);
                  
-                 if (data.name === "Phobos") {
-                     console.log("Phobos Initialized from Elements:", {
-                         a, e, i: THREE.MathUtils.radToDeg(i),
-                         pos: initialPos,
-                         vel: initialVel,
-                         parentPos: parentBody.pos,
-                         dist: initialPos.distanceTo(parentBody.pos)
-                     });
-                 }
+
              }
           }
 
@@ -518,20 +510,22 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setEnablePRDrag: physics.setEnablePRDrag,
     useEIH: physics.useEIH,
     setUseEIH: physics.setUseEIH,
-    enableYORP: physics.enableYORP,
-    setEnableYORP: physics.setEnableYORP,
-    enableCometForces: physics.enableCometForces,
-    setEnableCometForces: physics.setEnableCometForces,
     enableGravitationalHarmonics: physics.enableGravitationalHarmonics,
     setEnableGravitationalHarmonics: physics.setEnableGravitationalHarmonics,
     enableSolarRadiationPressure: physics.enableSolarRadiationPressure,
     setEnableSolarRadiationPressure: physics.setEnableSolarRadiationPressure,
+    enableYORP: physics.enableYORP,
+    setEnableYORP: physics.setEnableYORP,
+    enableCometForces: physics.enableCometForces,
+    setEnableCometForces: physics.setEnableCometForces,
     integratorMode: physics.integratorMode,
     setIntegratorMode: physics.setIntegratorMode,
     wisdomHolmanQuality: physics.wisdomHolmanQuality,
     setWisdomHolmanQuality: physics.setWisdomHolmanQuality,
     sabaQuality: physics.sabaQuality,
     setSabaQuality: physics.setSabaQuality,
+    highPrecisionQuality: physics.highPrecisionQuality,
+    setHighPrecisionQuality: physics.setHighPrecisionQuality,
     
     updatePhysics,
 

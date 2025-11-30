@@ -72,6 +72,8 @@ export interface PhysicsEngine {
   setWisdomHolmanQuality: React.Dispatch<React.SetStateAction<number>>;
   sabaQuality: number;
   setSabaQuality: React.Dispatch<React.SetStateAction<number>>;
+  highPrecisionQuality: number;
+  setHighPrecisionQuality: React.Dispatch<React.SetStateAction<number>>;
   
   // New Toggles
   enableSolarMassLoss: boolean;
@@ -86,6 +88,10 @@ export interface PhysicsEngine {
   setEnableCometForces: React.Dispatch<React.SetStateAction<boolean>>;
   useEIH: boolean;
   setUseEIH: React.Dispatch<React.SetStateAction<boolean>>;
+  enableGravitationalHarmonics: boolean;
+  setEnableGravitationalHarmonics: React.Dispatch<React.SetStateAction<boolean>>;
+  enableSolarRadiationPressure: boolean;
+  setEnableSolarRadiationPressure: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Backward compatibility
   useAdaptiveTimeStep: boolean;
@@ -120,6 +126,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   // Refs for throttled time updates
   const simTimeRef = useRef(initialTime);
   const lastStateUpdateTime = useRef(0);
+  const lastBodySyncTime = useRef(0);
 
   // Wrapper to keep ref in sync with state
   const setSimTime = useCallback((value: number | ((prev: number) => number)) => {
@@ -147,6 +154,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   const [adaptiveQuality, setAdaptiveQuality] = useState(2); // High default
   const [wisdomHolmanQuality, setWisdomHolmanQuality] = useState(1); // Medium default
   const [sabaQuality, setSabaQuality] = useState(1); // Medium default
+  const [highPrecisionQuality, setHighPrecisionQuality] = useState(2); // High default
 
   // New Toggles
   const [enableSolarMassLoss, setEnableSolarMassLoss] = useState(true);
@@ -165,7 +173,6 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     const loadWasm = async () => {
       try {
         await init();
-        console.log("WASM Module Loaded");
         setWasmReady(true);
       } catch (e) {
         console.error("Failed to load WASM module:", e);
@@ -216,11 +223,11 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
       if (!wasmEngineRef.current) {
         // Create engine for the first time
         wasmEngineRef.current = new WasmPhysicsEngine(wasmBodies);
-        console.log(`WASM Physics Engine Initialized with ${bodies.length} bodies`);
+        wasmEngineRef.current = new WasmPhysicsEngine(wasmBodies);
       } else {
         // Update existing engine
         wasmEngineRef.current.update_bodies(wasmBodies);
-        console.log(`WASM Physics Engine Updated with ${bodies.length} bodies`);
+        wasmEngineRef.current.update_bodies(wasmBodies);
       }
     } catch (e) {
       console.error("Failed to create/update WASM physics engine:", e);
@@ -265,7 +272,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
       });
       
       wasmEngineRef.current.update_bodies(wasmBodies);
-      console.log(`Manually synced ${bodies.length} bodies to WASM physics engine`);
+      wasmEngineRef.current.update_bodies(wasmBodies);
     } catch (e) {
       console.error("Failed to sync bodies to WASM:", e);
     }
@@ -287,9 +294,9 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             quality = sabaQuality;
         } else if (integratorMode === 'high-precision') {
             integratorType = 3;
-            quality = 3; // Ultra (Unused for DOP853 currently)
+            quality = highPrecisionQuality;
         } else {
-            // Adaptive
+            // Adaptive (Symplectic)
             integratorType = 0;
             quality = adaptiveQuality;
         }
@@ -364,28 +371,48 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             setParticles(prev => [...prev, ...newParticles]);
         }
 
-        // Let's fetch state for the bodies array occasionally?
-        if (now - lastStateUpdateTime.current > 500) {
+        // Helper to handle both Map (WASM) and Object (JS) formats
+        const getValue = (obj: any, key: string): any => {
+            if (!obj) return undefined;
+            if (obj instanceof Map || (obj.get && typeof obj.get === 'function')) {
+                return obj.get(key);
+            }
+            return obj[key];
+        };
+
+        // Let's fetch state for the bodies array occasionally
+        // We use a separate timer for this so it doesn't get reset by UI updates
+        if (now - lastBodySyncTime.current > 500) {
              const states = wasmEngineRef.current.get_bodies();
-             // We don't want to trigger a re-render of the whole body list every 500ms if not needed.
-             // But we might want to update the mutable objects in the array without triggering React?
+             
+             // Update mutable objects in the array without triggering React re-render
              for (let i = 0; i < bodies.length; i++) {
                 const nb = states[i];
                 if (nb) {
-                    bodies[i].pos.set(nb.pos.x, nb.pos.y, nb.pos.z);
-                    bodies[i].vel.set(nb.vel.x, nb.vel.y, nb.vel.z);
-                    // Update orientation
-                    // if (!bodies[i].angularVelocity) bodies[i].angularVelocity = new THREE.Vector3();
-                    // bodies[i].angularVelocity!.set(nb.angular_velocity.x, nb.angular_velocity.y, nb.angular_velocity.z);
-                    
-                    // Update pole vector
-                    // if (!bodies[i].poleVector) bodies[i].poleVector = new THREE.Vector3();
-                    // bodies[i].poleVector!.set(nb.pole_vector.x, nb.pole_vector.y, nb.pole_vector.z);
-                    
-                    // Update libration
-                    // bodies[i].libration = nb.libration;
+                    const pos = getValue(nb, 'pos');
+                    const vel = getValue(nb, 'vel');
+
+                    if (pos && vel) {
+                        // Handle both object {x,y,z} and array [x,y,z] formats
+                        const px = typeof getValue(pos, 'x') === 'number' ? getValue(pos, 'x') : (Array.isArray(pos) ? pos[0] : 0);
+                        const py = typeof getValue(pos, 'y') === 'number' ? getValue(pos, 'y') : (Array.isArray(pos) ? pos[1] : 0);
+                        const pz = typeof getValue(pos, 'z') === 'number' ? getValue(pos, 'z') : (Array.isArray(pos) ? pos[2] : 0);
+                        
+                        const vx = typeof getValue(vel, 'x') === 'number' ? getValue(vel, 'x') : (Array.isArray(vel) ? vel[0] : 0);
+                        const vy = typeof getValue(vel, 'y') === 'number' ? getValue(vel, 'y') : (Array.isArray(vel) ? vel[1] : 0);
+                        const vz = typeof getValue(vel, 'z') === 'number' ? getValue(vel, 'z') : (Array.isArray(vel) ? vel[2] : 0);
+
+                        // Only update if values are valid numbers (not NaN)
+                        if (!isNaN(px) && !isNaN(py) && !isNaN(pz)) {
+                            bodies[i].pos.set(px, py, pz);
+                        }
+                        if (!isNaN(vx) && !isNaN(vy) && !isNaN(vz)) {
+                            bodies[i].vel.set(vx, vy, vz);
+                        }
+                    }
                 }
             }
+            lastBodySyncTime.current = now;
         }
 
         return simulatedDt;
@@ -405,11 +432,11 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
   // Expose getVisualState for visual updates
   const getVisualState = useCallback((
     observerPos: THREE.Vector3,
-    visualScale: number,
-    useVisualScale: boolean,
+    _visualScale: number,
+    _useVisualScale: boolean,
     useLightTimeDelay: boolean,
     enableLightAberration: boolean,
-    focusedBodyIdx: number,
+    _focusedBodyIdx: number,
     scaleFactor: number
   ) => {
     if (!wasmReady || !wasmEngineRef.current) return null;
@@ -476,6 +503,8 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     setWisdomHolmanQuality,
     sabaQuality,
     setSabaQuality,
+    highPrecisionQuality,
+    setHighPrecisionQuality,
     useEIH,
     setUseEIH,
     enableSolarMassLoss,
@@ -488,6 +517,10 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     setEnableYORP,
     enableCometForces,
     setEnableCometForces,
+    enableGravitationalHarmonics,
+    setEnableGravitationalHarmonics,
+    enableSolarRadiationPressure,
+    setEnableSolarRadiationPressure,
     // Backward compatibility
     useAdaptiveTimeStep,
     setUseAdaptiveTimeStep,

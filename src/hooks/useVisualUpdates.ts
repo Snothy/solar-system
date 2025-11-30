@@ -57,6 +57,7 @@ export function useVisualUpdates(
         );
 
         if (visualState && visualState.positions) {
+            // console.log("Visual State Received:", visualState);
             const positions = visualState.positions; // Float32Array [x, y, z, x, y, z...]
             const geometricPositions = visualState.geometricPositions; // Float32Array [x, y, z...]
             
@@ -113,6 +114,7 @@ export function useVisualUpdates(
 
     // Fallback to JS (Minimal Geometric Update)
     // If WASM is not ready, just show bodies at their current geometric position.
+    console.log("Fallback to JS Visual Update (WASM missing or invalid visualState)");
     visualBodies.forEach(vb => {
       _visualPos.set(
         vb.body.pos.x * SCALE,

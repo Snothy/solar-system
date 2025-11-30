@@ -2,12 +2,15 @@ use crate::common::types::{PhysicsBody, Vector3};
 use crate::core::Simulation;
 use js_sys::Float32Array;
 use wasm_bindgen::prelude::*;
+use serde::Serialize;
 
 /// Manages frontend-specific visualization state and logic.
 /// This includes trails, light time delay, aberration, and visual scaling.
 struct FrontendState {
     trails: Vec<Vec<f32>>,
     trail_indices: Vec<usize>,
+    visual_positions: Vec<f32>,
+    geometric_positions: Vec<f32>,
 }
 
 impl FrontendState {
@@ -19,6 +22,8 @@ impl FrontendState {
         Self {
             trails,
             trail_indices: vec![0; n_bodies],
+            visual_positions: vec![0.0; n_bodies * 3],
+            geometric_positions: vec![0.0; n_bodies * 3],
         }
     }
 
@@ -26,6 +31,8 @@ impl FrontendState {
         if n_bodies != self.trails.len() {
             self.trails = vec![vec![0.0; 3000]; n_bodies];
             self.trail_indices = vec![0; n_bodies];
+            self.visual_positions = vec![0.0; n_bodies * 3];
+            self.geometric_positions = vec![0.0; n_bodies * 3];
         }
     }
 
@@ -51,9 +58,6 @@ impl FrontendState {
 
         let observer_pos = Vector3::new(observer_x, observer_y, observer_z);
         let observer_vel = Vector3::new(observer_vx, observer_vy, observer_vz);
-
-        let mut visual_positions = vec![0.0; n * 3];
-        let mut geometric_positions = vec![0.0; n * 3];
         let c_light = 299792458.0;
 
         for i in 0..n {
@@ -63,9 +67,9 @@ impl FrontendState {
             let mut pos = b.pos;
             pos.scale(scale_factor); // Convert to visual units
 
-            geometric_positions[i * 3] = pos.x as f32;
-            geometric_positions[i * 3 + 1] = pos.y as f32;
-            geometric_positions[i * 3 + 2] = pos.z as f32;
+            self.geometric_positions[i * 3] = pos.x as f32;
+            self.geometric_positions[i * 3 + 1] = pos.y as f32;
+            self.geometric_positions[i * 3 + 2] = pos.z as f32;
 
             let mut vis_pos = pos;
 
@@ -99,9 +103,9 @@ impl FrontendState {
                 }
             }
 
-            visual_positions[i * 3] = vis_pos.x as f32;
-            visual_positions[i * 3 + 1] = vis_pos.y as f32;
-            visual_positions[i * 3 + 2] = vis_pos.z as f32;
+            self.visual_positions[i * 3] = vis_pos.x as f32;
+            self.visual_positions[i * 3 + 1] = vis_pos.y as f32;
+            self.visual_positions[i * 3 + 2] = vis_pos.z as f32;
 
             // Update Trails
             let t_idx = self.trail_indices[i];
@@ -116,11 +120,17 @@ impl FrontendState {
 
         // Return object with positions and trails
         let result = js_sys::Object::new();
-        let pos_array = unsafe { js_sys::Float32Array::view(&visual_positions) };
-        let geo_array = unsafe { js_sys::Float32Array::view(&geometric_positions) };
 
-        js_sys::Reflect::set(&result, &"positions".into(), &pos_array).unwrap();
-        js_sys::Reflect::set(&result, &"geometricPositions".into(), &geo_array).unwrap();
+
+
+        // Use from() to copy data safely to JS
+        let pos_array = js_sys::Float32Array::from(self.visual_positions.as_slice());
+        let geo_array = js_sys::Float32Array::from(self.geometric_positions.as_slice());
+        
+
+
+        js_sys::Reflect::set(&result, &JsValue::from("positions"), &pos_array).unwrap();
+        js_sys::Reflect::set(&result, &JsValue::from("geometricPositions"), &geo_array).unwrap();
         result.into()
     }
 
@@ -182,17 +192,20 @@ impl FrontendSimulation {
     }
 
     pub fn get_bodies(&self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self.sim.bodies).unwrap()
+        let serializer = serde_wasm_bindgen::Serializer::json_compatible();
+        self.sim.bodies.serialize(&serializer).unwrap()
     }
 
     pub fn get_barycenter(&self) -> JsValue {
         let bary = self.sim.get_barycenter();
-        serde_wasm_bindgen::to_value(&bary).unwrap()
+        let serializer = serde_wasm_bindgen::Serializer::json_compatible();
+        bary.serialize(&serializer).unwrap()
     }
 
     pub fn check_collisions(&self) -> JsValue {
         let collisions = crate::dynamics::collisions::check_collisions(&self.sim.bodies);
-        serde_wasm_bindgen::to_value(&collisions).unwrap()
+        let serializer = serde_wasm_bindgen::Serializer::json_compatible();
+        collisions.serialize(&serializer).unwrap()
     }
 
     pub fn get_visual_state(
