@@ -597,7 +597,7 @@
     "axialTilt": 4,
     "meanTemperature": 168,
     "surfaceGravity": 0.27,
-    "jplId": "1",
+    "jplId": "1;",
     "type": "dwarf planet",
     "shape": "sphere",
     "poleRA": 291.41,
@@ -621,7 +621,7 @@
     "axialTilt": 29,
     "meanTemperature": 143,
     "surfaceGravity": 0.22,
-    "jplId": "4",
+    "jplId": "4;",
     "type": "asteroid",
     "shape": "sphere",
     "poleRA": 301.04,
@@ -642,7 +642,7 @@
     "axialTilt": 84,
     "meanTemperature": 164,
     "surfaceGravity": 0.21,
-    "jplId": "2",
+    "jplId": "2;",
     "type": "asteroid",
     "shape": "sphere",
     "poleRA": 34.83,
@@ -663,7 +663,7 @@
     "axialTilt": 60,
     "meanTemperature": 164,
     "surfaceGravity": 0.09,
-    "jplId": "10",
+    "jplId": "10;",
     "type": "asteroid",
     "shape": "sphere",
     "poleRA": 308.57,
@@ -679,7 +679,7 @@
     "axialTilt": 0,
     "meanTemperature": 200,
     "surfaceGravity": 0.001,
-    "jplId": "90000030",
+    "jplId": "90000030;",
     "type": "comet",
     "shape": "sphere",
     "poleRA": 0,
@@ -746,7 +746,7 @@
     "axialTilt": 78,
     "meanTemperature": 42,
     "surfaceGravity": 0.82,
-    "jplId": "136199",
+    "jplId": "136199;",
     "type": "dwarf planet",
     "albedo": 0.96
   },
@@ -765,7 +765,7 @@
     "axialTilt": 28,
     "meanTemperature": 50,
     "surfaceGravity": 0.4,
-    "jplId": "136108",
+    "jplId": "136108;",
     "type": "dwarf planet",
     "shape": "model",
     "albedo": 0.7
@@ -785,7 +785,7 @@
     "axialTilt": 29,
     "meanTemperature": 30,
     "surfaceGravity": 0.4,
-    "jplId": "136472",
+    "jplId": "136472;",
     "type": "dwarf planet",
     "albedo": 0.8
   },
@@ -799,7 +799,7 @@
     "axialTilt": 0,
     "meanTemperature": 12,
     "surfaceGravity": 0.3,
-    "jplId": "90377",
+    "jplId": "90377;",
     "type": "asteroid",
     "albedo": 0.32
   },
@@ -813,7 +813,7 @@
     "axialTilt": 0,
     "meanTemperature": 44,
     "surfaceGravity": 0.3,
-    "jplId": "50000",
+    "jplId": "50000;",
     "type": "asteroid",
     "albedo": 0.1
   },
@@ -910,6 +910,63 @@
     "meanTemperature": 60,
     "surfaceGravity": 0.23,
     "jplId": "702",
+    "type": "moon"
+  },
+  {
+    "name": "Tethys",
+    "mass": 617440000000000000000,
+    "radius": 531100,
+    "radii": {
+      "x": 531100,
+      "y": 531100,
+      "z": 531100
+    },
+    "color": 13421772,
+    "texture": "/1P_Halley.jpg",
+    "parent": "Saturn",
+    "rotationPeriod": 45.307,
+    "axialTilt": 0,
+    "meanTemperature": 86,
+    "surfaceGravity": 0.146,
+    "jplId": "603",
+    "type": "moon"
+  },
+  {
+    "name": "Dione",
+    "mass": 1.09545e+21,
+    "radius": 561400,
+    "radii": {
+      "x": 561400,
+      "y": 561400,
+      "z": 561400
+    },
+    "color": 10066329,
+    "texture": "/1P_Halley.jpg",
+    "parent": "Saturn",
+    "rotationPeriod": 65.685,
+    "axialTilt": 0,
+    "meanTemperature": 87,
+    "surfaceGravity": 0.232,
+    "jplId": "604",
+    "type": "moon"
+  },
+  {
+    "name": "Rhea",
+    "mass": 2.3065e+21,
+    "radius": 763800,
+    "radii": {
+      "x": 763800,
+      "y": 763800,
+      "z": 763800
+    },
+    "color": 11184810,
+    "texture": "/1P_Halley.jpg",
+    "parent": "Saturn",
+    "rotationPeriod": 108.418,
+    "axialTilt": 0,
+    "meanTemperature": 76,
+    "surfaceGravity": 0.264,
+    "jplId": "605",
     "type": "moon"
   }
 ]

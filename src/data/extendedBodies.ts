@@ -16,7 +16,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 4,
     meanTemperature: 168,
     surfaceGravity: 0.27,
-    jplId: "1",
+    jplId: "1;",
     type: "dwarf planet",
     shape: 'sphere',
     poleRA: 291.41,
@@ -37,7 +37,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 29,
     meanTemperature: 143,
     surfaceGravity: 0.22,
-    jplId: "4",
+    jplId: "4;",
     type: "asteroid",
     shape: 'sphere',
     poleRA: 301.04,
@@ -55,7 +55,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 84,
     meanTemperature: 164,
     surfaceGravity: 0.21,
-    jplId: "2",
+    jplId: "2;",
     type: "asteroid",
     shape: 'sphere',
     poleRA: 34.83,
@@ -73,7 +73,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 60,
     meanTemperature: 164,
     surfaceGravity: 0.09,
-    jplId: "10",
+    jplId: "10;",
     type: "asteroid",
     shape: 'sphere',
     poleRA: 308.57,
@@ -90,7 +90,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 200,
     surfaceGravity: 0.001,
-    jplId: "90000030",
+    jplId: "90000030;",
     type: "comet",
     shape: 'sphere',
     poleRA: 0,
@@ -148,7 +148,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 78,
     meanTemperature: 42,
     surfaceGravity: 0.82,
-    jplId: "136199",
+    jplId: "136199;",
     type: "dwarf planet",
     albedo: 0.96
   },
@@ -164,7 +164,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 28,
     meanTemperature: 50,
     surfaceGravity: 0.4,
-    jplId: "136108",
+    jplId: "136108;",
     type: "dwarf planet",
     shape: 'model',
     albedo: 0.7
@@ -181,7 +181,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 29,
     meanTemperature: 30,
     surfaceGravity: 0.4,
-    jplId: "136472",
+    jplId: "136472;",
     type: "dwarf planet",
     albedo: 0.8
   },
@@ -196,7 +196,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 12,
     surfaceGravity: 0.3,
-    jplId: "90377",
+    jplId: "90377;",
     type: "asteroid",
     albedo: 0.32
   },
@@ -211,7 +211,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     axialTilt: 0,
     meanTemperature: 44,
     surfaceGravity: 0.3,
-    jplId: "50000",
+    jplId: "50000;",
     type: "asteroid",
     albedo: 0.1
   },
@@ -294,6 +294,53 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     surfaceGravity: 0.23,
     jplId: "702",
     type: "moon"
-  }
-];
+  },
+   {
+    name: "Tethys",
+    mass: 6.1744e20,
+    radius: 531.1e3,
+    radii: { x: 531.1e3, y: 531.1e3, z: 531.1e3 },
+    color: 0xcccccc,
+    texture: "/1P_Halley.jpg",
+    parent: "Saturn",
+    rotationPeriod: 45.307,
+    axialTilt: 0,
+    meanTemperature: 86,
+    surfaceGravity: 0.146,
+    jplId: "603",
+    type: "moon"
+  },
 
+  {
+    name: "Dione",
+    mass: 1.09545e21,
+    radius: 561.4e3,
+    radii: { x: 561.4e3, y: 561.4e3, z: 561.4e3 },
+    color: 0x999999,
+    texture: "/1P_Halley.jpg",
+    parent: "Saturn",
+    rotationPeriod: 65.685,
+    axialTilt: 0,
+    meanTemperature: 87,
+    surfaceGravity: 0.232,
+    jplId: "604",
+    type: "moon"
+  },
+
+  {
+    name: "Rhea",
+    mass: 2.3065e21,
+    radius: 763.8e3,
+    radii: { x: 763.8e3, y: 763.8e3, z: 763.8e3 },
+    color: 0xaaaaaa,
+    texture: "/1P_Halley.jpg",
+    parent: "Saturn",
+    rotationPeriod: 108.418,
+    axialTilt: 0,
+    meanTemperature: 76,
+    surfaceGravity: 0.264,
+    jplId: "605",
+    type: "moon"
+  }
+
+];
