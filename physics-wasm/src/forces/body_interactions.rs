@@ -24,11 +24,25 @@ pub fn apply_body_interactions(
     let gravity_mode = config.gravity_mode;
     let parent_indices = &config.parent_indices;
 
-    // --- Optimization: Pre-calculate Rotation Angles ---
+    // --- Optimization: Pre-calculate Rotation Angles & Update Pole Vectors ---
     // Avoids calculating Earth GMST N^2 times
     let mut rotation_angles = vec![0.0; n];
+    // We need to update pole vectors if precession is enabled. 
+    // Since bodies is immutable, we'll calculate updated poles and store them in a temporary vector.
+    // However, apply_zonal_harmonics takes &PhysicsBody. 
+    // Ideally, we should update the body state, but here we might need to pass the pole explicitly 
+    // or clone/modify. For now, let's calculate the pole and pass it if we can modify the function signature later.
+    // BUT, apply_zonal_harmonics reads body.gravity_harmonics.pole_vector.
+    // Given the constraints, we will calculate the pole here.
+    // Wait, we can't easily modify bodies[i] here as it is a slice.
+    // We might need to handle this by calculating the pole on the fly inside the loop or 
+    // creating a parallel array of effective poles.
+    
+    let mut effective_poles = vec![None; n];
+
     if enable_j2 {
         for (i, body) in bodies.iter().enumerate() {
+            // 1. Rotation Angle (W)
             rotation_angles[i] = if body.name == "Earth" {
                 calculate_earth_rotation_angle(current_jd)
             } else if let Some(precession) = &body.precession {
@@ -40,6 +54,50 @@ pub fn apply_body_interactions(
             } else {
                 0.0
             };
+
+            // 2. Pole Precession (RA/Dec)
+            if let Some(precession) = &body.precession {
+                if let (Some(ra0), Some(dec0), Some(ra_rate), Some(dec_rate)) = (
+                    precession.pole_ra0, 
+                    precession.pole_dec0, 
+                    precession.pole_ra_rate, 
+                    precession.pole_dec_rate
+                ) {
+                    // T = Julian centuries since J2000.0
+                    let t = (current_jd - 2451545.0) / 36525.0;
+                    
+                    // Rates are in degrees/century. 
+                    // ra0/dec0 are already in radians (converted in loader).
+                    // We need to convert rates to radians.
+                    let ra_rate_rad = ra_rate.to_radians();
+                    let dec_rate_rad = dec_rate.to_radians();
+
+                    let ra = ra0 + ra_rate_rad * t;
+                    let dec = dec0 + dec_rate_rad * t;
+
+                    // Convert to Cartesian (Equatorial J2000)
+                    let x_eq = dec.cos() * ra.cos();
+                    let y_eq = dec.cos() * ra.sin();
+                    let z_eq = dec.sin();
+
+                    // Rotate to Ecliptic J2000 (Obliquity = 23.43928 deg)
+                    let epsilon = 23.43928_f64.to_radians();
+                    let cos_eps = epsilon.cos();
+                    let sin_eps = epsilon.sin();
+
+                    let x_ecl = x_eq;
+                    let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
+                    let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
+
+                    let mut v = Vector3::new(x_ecl, y_ecl, z_ecl);
+                    v.normalize();
+                    effective_poles[i] = Some(v);
+                } else if let Some(harmonics) = &body.gravity_harmonics {
+                     effective_poles[i] = harmonics.pole_vector;
+                }
+            } else if let Some(harmonics) = &body.gravity_harmonics {
+                effective_poles[i] = harmonics.pole_vector;
+            }
         }
     }
 
@@ -119,7 +177,7 @@ pub fn apply_body_interactions(
                     let rot_b2 = rotation_angles[j];
                     
                     // 1. b1 acts on b2
-                    let a_zonal = apply_zonal_harmonics(b1, b2, &r_vec, dist, dist_sq);
+                    let a_zonal = apply_zonal_harmonics(b1, b2, &r_vec, dist, dist_sq, effective_poles[i]);
                     let a_sectorial = apply_sectorial_harmonics(b1, &r_vec, dist_sq, rot_b1);
                     let mut a_total = a_zonal; a_total.add(&a_sectorial);
                     
@@ -129,7 +187,7 @@ pub fn apply_body_interactions(
                     
                     // 2. b2 acts on b1
                     let mut r_vec_neg = r_vec; r_vec_neg.scale(-1.0);
-                    let a_zonal_b = apply_zonal_harmonics(b2, b1, &r_vec_neg, dist, dist_sq);
+                    let a_zonal_b = apply_zonal_harmonics(b2, b1, &r_vec_neg, dist, dist_sq, effective_poles[j]);
                     let a_sectorial_b = apply_sectorial_harmonics(b2, &r_vec_neg, dist_sq, rot_b2);
                     let mut a_total_b = a_zonal_b; a_total_b.add(&a_sectorial_b);
                     

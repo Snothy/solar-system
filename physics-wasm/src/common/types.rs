@@ -151,6 +151,13 @@ pub struct PrecessionParams {
     pub pole_ra0: Option<f64>,
     #[serde(default, alias = "poleDec")]
     pub pole_dec0: Option<f64>,
+    
+    // Precession rates (degrees/century)
+    #[serde(default, alias = "poleRARate")]
+    pub pole_ra_rate: Option<f64>,
+    #[serde(default, alias = "poleDecRate")]
+    pub pole_dec_rate: Option<f64>,
+
     #[serde(default)]
     pub precession_rate: Option<f64>,
     #[serde(default)]

@@ -44,6 +44,8 @@ export interface CelestialBodyData {
   rel_M?: number;           // Mean Anomaly (deg)
   poleRA?: number;          // Right Ascension of North Pole (degrees)
   poleDec?: number;         // Declination of North Pole (degrees)
+  poleRA_rate?: number;     // Rate of change of RA (degrees/century)
+  poleDec_rate?: number;    // Rate of change of Dec (degrees/century)
   W0?: number;              // Prime Meridian angle at J2000 (degrees)
   Wdot?: number;            // Rotation rate (degrees/day)
   
@@ -51,8 +53,15 @@ export interface CelestialBodyData {
   J?: number[];             // Zonal harmonic coefficients [J2, J3, J4, ...]
   C22?: number;             // Tesseral harmonic C22
   S22?: number;             // Tesseral harmonic S22
-  k2?: number;              // Love number k2
-  tidalQ?: number;          // Tidal quality factor Q(degrees/day)
+  
+  tidal?: {
+    k2: number;
+    tidalQ: number;
+  };
+  
+  k2?: number;              // Deprecated: Use tidal object
+  tidalQ?: number;          // Deprecated: Use tidal object
+  
   modelPath?: string;       // Path to GLB/GLTF model
   shape?: 'sphere' | 'model'; // Explicit shape type
   modelScale?: number;      // Scale factor for the model
@@ -94,6 +103,10 @@ export interface PhysicsBody {
   S22?: number;
   
   // Tidal parameters
+  tidal?: {
+    k2: number;
+    tidalQ: number;
+  };
   k2?: number;
   tidalQ?: number;
   
@@ -110,6 +123,8 @@ export interface PhysicsBody {
   // Time-dependent pole orientation
   poleRA0?: number;        // Initial pole RA at J2000
   poleDec0?: number;       // Initial pole Dec at J2000
+  poleRA_rate?: number;    // Rate of change of RA (degrees/century)
+  poleDec_rate?: number;   // Rate of change of Dec (degrees/century)
   precessionRate?: number; // arcsec/year
   nutationAmplitude?: number;
   

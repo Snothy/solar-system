@@ -13,11 +13,13 @@ pub fn apply_zonal_harmonics(
     r_vec: &Vector3,
     dist: f64,
     dist_sq: f64,
+    pole_override: Option<Vector3>,
 ) -> Vector3 {
     let mut acc_total = Vector3::zero();
 
     if let Some(harmonics) = &primary.gravity_harmonics {
-        if let Some(pole) = harmonics.pole_vector {
+        // Use override if provided, otherwise fallback to static pole
+        if let Some(pole) = pole_override.or(harmonics.pole_vector) {
             let coeffs = harmonics.get_zonal_coeffs();
             if coeffs.is_empty() {
                 return Vector3::zero();
@@ -171,7 +173,7 @@ fn apply_j3_cartesian(
     t1.scale(5.0 * z_r * (7.0 * z2_r2 - 3.0));
     
     let mut t2 = pole;
-    t2.scale(3.0 * (5.0 * z2_r2 - 1.0));
+    t2.scale(3.0 * (5.0 * z2_r2 - 1.0) * dist); // Scale by dist for unit consistency
     
     t1.sub(&t2);
     
@@ -193,8 +195,8 @@ fn apply_j4_cartesian(
     let z = r_vec.dot(&pole);
     let r6 = dist_sq * dist_sq * dist_sq;
     
-    // Formula: (5/2) * J4 * GM * R^4 / r^6
-    let factor = (5.0 * G * primary.mass * j4 * primary.radius.powi(4)) / (2.0 * r6);
+    // Formula: (5/8) * J4 * GM * R^4 / r^6  (Corrected from 5/2)
+    let factor = (5.0 * G * primary.mass * j4 * primary.radius.powi(4)) / (8.0 * r6);
     
     let z2_r2 = (z * z) / dist_sq;
     let z4_r4 = z2_r2 * z2_r2;
@@ -203,7 +205,7 @@ fn apply_j4_cartesian(
     t1.scale(3.0 - 42.0 * z2_r2 + 63.0 * z4_r4);
     
     let mut t2 = pole;
-    t2.scale(12.0 * z / dist - 28.0 * (z * z2_r2) / dist);
+    t2.scale((12.0 * z / dist - 28.0 * (z * z2_r2) / dist) * dist); // Scale by dist for unit consistency
     
     t1.add(&t2); // User logic: ADDED pole term
     t1.scale(factor / dist);

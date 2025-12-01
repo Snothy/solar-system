@@ -105,6 +105,12 @@ struct SimplifiedBody {
 
     #[serde(default, alias = "Wdot")]
     wdot: Option<f64>,
+
+    #[serde(default, alias = "poleRARate")]
+    pole_ra_rate: Option<f64>,
+
+    #[serde(default, alias = "poleDecRate")]
+    pole_dec_rate: Option<f64>,
 }
 
 impl SimplifiedBody {
@@ -162,6 +168,10 @@ impl SimplifiedBody {
         
         precession.w0 = self.w0;
         precession.wdot = self.wdot;
+        
+        // Load raw rates (degrees/century)
+        precession.pole_ra_rate = self.pole_ra_rate;
+        precession.pole_dec_rate = self.pole_dec_rate;
 
         PhysicsBody {
             name: self.name,

@@ -26,7 +26,7 @@ fn test_j3_perturbation() {
     let dist = r_vec.len();
     let dist_sq = dist * dist;
 
-    let acc = apply_zonal_harmonics(&earth, &satellite, &r_vec, dist, dist_sq);
+    let acc = apply_zonal_harmonics(&earth, &satellite, &r_vec, dist, dist_sq, None);
 
     // J3 should produce a non-zero acceleration
     assert!(acc.len() > 0.0, "J3 acceleration should be non-zero");
@@ -61,7 +61,7 @@ fn test_j4_perturbation() {
     let dist = r_vec.len();
     let dist_sq = dist * dist;
 
-    let acc = apply_zonal_harmonics(&jupiter, &satellite, &r_vec, dist, dist_sq);
+    let acc = apply_zonal_harmonics(&jupiter, &satellite, &r_vec, dist, dist_sq, None);
 
     // J4 should produce measurable acceleration
     assert!(acc.len() > 0.0, "J4 acceleration should be non-zero");
@@ -96,12 +96,12 @@ fn test_j3_latitude_variation() {
     sat.pos = Vector3::new(7000000.0, 0.0, 0.0);
     let mut r_vec = sat.pos;
     let dist = r_vec.len();
-    let acc_equator = apply_zonal_harmonics(&earth, &sat, &r_vec, dist, dist * dist);
+    let acc_equator = apply_zonal_harmonics(&earth, &sat, &r_vec, dist, dist * dist, None);
 
     // Test at pole
     sat.pos = Vector3::new(0.0, 0.0, 7000000.0);
     r_vec = sat.pos;
-    let acc_pole = apply_zonal_harmonics(&earth, &sat, &r_vec, dist, dist * dist);
+    let acc_pole = apply_zonal_harmonics(&earth, &sat, &r_vec, dist, dist * dist, None);
 
     // J3 effect should vary with latitude
     let mag_equator = acc_equator.len();
@@ -138,12 +138,12 @@ fn test_j4_symmetry() {
     sat.pos = Vector3::new(0.0, 0.0, 200000000.0);
     let mut r_vec = sat.pos;
     let dist = r_vec.len();
-    let acc_north = apply_zonal_harmonics(&jupiter, &sat, &r_vec, dist, dist * dist);
+    let acc_north = apply_zonal_harmonics(&jupiter, &sat, &r_vec, dist, dist * dist, None);
 
     // Test at -Z (should be symmetric for even harmonic)
     sat.pos = Vector3::new(0.0, 0.0, -200000000.0);
     r_vec = sat.pos;
-    let acc_south = apply_zonal_harmonics(&jupiter, &sat, &r_vec, dist, dist * dist);
+    let acc_south = apply_zonal_harmonics(&jupiter, &sat, &r_vec, dist, dist * dist, None);
 
     // J4 is even - should be symmetric about equator
     // Magnitudes should be equal (but directions opposite)
@@ -185,7 +185,7 @@ fn test_j2_acceleration_at_equator() {
     let r_vec = Vector3::new(dist, 0.0, 0.0);
     let dist_sq = dist * dist;
     
-    let acc = apply_zonal_harmonics(&primary, &satellite, &r_vec, dist, dist_sq);
+    let acc = apply_zonal_harmonics(&primary, &satellite, &r_vec, dist, dist_sq, None);
     
     // Expected Calculation
     // K = GM J2 R^2 / r^4
@@ -219,7 +219,7 @@ fn test_j2_acceleration_at_pole() {
     let r_vec = Vector3::new(0.0, 0.0, dist);
     let dist_sq = dist * dist;
     
-    let acc = apply_zonal_harmonics(&primary, &satellite, &r_vec, dist, dist_sq);
+    let acc = apply_zonal_harmonics(&primary, &satellite, &r_vec, dist, dist_sq, None);
     
     // Expected Calculation
     // At Pole (theta=0, c=1):
@@ -254,8 +254,8 @@ fn test_mass_independence() {
     let r_vec = Vector3::new(dist, 0.0, 0.0);
     let dist_sq = dist * dist;
     
-    let acc1 = apply_zonal_harmonics(&primary, &sat1, &r_vec, dist, dist_sq);
-    let acc2 = apply_zonal_harmonics(&primary, &sat2, &r_vec, dist, dist_sq);
+    let acc1 = apply_zonal_harmonics(&primary, &sat1, &r_vec, dist, dist_sq, None);
+    let acc2 = apply_zonal_harmonics(&primary, &sat2, &r_vec, dist, dist_sq, None);
     
     // Acceleration should be identical regardless of satellite mass
     assert!((acc1.x - acc2.x).abs() < 1e-20, "Acceleration depends on mass!");
@@ -287,7 +287,7 @@ fn test_j3_acceleration_at_equator_precise() {
     let r_vec = Vector3::new(dist, 0.0, 0.0);
     let dist_sq = dist * dist;
     
-    let acc = apply_zonal_harmonics(&body, &satellite, &r_vec, dist, dist_sq);
+    let acc = apply_zonal_harmonics(&body, &satellite, &r_vec, dist, dist_sq, None);
     
     // Expected Calculation for J3 (n=3)
     // K3 = GM J3 R^3 / r^5
@@ -355,7 +355,7 @@ fn test_j4_acceleration_at_equator_precise() {
     let r_vec = Vector3::new(dist, 0.0, 0.0);
     let dist_sq = dist * dist;
     
-    let acc = apply_zonal_harmonics(&body, &satellite, &r_vec, dist, dist_sq);
+    let acc = apply_zonal_harmonics(&body, &satellite, &r_vec, dist, dist_sq, None);
     
     // Expected Calculation for J4 (n=4)
     // K4 = GM J4 R^4 / r^6

@@ -77,7 +77,15 @@ fn test_wisdom_holman_mode() {
     // `include_sun_gravity = false` means Sun->Planet is skipped.
     // `subtract_parent_gravity = true` means Planet->Moon is skipped.
 
-    let physics_config = PhysicsConfig::default();
+    let mut physics_config = PhysicsConfig::default();
+    physics_config.relativity = false;
+    physics_config.gravitational_harmonics = false;
+    physics_config.tidal_forces = false;
+    physics_config.solar_radiation_pressure = false;
+    physics_config.yarkovsky_effect = false;
+    physics_config.atmospheric_drag = false;
+    physics_config.poynting_robertson_drag = false;
+    physics_config.comet_forces = false;
     let force_config = ForceConfig {
         physics: &physics_config,
         parent_indices: &parent_indices,

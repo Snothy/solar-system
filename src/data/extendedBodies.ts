@@ -99,7 +99,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Pluto",
-    mass: 1.303e22,
+    mass: 1.30291e22, // GM: 869.6
     radius: 1188.3e3,
     radii: { x: 1188.3e3, y: 1188.3e3, z: 1188.3e3 },
     color: 0xe3c9a6,
@@ -121,7 +121,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Charon",
-    mass: 1.586e21,
+    mass: 1.58668e21, // GM: 105.9
     radius: 606.0e3,
     radii: { x: 606e3, y: 606e3, z: 606e3 },
     color: 0x888888,
@@ -218,7 +218,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Mimas",
-    mass: 3.749e19,
+    mass: 3.75094e19, // GM: 2.503489
     radius: 198.2e3,
     radii: { x: 207.4e3, y: 196.2e3, z: 190.6e3 },
     color: 0xaaaaaa,
@@ -234,7 +234,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Iapetus",
-    mass: 1.805e21,
+    mass: 1.80566e21, // GM: 120.51
     radius: 734.5e3,
     radii: { x: 746e3, y: 712e3, z: 746e3 },
     color: 0xdddddd,
@@ -250,7 +250,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Miranda",
-    mass: 6.59e19,
+    mass: 6.4426e19, // GM: 4.3
     radius: 235.8e3,
     radii: { x: 240e3, y: 234.2e3, z: 232.9e3 },
     color: 0xcccccc,
@@ -266,7 +266,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Ariel",
-    mass: 1.353e21,
+    mass: 1.25032e21, // GM: 83.45
     radius: 578.9e3,
     radii: { x: 581.1e3, y: 577.9e3, z: 577.7e3 },
     color: 0xdddddd,
@@ -282,7 +282,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Umbriel",
-    mass: 1.172e21,
+    mass: 1.27953e21, // GM: 85.4
     radius: 584.7e3,
     radii: { x: 584.7e3, y: 584.7e3, z: 584.7e3 },
     color: 0x888888,
@@ -297,7 +297,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
   },
    {
     name: "Tethys",
-    mass: 6.1744e20,
+    mass: 6.17443e20, // GM: 41.21
     radius: 531.1e3,
     radii: { x: 531.1e3, y: 531.1e3, z: 531.1e3 },
     color: 0xcccccc,
@@ -313,7 +313,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Dione",
-    mass: 1.09545e21,
+    mass: 1.09548e21, // GM: 73.116
     radius: 561.4e3,
     radii: { x: 563.8e3, y: 561.0e3, z: 559.6e3 },
     color: 0x999999,
@@ -333,7 +333,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
   {
     name: "Rhea",
-    mass: 2.3065e21,
+    mass: 2.30646e21, // GM: 153.94
     radius: 763.8e3,
     radii: { x: 763.8e3, y: 763.8e3, z: 763.8e3 },
     color: 0xaaaaaa,
