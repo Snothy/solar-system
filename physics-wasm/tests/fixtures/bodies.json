@@ -501,7 +501,7 @@
   },
   {
     "name": "Uranus",
-    "mass": 8.68127e+25,
+    "mass": 8.68099e+25,
     "radius": 25559000,
     "radii": {
       "x": 25559000,
@@ -521,8 +521,8 @@
       -0.0000042,
       -0.000034
     ],
-    "poleRA": 257.31,
-    "poleDec": -15.17,
+    "poleRA": 257.43,
+    "poleDec": -15.1,
     "W0": 203.81,
     "Wdot": -501.1600928,
     "hasRings": true,
@@ -553,8 +553,8 @@
     "surfaceGravity": 0.38,
     "jplId": "703",
     "type": "moon",
-    "poleRA": 257.31,
-    "poleDec": -15.17
+    "poleRA": 257.43,
+    "poleDec": -15.1
   },
   {
     "name": "Oberon",
@@ -574,8 +574,8 @@
     "surfaceGravity": 0.346,
     "jplId": "704",
     "type": "moon",
-    "poleRA": 257.31,
-    "poleDec": -15.17
+    "poleRA": 257.43,
+    "poleDec": -15.1
   },
   {
     "name": "Neptune",
@@ -925,8 +925,8 @@
     "surfaceGravity": 0.079,
     "jplId": "705",
     "type": "moon",
-    "poleRA": 257.31,
-    "poleDec": -15.17
+    "poleRA": 257.43,
+    "poleDec": -15.1
   },
   {
     "name": "Ariel",
@@ -946,8 +946,8 @@
     "surfaceGravity": 0.269,
     "jplId": "701",
     "type": "moon",
-    "poleRA": 257.31,
-    "poleDec": -15.17
+    "poleRA": 257.43,
+    "poleDec": -15.1
   },
   {
     "name": "Umbriel",
@@ -967,8 +967,8 @@
     "surfaceGravity": 0.23,
     "jplId": "702",
     "type": "moon",
-    "poleRA": 257.31,
-    "poleDec": -15.17
+    "poleRA": 257.43,
+    "poleDec": -15.1
   },
   {
     "name": "Tethys",

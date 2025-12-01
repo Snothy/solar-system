@@ -262,8 +262,8 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     surfaceGravity: 0.079,
     jplId: "705",
     type: "moon",
-    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
-    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
+    poleRA: 257.43, 
+    poleDec: -15.10,
   },
 
 {
@@ -280,8 +280,8 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     surfaceGravity: 0.269,
     jplId: "701",
     type: "moon",
-    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
-    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
+    poleRA: 257.43, 
+    poleDec: -15.10,
   },
 
 {
@@ -298,8 +298,8 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     surfaceGravity: 0.23,
     jplId: "702",
     type: "moon",
-    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
-    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
+    poleRA: 257.43, 
+    poleDec: -15.10,
   },
    {
     name: "Tethys",

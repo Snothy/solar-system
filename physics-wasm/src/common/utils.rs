@@ -29,7 +29,6 @@ pub fn update_pole_orientation(
     let t = (time - 2451545.0) / 36525.0;
 
     // Obliquity of the Ecliptic (J2000)
-    // FIX: Added _f64 suffix to resolve ambiguity
     let epsilon_deg = 23.43928_f64; 
     let epsilon_rad = epsilon_deg.to_radians();
     let cos_eps = epsilon_rad.cos();
@@ -39,28 +38,30 @@ pub fn update_pole_orientation(
         if let Some(precession) = &b.precession {
             if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
                 
-                // FIXED: Convert Degrees to Radians!
-                // The raw values from JSON (ra0, dec0) are in Degrees.
+                // 1. Convert Base Degrees to Radians
                 let mut ra_rad = ra0.to_radians(); 
-                let dec_rad = dec0.to_radians();
+                let mut dec_rad = dec0.to_radians();
 
                 // 2. Apply Precession
                 if enable_precession {
-                    if let Some(rate) = precession.precession_rate {
-                        // Rate is usually small, assumed to be in compatible units (Radians/Century)
-                        ra_rad += rate * t;
+                    // Check for specific pole rates first (Standard for Mars, Jupiter, Saturn)
+                    // These are typically in Degrees/Century
+                    if let (Some(ra_rate), Some(dec_rate)) = (precession.pole_ra_rate, precession.pole_dec_rate) {
+                        ra_rad += ra_rate.to_radians() * t;
+                        dec_rad += dec_rate.to_radians() * t;
+                    } 
+                    // Fallback to generic precession rate
+                    else if let Some(rate) = precession.precession_rate {
+                        ra_rad += rate.to_radians() * t;
                     }
                 }
 
                 // 3. Apply Nutation
                 if enable_nutation {
                     if let Some(amp) = precession.nutation_amplitude {
-                        // Astronomical constants for Omega are usually in DEGREES
                         let omega_deg = 125.04 - 1934.136 * t;
                         let omega_rad = omega_deg.to_radians();
                         
-                        // If 'amp' is in Degrees (standard), the result is degrees.
-                        // We must convert the result to Radians to add it to 'ra_rad'.
                         let d_psi_deg = amp * omega_rad.sin();
                         ra_rad += d_psi_deg.to_radians();
                     }
@@ -72,7 +73,6 @@ pub fn update_pole_orientation(
                 let z_eq = dec_rad.sin();
 
                 // 5. Rotate to Ecliptic Frame
-                // This rotation aligns the Equatorial pole with your Ecliptic simulation.
                 let x_ecl = x_eq;
                 let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
                 let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
