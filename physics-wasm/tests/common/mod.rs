@@ -87,6 +87,9 @@ struct SimplifiedBody {
     
     #[serde(default)]
     k2: Option<f64>,
+
+    #[serde(default, alias = "tidalQ")]
+    tidal_q: Option<f64>,
     
     #[serde(default, alias = "poleRA")]
     pole_ra: Option<f64>,
@@ -182,7 +185,7 @@ impl SimplifiedBody {
             gravity_harmonics: Some(harmonics),
             tidal: Some(physics_wasm::common::types::TidalParams {
                 k2: self.k2,
-                ..Default::default()
+                tidal_q: self.tidal_q,
             }),
             precession: Some(precession),
             ..Default::default()

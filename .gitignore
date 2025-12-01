@@ -27,4 +27,4 @@ physics-wasm/pkg
 formatted_data
 output
 output_integration/
-data/
+/data/

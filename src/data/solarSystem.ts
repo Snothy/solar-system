@@ -6,7 +6,7 @@ const AU = 1.495978707e11;
 export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
   {
     name: "Sun",
-    mass: 1.98841e30, 
+    mass: 1.98840987e30, // GM: 1.3271244004193938e20 / 6.67430e-11 
     radius: 695700e3,
     radii: { x: 695700e3, y: 695700e3, z: 695700e3 },
     color: 0xffdd00,
@@ -27,7 +27,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Mercury",
-    mass: 3.30098e23, // GM: 22031.78
+    mass: 3.3009871e23, // GM: 22031.78e9 / 6.67430e-11
     radius: 2439.4e3,
     radii: { x: 2440.5e3, y: 2439.7e3, z: 2440.5e3 },
     color: 0xaaaaaa,
@@ -55,7 +55,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Venus",
-    mass: 4.86731e24, // GM: 324858.592
+    mass: 4.8673118e24, // GM: 324858.592e9 / 6.67430e-11
     radius: 6051.8e3,
     radii: { x: 6051.8e3, y: 6051.8e3, z: 6051.8e3 },
     color: 0xe3bb76,
@@ -85,7 +85,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Earth",
-    mass: 5.9722e24,
+    mass: 5.9721686e24, // GM: 398600.435436e9 / 6.67430e-11
     radius: 6371.0e3,
     radii: { x: 6378.1e3, y: 6356.8e3, z: 6378.1e3 },
     color: 0x2233ff,
@@ -127,7 +127,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Moon",
-    mass: 7.346e22,
+    mass: 7.3457904e22, // GM: 4902.800066e9 / 6.67430e-11
     radius: 1737.4e3,
     radii: { x: 1738.1e3, y: 1736.0e3, z: 1738.1e3 },
     color: 0xcccccc,
@@ -143,8 +143,9 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.62,
     jplId: "301",
     type: "moon",
-    J: [2.034e-4],
+    J: [2.027e-4],
     C22: 2.24e-5,
+    S22: 0.0,
     k2: 0.0202,
     tidalQ: 26.5,
     poleRA: 266.86,
@@ -156,7 +157,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
 {
     name: "Mars",
-    mass: 6.4171e23,
+    mass: 6.4171167e23, // GM: 42828.375214e9 / 6.67430e-11
     radius: 3396200.0,
     radii: { x: 3396.2e3, y: 3376.2e3, z: 3396.2e3 },
     color: 0xff4500,
@@ -171,8 +172,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     // J: [1.9532e-3, 3.138e-5, -1.544e-5],
     // REVERTED to Standard J2 for Equatorial Radius 3396.2 km
     J: [1.96045e-3, 3.138e-5, -1.544e-5],
-    C22: -8.48e-5,
-    S22: 4.88e-5,
+    C22: -6.316e-5,
+    S22: -1.5e-5,
     k2: 0.148,
     tidalQ: 92,
     poleRA: 317.68,
@@ -245,7 +246,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Jupiter",
-    mass: 1.898125e27, // GM: 126686531.9
+    mass: 1.898125e27, // GM: 126686531.9 (System GM - Baseline)
     radius: 71492e3,
     radii: { x: 71492e3, y: 66854e3, z: 71492e3 },
     color: 0xd8ca9d,
@@ -276,7 +277,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Io",
-    mass: 8.9296e22, // GM: 5959.91
+    mass: 8.929638e22, // GM: 5959.91e9 / 6.67430e-11
     radius: 1821.6e3,
     radii: { x: 1829.4e3, y: 1815.7e3, z: 1820.6e3 },
     color: 0xfbffa3,
@@ -288,14 +289,16 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.796,
     jplId: "501",
     type: "moon",
-    J: [1.863e-3],
-    poleRA: 268.05,
+    J: [1.96045e-3],
+    C22: -6.316e-5,
+    S22: -1.5e-5,
+    poleRA: 317.68143,
     poleDec: 64.50
   },
 
   {
     name: "Europa",
-    mass: 4.7986e22, // GM: 3202.72
+    mass: 4.798585e22, // GM: 3202.72e9 / 6.67430e-11
     radius: 1560.8e3,
     radii: { x: 1564.1e3, y: 1559.5e3, z: 1560.8e3 },
     color: 0xc9c0bb,
@@ -314,7 +317,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Ganymede",
-    mass: 1.48147e23, // GM: 9887.8
+    mass: 1.4814737e23, // GM: 9887.8e9 / 6.67430e-11
     radius: 2634.1e3,
     radii: { x: 2634.1e3, y: 2634.1e3, z: 2634.1e3 },
     color: 0x7c7268,
@@ -326,14 +329,16 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.428,
     jplId: "503",
     type: "moon",
-    J: [1.27e-4],
-    poleRA: 268.20,
+    J: [2.027e-4],
+    C22: 2.24e-5,
+    S22: 0.0,
+    poleRA: 269.9949,
     poleDec: 64.57
   },
 
   {
     name: "Callisto",
-    mass: 1.07566e23, // GM: 7179.2834
+    mass: 1.0756608e23, // GM: 7179.2834e9 / 6.67430e-11
     radius: 2410.3e3,
     radii: { x: 2410.3e3, y: 2410.3e3, z: 2410.3e3 },
     color: 0x5e564d,
@@ -352,7 +357,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
 {
     name: "Saturn",
-    mass: 5.68317e26, // GM: 37931206.234 
+    mass: 5.68317e26, // GM: 37931206.234 (System GM - Baseline) 
     radius: 60268e3, 
     radii: { x: 60268e3, y: 54364e3, z: 60268e3 },
     color: 0xf4d03f,
@@ -387,7 +392,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Titan",
-    mass: 1.34518e23, // GM: 8978.14
+    mass: 1.3451807e23, // GM: 8978.14e9 / 6.67430e-11
     radius: 2574.7e3,
     radii: { x: 2574.7e3, y: 2574.7e3, z: 2574.7e3 },
     color: 0xe3c968,
@@ -406,7 +411,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Enceladus",
-    mass: 1.08026e20, // GM: 7.21
+    mass: 1.080263e20, // GM: 7.21e9 / 6.67430e-11
     radius: 252.1e3,
     radii: { x: 256.6e3, y: 248.3e3, z: 251.4e3 },
     color: 0xffffff,
@@ -427,7 +432,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Uranus",
-    mass: 8.68099e+25, // GM: 5793950.6103
+    mass: 8.6809842e25, // GM: 5793951.3e9 / 6.67430e-11 (Planet Only)
     radius: 25559e3,
     radii: { x: 25559e3, y: 24973e3, z: 25559e3 },
     color: 0xadd8e6,
@@ -457,7 +462,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
 {
     name: "Titania",
-    mass: 3.3382e21, 
+    mass: 3.399607e21, // GM: 226.9e9 / 6.67430e-11 
     radius: 788.4e3,
     radii: { x: 788.4e3, y: 788.4e3, z: 788.4e3 },
     color: 0xd3d3d3,
@@ -475,7 +480,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
 {
     name: "Oberon",
-    mass: 3.0766e21, 
+    mass: 3.075985e21, // GM: 205.3e9 / 6.67430e-11 
     radius: 761.4e3,
     radii: { x: 761.4e3, y: 761.4e3, z: 761.4e3 },
     color: 0xa0a0a0,
@@ -493,7 +498,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Neptune",
-    mass: 1.02409e26, // GM: 6835099.5
+    mass: 1.0240915e26, // GM: 6835098.6e9 / 6.67430e-11 (Planet Only)
     radius: 24622e3,
     radii: { x: 24764e3, y: 24341e3, z: 24764e3 },
     color: 0x00008b,
@@ -522,7 +527,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
   {
     name: "Triton",
-    mass: 2.1403e22, // GM: 1428.495
+    mass: 2.14030e22, // GM: 1428.495e9 / 6.67430e-11
     radius: 1353.4e3,
     radii: { x: 1353.4e3, y: 1353.4e3, z: 1353.4e3 },
     color: 0xffe4e1,

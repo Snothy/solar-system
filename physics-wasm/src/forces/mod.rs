@@ -35,7 +35,7 @@ pub mod solar;
 pub mod drag;
 pub mod comet;
 mod sun_interactions;
-mod body_interactions;
+pub mod body_interactions;
 
 pub use types::{ForceConfig, AccelerationField, GravityMode};
 pub use acceleration::calculate_accelerations;

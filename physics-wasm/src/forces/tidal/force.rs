@@ -2,7 +2,7 @@ use crate::common::constants::G;
 use crate::common::types::{PhysicsBody, Vector3};
 
 /// Calculate tidal force acting on satellite due to primary body.
-pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
+pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f64, angular_velocity: Vector3) -> Vector3 {
     if let Some(tidal) = &b1.tidal {
         if let (Some(k2), Some(q)) = (tidal.k2, tidal.tidal_q) {
             let mut orb_vel = b2.vel;
@@ -13,10 +13,8 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
                 return Vector3::zero();
             }
 
-            // Proper tidal force formula:
-            // a_tidal = (3/2) * k2/Q * (GM/r²) * (R/r)⁵
-            // Units: m/s²
-            let gm_over_r2 = G * b1.mass / (dist * dist);
+            // Tidal force formula: a_tidal = (3/2) * k2/Q * (GM_sat/r²) * (R_pri/r)⁵
+            let gm_over_r2 = G * b2.mass / (dist * dist);
             let r_ratio_5 = (b1.radius / dist).powi(5);
 
             // 1. Dissipative Term (Lag)
@@ -28,11 +26,7 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
             let mut orbital_ang_vel = r_vec.cross(&orb_vel);
             orbital_ang_vel.scale(1.0 / (dist * dist));
 
-            let rot_vel = if let Some(rot) = &b1.rotation {
-                rot.angular_velocity.unwrap_or(Vector3::zero())
-            } else {
-                Vector3::zero()
-            };
+            let rot_vel = angular_velocity;
 
             let mut delta_omega = rot_vel;
             delta_omega.sub(&orbital_ang_vel);
@@ -56,7 +50,11 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
             radial_dir.normalize();
             radial_dir.scale(-acc_conservative * b2.mass); // Negative = Attractive (towards primary)
 
+
+
             total_force.add(&radial_dir);
+
+
 
             return total_force;
         }
