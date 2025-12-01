@@ -56,6 +56,9 @@ pub fn apply_body_interactions(
             };
 
             // 2. Pole Precession (RA/Dec)
+            // 2. Pole Precession (RA/Dec)
+            let mut calculated_pole = None;
+            
             if let Some(precession) = &body.precession {
                 if let (Some(ra0), Some(dec0), Some(ra_rate), Some(dec_rate)) = (
                     precession.pole_ra0, 
@@ -91,13 +94,18 @@ pub fn apply_body_interactions(
 
                     let mut v = Vector3::new(x_ecl, y_ecl, z_ecl);
                     v.normalize();
-                    effective_poles[i] = Some(v);
-                } else if let Some(harmonics) = &body.gravity_harmonics {
-                     effective_poles[i] = harmonics.pole_vector;
+                    calculated_pole = Some(v);
                 }
-            } else if let Some(harmonics) = &body.gravity_harmonics {
-                effective_poles[i] = harmonics.pole_vector;
             }
+            
+            // Fallback to static pole if dynamic calculation failed or wasn't applicable
+            if calculated_pole.is_none() {
+                if let Some(harmonics) = &body.gravity_harmonics {
+                    calculated_pole = harmonics.pole_vector;
+                }
+            }
+            
+            effective_poles[i] = calculated_pole;
         }
     }
 
