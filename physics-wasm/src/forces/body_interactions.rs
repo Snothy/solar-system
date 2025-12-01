@@ -39,6 +39,8 @@ pub fn apply_body_interactions(
     // creating a parallel array of effective poles.
     
     let mut effective_poles = vec![None; n];
+    let mut effective_pole_ras = vec![0.0; n];
+    let mut effective_pole_decs = vec![std::f64::consts::FRAC_PI_2; n]; // Default to 90 deg (Z-axis)
 
     if enable_j2 {
         for (i, body) in bodies.iter().enumerate() {
@@ -58,6 +60,9 @@ pub fn apply_body_interactions(
             // 2. Pole Precession (RA/Dec)
             // 2. Pole Precession (RA/Dec)
             let mut calculated_pole = None;
+            let mut calculated_ra = 0.0;
+            let mut calculated_dec = std::f64::consts::FRAC_PI_2;
+            let mut has_orientation = false;
             
             if let Some(precession) = &body.precession {
                 if let (Some(ra0), Some(dec0), Some(ra_rate), Some(dec_rate)) = (
@@ -69,14 +74,15 @@ pub fn apply_body_interactions(
                     // T = Julian centuries since J2000.0
                     let t = (current_jd - 2451545.0) / 36525.0;
                     
-                    // Rates are in degrees/century. 
-                    // ra0/dec0 are already in radians (converted in loader).
-                    // We need to convert rates to radians.
                     let ra_rate_rad = ra_rate.to_radians();
                     let dec_rate_rad = dec_rate.to_radians();
 
                     let ra = ra0 + ra_rate_rad * t;
                     let dec = dec0 + dec_rate_rad * t;
+                    
+                    calculated_ra = ra;
+                    calculated_dec = dec;
+                    has_orientation = true;
 
                     // Convert to Cartesian (Equatorial J2000)
                     let x_eq = dec.cos() * ra.cos();
@@ -95,6 +101,28 @@ pub fn apply_body_interactions(
                     let mut v = Vector3::new(x_ecl, y_ecl, z_ecl);
                     v.normalize();
                     calculated_pole = Some(v);
+                } else if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
+                     // Static fallback from PrecessionParams
+                     calculated_ra = ra0;
+                     calculated_dec = dec0;
+                     has_orientation = true;
+                     // We don't calculate vector here, we let fallback handle it or calculate it?
+                     // Better to calculate it to be consistent.
+                     let x_eq = dec0.cos() * ra0.cos();
+                     let y_eq = dec0.cos() * ra0.sin();
+                     let z_eq = dec0.sin();
+                     
+                     let epsilon = 23.43928_f64.to_radians();
+                     let cos_eps = epsilon.cos();
+                     let sin_eps = epsilon.sin();
+                     
+                     let x_ecl = x_eq;
+                     let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
+                     let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;
+                     
+                     let mut v = Vector3::new(x_ecl, y_ecl, z_ecl);
+                     v.normalize();
+                     calculated_pole = Some(v);
                 }
             }
             
@@ -102,10 +130,32 @@ pub fn apply_body_interactions(
             if calculated_pole.is_none() {
                 if let Some(harmonics) = &body.gravity_harmonics {
                     calculated_pole = harmonics.pole_vector;
+                    
+                    // If we used harmonics pole vector (Ecliptic), we need to reverse-engineer RA/Dec (Equatorial)
+                    // for Sectorial Harmonics.
+                    if !has_orientation {
+                        if let Some(p) = calculated_pole {
+                             // Rotate Ecliptic -> Equatorial (Rotate X by -epsilon)
+                             // y_eq = y_ecl * cos(eps) + z_ecl * sin(eps)
+                             // z_eq = -y_ecl * sin(eps) + z_ecl * cos(eps)
+                             let epsilon = 23.43928_f64.to_radians();
+                             let cos_eps = epsilon.cos();
+                             let sin_eps = epsilon.sin();
+                             
+                             let x_eq = p.x;
+                             let y_eq = p.y * cos_eps + p.z * sin_eps; // Note sign change from Eq->Ecl
+                             let z_eq = -p.y * sin_eps + p.z * cos_eps;
+                             
+                             calculated_ra = y_eq.atan2(x_eq);
+                             calculated_dec = z_eq.asin();
+                        }
+                    }
                 }
             }
             
             effective_poles[i] = calculated_pole;
+            effective_pole_ras[i] = calculated_ra;
+            effective_pole_decs[i] = calculated_dec;
         }
     }
 
@@ -186,7 +236,7 @@ pub fn apply_body_interactions(
                     
                     // 1. b1 acts on b2
                     let a_zonal = apply_zonal_harmonics(b1, b2, &r_vec, dist, dist_sq, effective_poles[i]);
-                    let a_sectorial = apply_sectorial_harmonics(b1, &r_vec, dist_sq, rot_b1);
+                    let a_sectorial = apply_sectorial_harmonics(b1, &r_vec, dist_sq, rot_b1, effective_pole_ras[i], effective_pole_decs[i]);
                     let mut a_total = a_zonal; a_total.add(&a_sectorial);
                     
                     accs[j].add(&a_total);
@@ -196,7 +246,7 @@ pub fn apply_body_interactions(
                     // 2. b2 acts on b1
                     let mut r_vec_neg = r_vec; r_vec_neg.scale(-1.0);
                     let a_zonal_b = apply_zonal_harmonics(b2, b1, &r_vec_neg, dist, dist_sq, effective_poles[j]);
-                    let a_sectorial_b = apply_sectorial_harmonics(b2, &r_vec_neg, dist_sq, rot_b2);
+                    let a_sectorial_b = apply_sectorial_harmonics(b2, &r_vec_neg, dist_sq, rot_b2, effective_pole_ras[j], effective_pole_decs[j]);
                     let mut a_total_b = a_zonal_b; a_total_b.add(&a_sectorial_b);
                     
                     accs[i].add(&a_total_b);

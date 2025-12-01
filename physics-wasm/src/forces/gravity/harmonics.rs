@@ -73,19 +73,47 @@ pub fn apply_sectorial_harmonics(
     r_inertial: &Vector3,
     dist_sq: f64,
     body_rotation_angle: f64,
+    pole_ra: f64,
+    pole_dec: f64,
 ) -> Vector3 {
     if let Some(harmonics) = &primary.gravity_harmonics {
         if let (Some(c22), Some(s22)) = (harmonics.c22, harmonics.s22) {
             
-            // 1. Rotation Matrix (Inertial -> Body-Fixed)
-            let (sin_a, cos_a) = body_rotation_angle.sin_cos();
+            // Constants
+            let epsilon = 23.43928_f64.to_radians(); // Obliquity of Ecliptic
+            let sin_eps = epsilon.sin();
+            let cos_eps = epsilon.cos();
 
-            // 2. Transform Position
-            let x_bf = r_inertial.x * cos_a + r_inertial.y * sin_a;
-            let y_bf = -r_inertial.x * sin_a + r_inertial.y * cos_a;
-            let z_bf = r_inertial.z;
+            // 1. Ecliptic to Equatorial
+            let x_eq = r_inertial.x;
+            let y_eq = r_inertial.y * cos_eps - r_inertial.z * sin_eps;
+            let z_eq = r_inertial.y * sin_eps + r_inertial.z * cos_eps;
 
-            // 3. Gradients
+            // 2. Equatorial to Node-Aligned (Rotate Z by alpha + 90)
+            let theta1 = pole_ra + std::f64::consts::FRAC_PI_2;
+            let (sin_t1, cos_t1) = theta1.sin_cos();
+            
+            let x_node = x_eq * cos_t1 + y_eq * sin_t1;
+            let y_node = -x_eq * sin_t1 + y_eq * cos_t1;
+            let z_node = z_eq;
+
+            // 3. Node-Aligned to Pole-Aligned (Rotate X by 90 - delta)
+            let theta2 = std::f64::consts::FRAC_PI_2 - pole_dec;
+            let (sin_t2, cos_t2) = theta2.sin_cos();
+
+            let x_pole = x_node;
+            let y_pole = y_node * cos_t2 + z_node * sin_t2;
+            let z_pole = -y_node * sin_t2 + z_node * cos_t2;
+
+            // 4. Pole-Aligned to Body-Fixed (Rotate Z by W)
+            let theta3 = body_rotation_angle;
+            let (sin_t3, cos_t3) = theta3.sin_cos();
+
+            let x_bf = x_pole * cos_t3 + y_pole * sin_t3;
+            let y_bf = -x_pole * sin_t3 + y_pole * cos_t3;
+            let z_bf = z_pole;
+
+            // --- Calculate Acceleration in Body-Fixed Frame ---
             let r2 = dist_sq;
             let r4 = r2 * r2;
             let mu = G * primary.mass;
@@ -105,13 +133,30 @@ pub fn apply_sectorial_harmonics(
             let ay_bf = radial_decay * y_bf + factor * inv_r5 * d_bracket_dy;
             let az_bf = radial_decay * z_bf;
 
-            // 4. Rotate back to Inertial
-            let mut acc_inertial = Vector3::zero();
-            acc_inertial.x = ax_bf * cos_a - ay_bf * sin_a;
-            acc_inertial.y = ax_bf * sin_a + ay_bf * cos_a;
-            acc_inertial.z = az_bf;
+            // --- Rotate Acceleration Back to Inertial (Inverse Sequence) ---
+            
+            // 1. Inverse Body-Fixed to Pole-Aligned (Rotate Z by -W)
+            let ax_pole = ax_bf * cos_t3 - ay_bf * sin_t3;
+            let ay_pole = ax_bf * sin_t3 + ay_bf * cos_t3;
+            let az_pole = az_bf;
 
-            return acc_inertial;
+            // 2. Inverse Pole-Aligned to Node-Aligned (Rotate X by -(90 - delta))
+            // cos(-t) = cos(t), sin(-t) = -sin(t)
+            let ax_node = ax_pole;
+            let ay_node = ay_pole * cos_t2 - az_pole * sin_t2;
+            let az_node = ay_pole * sin_t2 + az_pole * cos_t2;
+
+            // 3. Inverse Node-Aligned to Equatorial (Rotate Z by -(alpha + 90))
+            let ax_eq = ax_node * cos_t1 - ay_node * sin_t1;
+            let ay_eq = ax_node * sin_t1 + ay_node * cos_t1;
+            let az_eq = az_node;
+
+            // 4. Inverse Equatorial to Ecliptic (Rotate X by +epsilon)
+            let ax_ecl = ax_eq;
+            let ay_ecl = ay_eq * cos_eps + az_eq * sin_eps;
+            let az_ecl = -ay_eq * sin_eps + az_eq * cos_eps;
+
+            return Vector3::new(ax_ecl, ay_ecl, az_ecl);
         }
     }
     Vector3::zero()
