@@ -106,10 +106,10 @@ struct SimplifiedBody {
     #[serde(default, alias = "Wdot")]
     wdot: Option<f64>,
 
-    #[serde(default, alias = "poleRARate")]
+    #[serde(default, alias = "poleRARate", alias = "poleRA_rate")]
     pole_ra_rate: Option<f64>,
 
-    #[serde(default, alias = "poleDecRate")]
+    #[serde(default, alias = "poleDecRate", alias = "poleDec_rate")]
     pole_dec_rate: Option<f64>,
 }
 

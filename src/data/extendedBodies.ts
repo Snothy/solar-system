@@ -248,9 +248,9 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     type: "moon"
   },
 
-  {
+{
     name: "Miranda",
-    mass: 6.4426e19, // GM: 4.3
+    mass: 6.4426e19, 
     radius: 235.8e3,
     radii: { x: 240e3, y: 234.2e3, z: 232.9e3 },
     color: 0xcccccc,
@@ -261,12 +261,14 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 60,
     surfaceGravity: 0.079,
     jplId: "705",
-    type: "moon"
+    type: "moon",
+    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
+    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
   },
 
-  {
+{
     name: "Ariel",
-    mass: 1.25032e21, // GM: 83.45
+    mass: 1.25032e21, 
     radius: 578.9e3,
     radii: { x: 581.1e3, y: 577.9e3, z: 577.7e3 },
     color: 0xdddddd,
@@ -277,12 +279,14 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 60,
     surfaceGravity: 0.269,
     jplId: "701",
-    type: "moon"
+    type: "moon",
+    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
+    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
   },
 
-  {
+{
     name: "Umbriel",
-    mass: 1.27953e21, // GM: 85.4
+    mass: 1.27953e21, 
     radius: 584.7e3,
     radii: { x: 584.7e3, y: 584.7e3, z: 584.7e3 },
     color: 0x888888,
@@ -293,7 +297,9 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 60,
     surfaceGravity: 0.23,
     jplId: "702",
-    type: "moon"
+    type: "moon",
+    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
+    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
   },
    {
     name: "Tethys",

@@ -154,7 +154,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     albedo: 0.12
   },
 
-  {
+{
     name: "Mars",
     mass: 6.4171e23,
     radius: 3396200.0,
@@ -167,16 +167,17 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 3.721,
     jplId: "499",
     type: "planet",
-    // Scaled to Mean Radius (3389.9km): J_new = J_old * (3389.9/3396.2)^2 = J_old * 0.9963
-    J: [1.9532e-3, 3.138e-5, -1.544e-5],
-    C22: -8.45e-5,
-    S22: 4.86e-5,
+    // FIXED: Reverted to standard unscaled values to match the defined Equatorial Radius
+    J: [1.96045e-3, 3.138e-5, -1.544e-5], 
+    C22: -8.48e-5,
+    S22: 4.88e-5,
     k2: 0.148,
     tidalQ: 92,
     poleRA: 317.68,
     poleDec: 52.89,
     poleRA_rate: -0.108,
-    poleDec_rate: -0.061,    W0: 176.630,
+    poleDec_rate: -0.061,    
+    W0: 176.630,
     Wdot: 350.89198226,
     hasAtmosphere: true,
     surfacePressure: 610,
@@ -188,11 +189,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     rel_i: 1.850
   },
 
- {
+{
     name: "Phobos",
     mass: 1.0659e16,
-    radius: 11266.7, 
-    radii: { x: 13000.0, y: 11400.0, z: 9100.0 },
+    radius: 11266.7, // FIXED: Removed e3. Value is in meters.
+    radii: { x: 13000.0, y: 11400.0, z: 9100.0 }, // FIXED: Removed e3.
     color: 0x888888,
     texture: "/Phobos.png",
     parent: "Mars",
@@ -215,11 +216,11 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     rel_i: 1.093
   },
 
-  {
+{
     name: "Deimos",
     mass: 1.4762e15,
-    radius: 6200.0,
-    radii: { x: 7500.0, y: 6100.0, z: 5200.0 },
+    radius: 6200.0, // FIXED: Removed e3. Value is in meters.
+    radii: { x: 7500.0, y: 6100.0, z: 5200.0 }, // FIXED: Removed e3.
     color: 0x777777,
     texture: "/Deimos.png",
     parent: "Mars",
@@ -256,6 +257,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J: [1.4696572e-2, 0.0, -5.87146e-4, 0.0, 3.4255e-5],
     poleRA: 268.057,
     poleDec: 64.495,
+    poleRA_rate: -0.006499,
+    poleDec_rate: 0.0,
     W0: 284.95,
     Wdot: 870.5360000,
     hasRings: true,
@@ -446,9 +449,9 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     rel_i: 0.772
   },
 
-  {
+{
     name: "Titania",
-    mass: 3.3382e21, // GM: 222.8
+    mass: 3.3382e21, 
     radius: 788.4e3,
     radii: { x: 788.4e3, y: 788.4e3, z: 788.4e3 },
     color: 0xd3d3d3,
@@ -460,13 +463,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 0.380,
     jplId: "703",
     type: "moon",
-    poleRA: 257.43,
-    poleDec: -15.10
+    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
+    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
   },
 
-  {
+{
     name: "Oberon",
-    mass: 3.0766e21, // GM: 205.34
+    mass: 3.0766e21, 
     radius: 761.4e3,
     radii: { x: 761.4e3, y: 761.4e3, z: 761.4e3 },
     color: 0xa0a0a0,
@@ -478,8 +481,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 0.346,
     jplId: "704",
     type: "moon",
-    poleRA: 257.43,
-    poleDec: -15.10
+    poleRA: 257.31, // FIXED: Aligned to Uranus Pole
+    poleDec: -15.17 // FIXED: Aligned to Uranus Pole
   },
 
   {

@@ -189,12 +189,12 @@
     "jplId": "499",
     "type": "planet",
     "J": [
-      0.0019532,
+      0.00196045,
       0.00003138,
       -0.00001544
     ],
-    "C22": -0.0000845,
-    "S22": 0.0000486,
+    "C22": -0.0000848,
+    "S22": 0.0000488,
     "k2": 0.148,
     "tidalQ": 92,
     "poleRA": 317.68,
@@ -300,6 +300,8 @@
     ],
     "poleRA": 268.057,
     "poleDec": 64.495,
+    "poleRA_rate": -0.006499,
+    "poleDec_rate": 0,
     "W0": 284.95,
     "Wdot": 870.536,
     "hasRings": true,
@@ -551,8 +553,8 @@
     "surfaceGravity": 0.38,
     "jplId": "703",
     "type": "moon",
-    "poleRA": 257.43,
-    "poleDec": -15.1
+    "poleRA": 257.31,
+    "poleDec": -15.17
   },
   {
     "name": "Oberon",
@@ -572,8 +574,8 @@
     "surfaceGravity": 0.346,
     "jplId": "704",
     "type": "moon",
-    "poleRA": 257.43,
-    "poleDec": -15.1
+    "poleRA": 257.31,
+    "poleDec": -15.17
   },
   {
     "name": "Neptune",
@@ -922,7 +924,9 @@
     "meanTemperature": 60,
     "surfaceGravity": 0.079,
     "jplId": "705",
-    "type": "moon"
+    "type": "moon",
+    "poleRA": 257.31,
+    "poleDec": -15.17
   },
   {
     "name": "Ariel",
@@ -941,7 +945,9 @@
     "meanTemperature": 60,
     "surfaceGravity": 0.269,
     "jplId": "701",
-    "type": "moon"
+    "type": "moon",
+    "poleRA": 257.31,
+    "poleDec": -15.17
   },
   {
     "name": "Umbriel",
@@ -960,7 +966,9 @@
     "meanTemperature": 60,
     "surfaceGravity": 0.23,
     "jplId": "702",
-    "type": "moon"
+    "type": "moon",
+    "poleRA": 257.31,
+    "poleDec": -15.17
   },
   {
     "name": "Tethys",

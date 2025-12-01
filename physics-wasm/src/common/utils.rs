@@ -39,9 +39,10 @@ pub fn update_pole_orientation(
         if let Some(precession) = &b.precession {
             if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
                 
-                // 1. ASSUMPTION: Based on your original code working, inputs are RADIANS.
-                let mut ra_rad = ra0;
-                let dec_rad = dec0;
+                // FIXED: Convert Degrees to Radians!
+                // The raw values from JSON (ra0, dec0) are in Degrees.
+                let mut ra_rad = ra0.to_radians(); 
+                let dec_rad = dec0.to_radians();
 
                 // 2. Apply Precession
                 if enable_precession {

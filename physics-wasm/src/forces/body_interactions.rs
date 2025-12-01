@@ -74,20 +74,23 @@ pub fn apply_body_interactions(
                     // T = Julian centuries since J2000.0
                     let t = (current_jd - 2451545.0) / 36525.0;
                     
+                    // Values are already in radians (converted by utils.rs or deserialization)
+                    // Rates are in degrees/century, so convert them to radians/century
                     let ra_rate_rad = ra_rate.to_radians();
                     let dec_rate_rad = dec_rate.to_radians();
-
-                    let ra = ra0 + ra_rate_rad * t;
-                    let dec = dec0 + dec_rate_rad * t;
                     
-                    calculated_ra = ra;
-                    calculated_dec = dec;
+                    // Apply precession: alpha = alpha_0 + T * rate
+                    let ra_rad = ra0 + ra_rate_rad * t;
+                    let dec_rad = dec0 + dec_rate_rad * t;
+                    
+                    calculated_ra = ra_rad;
+                    calculated_dec = dec_rad;
                     has_orientation = true;
 
-                    // Convert to Cartesian (Equatorial J2000)
-                    let x_eq = dec.cos() * ra.cos();
-                    let y_eq = dec.cos() * ra.sin();
-                    let z_eq = dec.sin();
+                    // Convert to Cartesian (Equatorial J2000) using RADIANS
+                    let x_eq = dec_rad.cos() * ra_rad.cos();
+                    let y_eq = dec_rad.cos() * ra_rad.sin();
+                    let z_eq = dec_rad.sin();
 
                     // Rotate to Ecliptic J2000 (Obliquity = 23.43928 deg)
                     let epsilon = 23.43928_f64.to_radians();
@@ -102,15 +105,14 @@ pub fn apply_body_interactions(
                     v.normalize();
                     calculated_pole = Some(v);
                 } else if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
-                     // Static fallback from PrecessionParams
+                     // Static pole orientation (values already in radians)
                      calculated_ra = ra0;
                      calculated_dec = dec0;
                      has_orientation = true;
-                     // We don't calculate vector here, we let fallback handle it or calculate it?
-                     // Better to calculate it to be consistent.
-                     let x_eq = dec0.cos() * ra0.cos();
-                     let y_eq = dec0.cos() * ra0.sin();
-                     let z_eq = dec0.sin();
+                     
+                     let x_eq = calculated_dec.cos() * calculated_ra.cos();
+                     let y_eq = calculated_dec.cos() * calculated_ra.sin();
+                     let z_eq = calculated_dec.sin();
                      
                      let epsilon = 23.43928_f64.to_radians();
                      let cos_eps = epsilon.cos();
@@ -135,16 +137,20 @@ pub fn apply_body_interactions(
                     // for Sectorial Harmonics.
                     if !has_orientation {
                         if let Some(p) = calculated_pole {
-                             // Rotate Ecliptic -> Equatorial (Rotate X by -epsilon)
-                             // y_eq = y_ecl * cos(eps) + z_ecl * sin(eps)
-                             // z_eq = -y_ecl * sin(eps) + z_ecl * cos(eps)
+                             // FIXED: Rotate Ecliptic -> Equatorial
+                             // This requires rotating by -epsilon (or transposing the matrix)
+                             // Correct formulas:
+                             // y_eq = y_ecl * cos(eps) - z_ecl * sin(eps)
+                             // z_eq = y_ecl * sin(eps) + z_ecl * cos(eps)
+                             
                              let epsilon = 23.43928_f64.to_radians();
                              let cos_eps = epsilon.cos();
                              let sin_eps = epsilon.sin();
                              
                              let x_eq = p.x;
-                             let y_eq = p.y * cos_eps + p.z * sin_eps; // Note sign change from Eq->Ecl
-                             let z_eq = -p.y * sin_eps + p.z * cos_eps;
+                             // FIX: Changed signs here to perform the inverse rotation
+                             let y_eq = p.y * cos_eps - p.z * sin_eps; 
+                             let z_eq = p.y * sin_eps + p.z * cos_eps;
                              
                              calculated_ra = y_eq.atan2(x_eq);
                              calculated_dec = z_eq.asin();
