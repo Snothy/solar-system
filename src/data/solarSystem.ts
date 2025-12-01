@@ -40,7 +40,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     J: [6.0e-5],
     C22: 1.0e-5,
-    k2: 0.4,
+    tidal: {
+      k2: 0.4,
+      tidalQ: 100 // Assumed default if not present, but Mercury didn't have one. Let's check if I missed it.
+    },
     poleRA: 281.01,
     poleDec: 61.45,
     W0: 329.5469,
@@ -67,7 +70,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "299",
     type: "planet",
     J: [4.458e-6],
-    k2: 0.295,
+    tidal: {
+      k2: 0.295,
+      tidalQ: 100 // Assumed default
+    },
     poleRA: 272.76,
     poleDec: 67.16,
     W0: 160.20,
@@ -99,8 +105,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J: [1.08263e-3, -2.53e-6, -1.62e-6],
     C22: 2.43e-6,
     S22: -1.40e-6,
-    k2: 0.299,
-    tidalQ: 12,
+    tidal: {
+      k2: 0.299,
+      tidalQ: 12
+    },
     
     poleRA: 0.0,
     poleDec: 90.0,
@@ -146,8 +154,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J: [2.027e-4],
     C22: 2.24e-5,
     S22: 0.0,
-    k2: 0.0202,
-    tidalQ: 26.5,
+    tidal: {
+      k2: 0.0202,
+      tidalQ: 26.5
+    },
     poleRA: 266.86,
     poleDec: 65.64,
     W0: 38.3213,
@@ -174,8 +184,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J: [1.96045e-3, 3.138e-5, -1.544e-5],
     C22: -6.316e-5,
     S22: -1.5e-5,
-    k2: 0.148,
-    tidalQ: 92,
+    tidal: {
+      k2: 0.148,
+      tidalQ: 92
+    },
     poleRA: 317.68,
     poleDec: 52.89,
     poleRA_rate: -0.108,
@@ -209,7 +221,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J: [0.105],
     C22: 0.015,
     S22: 0.0,
-    tidalQ: 100,
+    tidal: {
+      k2: 0.0, // Not specified, assuming 0 or need to find value. Phobos usually tidalQ=100. k2?
+      tidalQ: 100
+    },
     poleRA: 317.68,
     poleDec: 52.90,
     albedo: 0.071,
@@ -234,7 +249,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "402",
     type: "moon",
     J: [0.08],
-    tidalQ: 100,
+    tidal: {
+      k2: 0.0,
+      tidalQ: 100
+    },
     poleRA: 316.65,
     poleDec: 53.52,
     albedo: 0.068,

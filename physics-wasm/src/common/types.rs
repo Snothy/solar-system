@@ -35,7 +35,7 @@ pub struct PhysicsBody {
     #[serde(flatten)]
     pub gravity_harmonics: Option<HarmonicsParams>,
 
-    #[serde(flatten)]
+    #[serde(default)]
     pub tidal: Option<TidalParams>,
 
     #[serde(flatten)]

@@ -59,9 +59,6 @@ export interface CelestialBodyData {
     tidalQ: number;
   };
   
-  k2?: number;              // Deprecated: Use tidal object
-  tidalQ?: number;          // Deprecated: Use tidal object
-  
   modelPath?: string;       // Path to GLB/GLTF model
   shape?: 'sphere' | 'model'; // Explicit shape type
   modelScale?: number;      // Scale factor for the model
