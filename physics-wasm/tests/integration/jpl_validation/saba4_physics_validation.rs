@@ -14,6 +14,7 @@ struct SimulationResult {
     max_vel_error_ms: f64,
     max_pos_error_percent: f64,
     max_vel_error_percent: f64,
+    weekly_pos_errors_km: Vec<f64>,
 }
 
 #[test]
@@ -38,7 +39,7 @@ fn test_saba4_physics_vs_jpl() {
     }
 
     // 3. Determine simulation duration
-    let target_duration_hours = 168; // 1 week
+    let target_duration_hours = 720; // 30 days
     let mut duration_hours = target_duration_hours;
 
     for (_, data) in &bodies_with_data {
@@ -73,6 +74,9 @@ fn test_saba4_physics_vs_jpl() {
 
     // Track errors: (pos_error_km, vel_error_ms, pos_mag_km, vel_mag_ms)
     let mut body_errors: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); bodies_with_data.len()];
+    
+    // Track weekly errors for reporting
+    let mut weekly_errors: Vec<Vec<f64>> = vec![Vec::new(); bodies_with_data.len()];
 
     let mut current_sim_time = 0.0;
 
@@ -130,6 +134,18 @@ fn test_saba4_physics_vs_jpl() {
                 body_errors[i].push((pos_error_km, vel_error_ms, pos_mag_km, vel_mag_ms));
             }
         }
+
+        
+        // Capture weekly errors (every 168 hours)
+        if hour % 168 == 0 {
+            for (i, _) in bodies_with_data.iter().enumerate() {
+                if let Some(last_error) = body_errors[i].last() {
+                    weekly_errors[i].push(last_error.0);
+                } else {
+                    weekly_errors[i].push(0.0);
+                }
+            }
+        }
     }
 
     // Collect results
@@ -164,6 +180,7 @@ fn test_saba4_physics_vs_jpl() {
             max_vel_error_ms: max_vel_error,
             max_pos_error_percent: max_pos_percent,
             max_vel_error_percent: max_vel_percent,
+            weekly_pos_errors_km: weekly_errors[i].clone(),
         });
     }
 
@@ -206,8 +223,8 @@ fn generate_report(results: &[SimulationResult], duration_hours: usize) {
 
     report.push_str("**Test Type:** Full Physics Engine (via `Simulation` module)\n\n");
 
-    report.push_str("| Body | Max Pos Error % | Max Pos Error (km) | Final Pos Error (km) | Max Vel Error % | Max Vel Error (m/s) |\n");
-    report.push_str("|------|-----------------|--------------------|----------------------|-----------------|---------------------|\n");
+    report.push_str("| Body | Max Pos Error % | Max Pos Error (km) | Final Pos Error (km) | Week 1 (km) | Week 2 (km) | Week 3 (km) | Week 4 (km) | Max Vel Error % | Max Vel Error (m/s) |\n");
+    report.push_str("|------|-----------------|--------------------|----------------------|-------------|-------------|-------------|-------------|-----------------|---------------------|\n");
 
     // Sort by max position error percentage descending
     let mut sorted_results: Vec<&SimulationResult> = results.iter().collect();
@@ -218,12 +235,18 @@ fn generate_report(results: &[SimulationResult], duration_hours: usize) {
     });
 
     for result in sorted_results {
+        let w1 = result.weekly_pos_errors_km.get(0).unwrap_or(&0.0);
+        let w2 = result.weekly_pos_errors_km.get(1).unwrap_or(&0.0);
+        let w3 = result.weekly_pos_errors_km.get(2).unwrap_or(&0.0);
+        let w4 = result.weekly_pos_errors_km.get(3).unwrap_or(&0.0);
+
         report.push_str(&format!(
-            "| {} | {:.6}% | {:.3} | {:.3} | {:.6}% | {:.6} |\n",
+            "| {} | {:.6}% | {:.3} | {:.3} | {:.3} | {:.3} | {:.3} | {:.3} | {:.6}% | {:.6} |\n",
             result.body_name,
             result.max_pos_error_percent,
             result.max_pos_error_km,
             result.final_pos_error_km,
+            w1, w2, w3, w4,
             result.max_vel_error_percent,
             result.max_vel_error_ms
         ));

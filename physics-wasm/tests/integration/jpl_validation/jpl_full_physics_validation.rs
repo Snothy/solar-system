@@ -25,6 +25,7 @@ struct JPLValidationResult {
     final_vel_error_ms: f64,
     passed: bool,
     integrator: String,
+    weekly_pos_errors_km: Vec<f64>,
 }
 
 /// Test inner planet (Mercury) with FULL physics for 30 days
@@ -147,6 +148,7 @@ fn run_jpl_validation(
 
     let mut pos_errors = Vec::new();
     let mut vel_errors = Vec::new();
+    let mut weekly_errors = Vec::new();
 
     // Simulate with FULL PHYSICS
     // Simulate with FULL PHYSICS
@@ -234,6 +236,15 @@ fn run_jpl_validation(
                 println!("Step {}: Sim Pos {:?}, JPL Pos {:?}", step, bodies[body_idx].pos, jpl_pos);
             }
         }
+        
+        // Capture weekly errors (every 168 hours)
+        if hour % 168 == 0 {
+             if let Some(last_error) = pos_errors.last() {
+                 weekly_errors.push(*last_error);
+             } else {
+                 weekly_errors.push(0.0);
+             }
+        }
     }
 
     if pos_errors.is_empty() {
@@ -276,6 +287,7 @@ fn run_jpl_validation(
         final_vel_error_ms: final_vel,
         passed,
         integrator: integrator.to_string(),
+        weekly_pos_errors_km: weekly_errors,
     }
 }
 
@@ -350,6 +362,18 @@ fn generate_comprehensive_jpl_report() {
             result.final_vel_error_ms,
             if body.contains("Jupiter") { "10" } else { "1" }
         ));
+
+        let w1 = result.weekly_pos_errors_km.get(0).unwrap_or(&0.0);
+        let w2 = result.weekly_pos_errors_km.get(1).unwrap_or(&0.0);
+        let w3 = result.weekly_pos_errors_km.get(2).unwrap_or(&0.0);
+        let w4 = result.weekly_pos_errors_km.get(3).unwrap_or(&0.0);
+
+        report.push_str("| Week | Error (km) |\n");
+        report.push_str("|------|------------|\n");
+        report.push_str(&format!("| 1 | {:.2} |\n", w1));
+        report.push_str(&format!("| 2 | {:.2} |\n", w2));
+        report.push_str(&format!("| 3 | {:.2} |\n", w3));
+        report.push_str(&format!("| 4 | {:.2} |\n\n", w4));
         report.push_str(&format!(
             "**Status**: {}\n\n",
             if result.passed {
