@@ -1,4 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { useTexture } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface StarData {
@@ -12,29 +14,26 @@ interface StarData {
 function bvToColor(bv: number): THREE.Color {
   let t = 4600 * (1 / (0.92 * bv + 1.7) + 1 / (0.92 * bv + 0.62));
   
-  // Clamp temperature
   if (t < 1900) t = 1900;
-  if (t > 12000) t = 12000; // Cap at blue-white
-  
-  // Simple Kelvin to RGB (approximate)
-  // Using a simplified lookup or algorithm
-  // For simplicity, let's map B-V directly to hue
-  // -0.4 (Blue) -> 1.8 (Red)
+  if (t > 12000) t = 12000; 
   
   const color = new THREE.Color();
   
-  if (bv < 0.0) color.setHex(0x9bb0ff); // Blue
-  else if (bv < 0.5) color.setHex(0xcad7ff); // Blue-white
-  else if (bv < 1.0) color.setHex(0xf8f7ff); // White
-  else if (bv < 1.5) color.setHex(0xfff4ea); // Yellow-white
-  else if (bv < 2.0) color.setHex(0xffd2a1); // Orange
-  else color.setHex(0xffa060); // Red
+  if (bv < 0.0) color.setHex(0x9bb0ff); 
+  else if (bv < 0.5) color.setHex(0xcad7ff); 
+  else if (bv < 1.0) color.setHex(0xf8f7ff); 
+  else if (bv < 1.5) color.setHex(0xfff4ea); 
+  else if (bv < 2.0) color.setHex(0xffd2a1); 
+  else color.setHex(0xffa060); 
   
   return color;
 }
 
 export function Stars() {
   const [stars, setStars] = useState<StarData[]>([]);
+  
+  // Load background texture
+  const milkyWayTexture = useTexture('/MilkyWay.jpg');
 
   useEffect(() => {
     fetch('/stars.json')
@@ -66,9 +65,6 @@ export function Stars() {
       colors[i * 3 + 2] = col.b;
 
       // Size based on magnitude
-      // Mag -1.5 (Sirius) -> Large
-      // Mag 6.5 -> Small
-      // Formula: size = max(0.5, 5.0 - 0.7 * mag)
       sizes[i] = Math.max(1.0, 6.0 - 0.8 * star.mag);
     });
 
@@ -79,32 +75,43 @@ export function Stars() {
     return geo;
   }, [stars]);
 
-  // Custom shader for points to handle size attenuation and soft edges
   const material = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
         color: { value: new THREE.Color(0xffffff) },
+        uTime: { value: 0.0 }
       },
+      // ... shader code
       vertexShader: `
         attribute float size;
         attribute vec3 color;
+        uniform float uTime;
         varying vec3 vColor;
+        
+        // Pseudo-random
+        float random(vec2 st) {
+            return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+        }
+
         void main() {
           vColor = color;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = size; // No attenuation for stars (they are at infinity)
-          // Or maybe slight attenuation? No, stars should remain points.
+          
+          // Twinkle effect
+          // Use position as seed
+          float r = random(position.xy);
+          float twinkle = 0.5 + 0.5 * sin(uTime * (2.0 + r * 5.0) + r * 100.0);
+          
+          gl_PointSize = size * (0.8 + 0.4 * twinkle); 
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         varying vec3 vColor;
         void main() {
-          // Circular point
           vec2 coord = gl_PointCoord - vec2(0.5);
           if(length(coord) > 0.5) discard;
           
-          // Soft edge
           float strength = 1.0 - (length(coord) * 2.0);
           strength = pow(strength, 2.0);
           
@@ -117,9 +124,27 @@ export function Stars() {
     });
   }, []);
 
-  if (!geometry) return null;
+  // Animate stars
+  useFrame((state) => {
+    if (material) {
+        material.uniforms.uTime.value = state.clock.getElapsedTime();
+    }
+  });
 
   return (
-    <points geometry={geometry} material={material} />
+    <group>
+      {/* Background Sphere */}
+      <mesh>
+        <sphereGeometry args={[950000, 64, 64]} />
+        <meshBasicMaterial 
+          map={milkyWayTexture} 
+          side={THREE.BackSide} 
+          color={0x666666} // Dim it slightly so it doesn't overpower everything
+        />
+      </mesh>
+      
+      {/* Star Points */}
+      {geometry && <points geometry={geometry} material={material} />}
+    </group>
   );
 }

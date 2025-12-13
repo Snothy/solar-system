@@ -24,10 +24,11 @@
   margin: 0;
   font-size: 1.8rem;
   font-weight: 700;
-  background: linear-gradient(90deg, #60a5fa, #22d3ee);
+  background: linear-gradient(135deg, #a78bfa, #22d3ee);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(167, 139, 250, 0.3);
 }
 
 .setup-title p {

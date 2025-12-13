@@ -93,18 +93,20 @@ export function Scene({
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
         shadows
-        camera={{ position: [0, 20000, 10000], fov: 50, near: 1e-6, far: 1000000, layers: undefined }} // Layers handled by ref
+        camera={{ position: [0, 20000, 10000], fov: 50, near: 1e-6, far: 1000000, layers: undefined }} 
         onCreated={({ camera }) => {
           camera.layers.enable(1); // Enable Layer 1 so we can see focused objects
         }}
         gl={{ 
           logarithmicDepthBuffer: true,
-          outputColorSpace: THREE.SRGBColorSpace 
+          outputColorSpace: THREE.SRGBColorSpace,
         }}
       >
         <color attach="background" args={['#000005']} />
         
-        <Stars />
+        <Suspense fallback={null}>
+          <Stars />
+        </Suspense>
 
         <Lights 
           visualBodies={visualBodies}
@@ -150,11 +152,6 @@ export function Scene({
           };
           
           // Determine if this body should be in the "High Quality" layer (Layer 1)
-          // It should be in Layer 1 if:
-          // 1. It is the focused object
-          // 2. It is a child (moon) of the focused object
-          // 3. It is the parent of the focused object
-          // 4. It is a star (always needs to be visible to cast shadows/emit light)
           let layer = 0;
           if (data.type === 'star') {
             layer = 1; // Stars exist in both effectively, but we put them in 1 to interact with SpotLight

@@ -58,6 +58,7 @@ export function CelestialBody({
   parentVisualBody
 }: CelestialBodyProps) {
   const groupRef = useRef<THREE.Group>(null);
+  const materialRef = useRef<THREE.Material | null>(null);
   
   // Load texture if available (useTexture hook with Suspense)
   // Only load texture if we are NOT using a model (or if model needs it, but usually model has its own)
@@ -86,6 +87,8 @@ export function CelestialBody({
     if (groupRef.current) {
       // Update position from physics simulation
       const targetPos = visualBody.mesh.position;
+      
+
       
       // Minimum Visual Distance Logic for Moons
       if (useVisualScale && parentVisualBody) {
@@ -174,38 +177,10 @@ export function CelestialBody({
   }, [visualBody.baseRadius, visualScale, useVisualScale, data.radii]);
 
   
-  // Material for sphere
-  const material = useMemo(() => {
-    if (!shouldLoadTexture) return null;
-    
-    if (data.type === 'star') {
-      return (
-        <meshBasicMaterial 
-          map={texture} 
-          color={0xffffff} 
-        />
-      );
-    } else {
-      return (
-        <meshStandardMaterial 
-          map={texture} 
-          normalMap={normalMap}
-          roughnessMap={roughnessMap}
-          metalnessMap={metalnessMap}
-          emissiveMap={emissiveMap}
-          emissive={emissiveMap ? new THREE.Color(0xffffff) : new THREE.Color(0x000000)}
-          roughness={data.roughnessMap ? 1.0 : 1.0} 
-          metalness={data.metalnessMap ? 1.0 : 0.0}
-          color={!texture ? data.color : 0xffffff}
-        />
-      );
-    }
-  }, [data.type, texture, normalMap, roughnessMap, metalnessMap, emissiveMap, shouldLoadTexture, data.color]);
-  
-  // Axial tilt rotation - REMOVED in favor of Pole Vector Quaternion
-  // const rotationX = useMemo(() => {
-  //   return data.axialTilt ? THREE.MathUtils.degToRad(data.axialTilt) : 0;
-  // }, [data.axialTilt]);
+  // Material for sphere is now handled directly in JSX to ensure proper updates
+
+
+
   
   // Apply layer
   useMemo(() => {
@@ -216,7 +191,7 @@ export function CelestialBody({
       });
     }
   }, [layer]);
-
+  
   return (
     <group 
       ref={groupRef}
@@ -235,7 +210,27 @@ export function CelestialBody({
           receiveShadow={data.type !== 'star'}
         >
           <sphereGeometry args={[1, 64, 64]} />
-          {material}
+          {data.type === 'star' ? (
+             <meshBasicMaterial 
+                color={new THREE.Color(data.color)}
+                map={texture}
+             />
+          ) : (
+             shouldLoadTexture && (
+               <meshStandardMaterial 
+                 ref={materialRef}
+                 map={texture} 
+                 normalMap={normalMap}
+                 roughnessMap={roughnessMap}
+                 metalnessMap={metalnessMap}
+                 emissiveMap={emissiveMap}
+                 emissive={emissiveMap ? new THREE.Color(0xffffff) : new THREE.Color(0x000000)}
+                 roughness={data.roughnessMap ? 1.0 : 1.0} 
+                 metalness={data.metalnessMap ? 1.0 : 0.0}
+                 color={!texture ? data.color : 0xffffff}
+               />
+             )
+          )}
         </mesh>
       )}
       
