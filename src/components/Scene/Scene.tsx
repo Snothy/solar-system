@@ -11,7 +11,6 @@ import { ParticleExplosion } from './ParticleExplosion';
 import { Stars } from './Stars';
 import type { VisualBody, Particle, PhysicsBody } from '../../types';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
-import importedBodiesData from '../../data/bodies.json';
 import { useCameraFocus } from '../../hooks/useCameraFocus';
 
 interface SceneProps {
@@ -53,13 +52,15 @@ function CameraFollower({
   visualBodies,
   visualScale,
   useVisualScale,
-  controlsRef
+  controlsRef,
+  viewMode
 }: {
   focusedObject: PhysicsBody | null;
   visualBodies: VisualBody[];
   visualScale: number;
   useVisualScale: boolean;
   controlsRef: React.RefObject<any>;
+  viewMode: 'realistic' | 'simplistic';
 }) {
   const { camera } = useThree();
   const cameraRef = useRef(camera);
@@ -70,7 +71,8 @@ function CameraFollower({
     visualScale,
     useVisualScale,
     controlsRef,
-    cameraRef
+    cameraRef,
+    viewMode
   );
   
   return null;
@@ -142,6 +144,7 @@ export function Scene({
           visualScale={visualScale}
           useVisualScale={useVisualScale}
           controlsRef={controlsRef}
+          viewMode={viewMode}
         />
         
         {/* Render all celestial bodies */}
@@ -154,15 +157,11 @@ export function Scene({
             texture: vb.textureUrl || staticData.texture
           };
 
-          // Get orbit element data from bodies.json for orbit ellipses
-          const bodyJsonData = (importedBodiesData as any[]).find((d: any) => d.name === vb.body.name);
-
           if (viewMode === 'simplistic') {
             // Find parent position for orbit ellipse centering
             const parentVb = vb.body.parentName
               ? visualBodies.find(p => p.body.name === vb.body.parentName)
               : visualBodies.find(p => p.body.name === 'Sun');
-            const parentPos = parentVb ? parentVb.mesh.position : new THREE.Vector3();
 
             return (
               <group key={vb.body.name}>
@@ -171,10 +170,11 @@ export function Scene({
                   visualBody={vb}
                   onClick={() => onObjectSelect(index)}
                 />
-                {bodyJsonData && bodyJsonData.rel_a && data.type !== 'star' && (
+                {data.type !== 'star' && parentVb && (
                   <OrbitEllipse
-                    data={bodyJsonData}
-                    parentPosition={parentPos}
+                    data={data}
+                    visualBody={vb}
+                    parentVisualBody={parentVb}
                     visible={orbitVisibility[vb.body.name] !== false}
                   />
                 )}
