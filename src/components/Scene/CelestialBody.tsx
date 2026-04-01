@@ -7,6 +7,11 @@ import { CloudLayer } from './CloudLayer';
 import type { CelestialBodyData, VisualBody } from '../../types';
 import { SCALE } from '../../utils/constants';
 
+// Global geometry cache to prevent generating 60+ thousands of unique vertices
+export const highResGeo = new THREE.SphereGeometry(1, 64, 64);
+export const medResGeo = new THREE.SphereGeometry(1, 32, 32);
+export const lowResGeo = new THREE.SphereGeometry(1, 16, 16);
+
 interface CelestialBodyProps {
   data: CelestialBodyData;
   visualBody: VisualBody;
@@ -61,6 +66,15 @@ export function CelestialBody({
 }: CelestialBodyProps) {
   const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.Material | null>(null);
+
+  // Determine geometry level of detail based on focus state (layer === 1 is focused object) or body type
+  const geometryToUse = useMemo(() => {
+    if (layer === 1 || data.type === 'star' || data.type === 'planet') {
+       return highResGeo;
+    } else {
+       return lowResGeo;
+    }
+  }, [layer, data.type]);
   
   // Load texture if available (useTexture hook with Suspense)
   // Only load texture if we are NOT using a model (or if model needs it, but usually model has its own)
@@ -209,9 +223,8 @@ export function CelestialBody({
         <mesh 
           scale={scaleVec}
           castShadow={viewMode === 'realistic' && data.type !== 'star'}
-          receiveShadow={viewMode === 'realistic' && data.type !== 'star'}
         >
-          <sphereGeometry args={[1, 64, 64]} />
+          <primitive object={geometryToUse} attach="geometry" />
           {viewMode === 'simplistic' ? (
              <meshBasicMaterial 
                color={new THREE.Color(data.color)}
@@ -248,6 +261,7 @@ export function CelestialBody({
           color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
           density={data.name === 'Venus' ? 2.0 : 1.0}
           sunPosition={sunPosition}
+          geometry={geometryToUse}
         />
       )}
 
@@ -257,6 +271,7 @@ export function CelestialBody({
           radius={scaleVec[0] * 1.01} // Slightly larger than planet
           textureUrl={data.cloudMap}
           opacity={data.cloudTransparency || 0.8}
+          geometry={geometryToUse}
         />
       )}
 

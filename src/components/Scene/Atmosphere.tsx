@@ -8,9 +8,10 @@ interface AtmosphereProps {
   color: string;
   density?: number;
   sunPosition: THREE.Vector3;
+  geometry: THREE.BufferGeometry;
 }
 
-export function Atmosphere({ radius, color, density = 1.0, sunPosition }: AtmosphereProps) {
+export function Atmosphere({ radius, color, density = 1.0, sunPosition, geometry }: AtmosphereProps) {
   const meshRef = useRef<THREE.Mesh>(null);
 
   const material = useMemo(() => {
@@ -38,7 +39,7 @@ export function Atmosphere({ radius, color, density = 1.0, sunPosition }: Atmosp
 
   return (
     <mesh ref={meshRef} scale={[radius * 1.2, radius * 1.2, radius * 1.2]}>
-      <sphereGeometry args={[1, 64, 64]} />
+      <primitive object={geometry} attach="geometry" />
       <primitive object={material} attach="material" />
     </mesh>
   );

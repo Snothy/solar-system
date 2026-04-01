@@ -234,7 +234,7 @@ export function Scene({
         ))}
         
         {viewMode === 'realistic' && (
-          <EffectComposer multisampling={4}>
+          <EffectComposer multisampling={0}>
             <Bloom luminanceThreshold={0.9} mipmapBlur intensity={1.5} />
           </EffectComposer>
         )}

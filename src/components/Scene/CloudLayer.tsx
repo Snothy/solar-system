@@ -9,13 +9,15 @@ interface CloudLayerProps {
   rotationSpeed?: number;
   opacity?: number;
   sunPosition: THREE.Vector3;
+  geometry: THREE.BufferGeometry;
 }
 
 export function CloudLayer({ 
   radius, 
   textureUrl, 
   rotationSpeed = 0.05, 
-  opacity = 0.8
+  opacity = 0.8,
+  geometry
 }: Omit<CloudLayerProps, 'sunPosition'>) {
   const meshRef = useRef<THREE.Mesh>(null);
   const texture = useTexture(textureUrl);
@@ -35,7 +37,7 @@ export function CloudLayer({
 
   return (
     <mesh ref={meshRef} scale={[radius, radius, radius]}>
-      <sphereGeometry args={[1, 64, 64]} />
+      <primitive object={geometry} attach="geometry" />
       <meshStandardMaterial 
         map={texture}
         transparent
