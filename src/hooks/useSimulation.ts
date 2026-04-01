@@ -81,11 +81,25 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
         // Build bodies from initialData
         initialData.forEach(data => {
           // Calculate initial state from orbital elements if pos/vel are missing
-          let initialPos = data.pos;
-          let initialVel = data.vel;
+          let initialPos: THREE.Vector3 | null = null;
+          let initialVel: THREE.Vector3 | null = null;
 
-          if ((!initialPos || !initialVel) && data.rel_a && data.parent) {
-             const parentBody = newBodies.find(b => b.name === data.parent);
+          // Convert pos/vel from JSON {x,y,z} objects to THREE.Vector3
+          // JPL ecliptic coordinates: Z-up → Three.js Y-up: (x, z, -y)
+          if (data.pos && typeof data.pos === 'object' && 'x' in data.pos) {
+            initialPos = new THREE.Vector3(data.pos.x, data.pos.z, -data.pos.y);
+          } else if (Array.isArray(data.pos)) {
+            initialPos = new THREE.Vector3(data.pos[0], data.pos[2], -data.pos[1]);
+          }
+          if (data.vel && typeof data.vel === 'object' && 'x' in data.vel) {
+            initialVel = new THREE.Vector3(data.vel.x, data.vel.z, -data.vel.y);
+          } else if (Array.isArray(data.vel)) {
+            initialVel = new THREE.Vector3(data.vel[0], data.vel[2], -data.vel[1]);
+          }
+
+          if ((!initialPos || !initialVel) && data.rel_a) {
+             const parentName = data.parent || "Sun";
+             const parentBody = newBodies.find(b => b.name === parentName);
              if (parentBody) {
                  const mu = 6.67430e-11 * parentBody.mass;
                  const a = data.rel_a;

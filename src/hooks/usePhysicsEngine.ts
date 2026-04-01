@@ -189,12 +189,13 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     try {
       // Convert bodies to plain objects for WASM
       const wasmBodies = bodies.map(b => {
+        // Three.js Y-up (x,y,z) → ecliptic Z-up (x,-z,y)
         return {
           name: b.name,
           mass: b.mass,
           radius: b.radius,
-          pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
-          vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
+          pos: { x: b.pos.x, y: -b.pos.z, z: b.pos.y },
+          vel: { x: b.vel.x, y: -b.vel.z, z: b.vel.y },
           J: b.J,
           c22: b.C22,
           s22: b.S22,
@@ -237,12 +238,13 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     
     try {
       const wasmBodies = bodies.map(b => {
+        // Three.js Y-up (x,y,z) → ecliptic Z-up (x,-z,y)
         return {
           name: b.name,
           mass: b.mass,
           radius: b.radius,
-          pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z },
-          vel: { x: b.vel.x, y: b.vel.y, z: b.vel.z },
+          pos: { x: b.pos.x, y: -b.pos.z, z: b.pos.y },
+          vel: { x: b.vel.x, y: -b.vel.z, z: b.vel.y },
           J: b.J,
           c22: b.C22,
           s22: b.S22,
@@ -397,11 +399,12 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
                         const vz = typeof getValue(vel, 'z') === 'number' ? getValue(vel, 'z') : (Array.isArray(vel) ? vel[2] : 0);
 
                         // Only update if values are valid numbers (not NaN)
+                        // Ecliptic Z-up (x,y,z) → Three.js Y-up (x,z,-y)
                         if (!isNaN(px) && !isNaN(py) && !isNaN(pz)) {
-                            bodies[i].pos.set(px, py, pz);
+                            bodies[i].pos.set(px, pz, -py);
                         }
                         if (!isNaN(vx) && !isNaN(vy) && !isNaN(vz)) {
-                            bodies[i].vel.set(vx, vy, vz);
+                            bodies[i].vel.set(vx, vz, -vy);
                         }
                     }
                 }
@@ -436,10 +439,11 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     if (!wasmReady || !wasmEngineRef.current) return null;
     
     try {
+        // Convert observer from Three.js Y-up (x,y,z) → ecliptic Z-up (x,-z,y)
         return wasmEngineRef.current.get_visual_state(
             observerPos.x,
+            -observerPos.z,
             observerPos.y,
-            observerPos.z,
             0, 0, 0, // observer velocity (assuming 0 for now)
             scaleFactor,
             useLightTimeDelay,

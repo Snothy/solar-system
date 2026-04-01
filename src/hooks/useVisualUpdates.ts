@@ -63,8 +63,9 @@ export function useVisualUpdates(
             
             visualBodies.forEach((vb, i) => {
                 // Update Position
+                // WASM returns ecliptic Z-up (x,y,z) → convert to Three.js Y-up (x,z,-y)
                 const idx = i * 3;
-                _visualPos.set(positions[idx], positions[idx+1], positions[idx+2]);
+                _visualPos.set(positions[idx], positions[idx+2], -positions[idx+1]);
                 vb.mesh.position.copy(_visualPos);
 
                 // Update Rotation (still in JS for now, or move to WASM later)
@@ -82,9 +83,10 @@ export function useVisualUpdates(
                 let geoX, geoY, geoZ;
                 
                 if (geometricPositions) {
+                    // Ecliptic Z-up (x,y,z) → Three.js Y-up (x,z,-y)
                     geoX = geometricPositions[idx];
-                    geoY = geometricPositions[idx+1];
-                    geoZ = geometricPositions[idx+2];
+                    geoY = geometricPositions[idx+2];
+                    geoZ = -geometricPositions[idx+1];
                 } else {
                     geoX = vb.body.pos.x * SCALE;
                     geoY = vb.body.pos.y * SCALE;

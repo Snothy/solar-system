@@ -16,6 +16,7 @@ interface CelestialBodyProps {
   layer: number;
   sunPosition: THREE.Vector3;
   parentVisualBody?: VisualBody;
+  viewMode?: 'realistic' | 'simplistic';
 }
 
 function calculateVisualRadius(baseRadius: number, visualScale: number, useVisualScale: boolean): number {
@@ -55,7 +56,8 @@ export function CelestialBody({
   onClick,
   layer,
   sunPosition,
-  parentVisualBody
+  parentVisualBody,
+  viewMode = 'realistic'
 }: CelestialBodyProps) {
   const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.Material | null>(null);
@@ -198,7 +200,7 @@ export function CelestialBody({
       onClick={onClick}
       userData={{ parentBody: visualBody.body }}
     >
-      {data.shape === 'model' && data.modelPath ? (
+      {viewMode === 'realistic' && data.shape === 'model' && data.modelPath ? (
         <BodyModel 
           url={data.modelPath} 
           scale={scaleVec[0] * (data.modelScale || 1)} 
@@ -206,11 +208,16 @@ export function CelestialBody({
       ) : (
         <mesh 
           scale={scaleVec}
-          castShadow={data.type !== 'star'}
-          receiveShadow={data.type !== 'star'}
+          castShadow={viewMode === 'realistic' && data.type !== 'star'}
+          receiveShadow={viewMode === 'realistic' && data.type !== 'star'}
         >
           <sphereGeometry args={[1, 64, 64]} />
-          {data.type === 'star' ? (
+          {viewMode === 'simplistic' ? (
+             <meshBasicMaterial 
+               color={new THREE.Color(data.color)}
+               toneMapped={false}
+             />
+          ) : data.type === 'star' ? (
              <meshBasicMaterial 
                 color={new THREE.Color(data.color)}
                 map={texture}
@@ -235,7 +242,7 @@ export function CelestialBody({
       )}
       
       {/* Atmosphere for Earth, Venus, Mars (Only if sphere) */}
-      {shouldLoadTexture && ['Earth', 'Venus', 'Mars'].includes(data.name) && (
+      {viewMode === 'realistic' && shouldLoadTexture && ['Earth', 'Venus', 'Mars'].includes(data.name) && (
         <Atmosphere 
           radius={scaleVec[0]}  
           color={data.name === 'Earth' ? '#00aaff' : data.name === 'Venus' ? '#ffaa00' : '#ff4400'} 
@@ -245,7 +252,7 @@ export function CelestialBody({
       )}
 
       {/* Cloud Layer */}
-      {shouldLoadTexture && data.cloudMap && (
+      {viewMode === 'realistic' && shouldLoadTexture && data.cloudMap && (
         <CloudLayer 
           radius={scaleVec[0] * 1.01} // Slightly larger than planet
           textureUrl={data.cloudMap}
@@ -255,21 +262,30 @@ export function CelestialBody({
 
       {/* Rings */}
       {data.hasRings && data.ringInnerRadius && data.ringOuterRadius && (
-        <mesh rotation-x={Math.PI / 2} receiveShadow castShadow>
+        <mesh rotation-x={Math.PI / 2} receiveShadow={viewMode === 'realistic'} castShadow={viewMode === 'realistic'}>
           <ringGeometry args={[
             data.ringInnerRadius * SCALE * (useVisualScale ? visualScale : 1), 
             data.ringOuterRadius * SCALE * (useVisualScale ? visualScale : 1), 
             128
           ]} />
-          <meshStandardMaterial
-            color={data.ringColor || 0xffffff}
-            side={THREE.DoubleSide}
-            transparent
-            opacity={data.ringOpacity || 0.8}
-            roughness={0.8}
-            metalness={0.1}
-            // map={ringTexture} // TODO: Load texture if available
-          />
+          {viewMode === 'simplistic' ? (
+             <meshBasicMaterial
+               color={data.ringColor || 0xffffff}
+               side={THREE.DoubleSide}
+               transparent
+               opacity={0.5}
+               toneMapped={false}
+             />
+          ) : (
+             <meshStandardMaterial
+               color={data.ringColor || 0xffffff}
+               side={THREE.DoubleSide}
+               transparent
+               opacity={data.ringOpacity || 0.8}
+               roughness={0.8}
+               metalness={0.1}
+             />
+          )}
         </mesh>
       )}
     </group>

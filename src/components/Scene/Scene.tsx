@@ -2,13 +2,16 @@ import { Suspense, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Lights } from './Lights';
 import { CelestialBody } from './CelestialBody';
 import { OrbitalTrail } from './OrbitalTrail';
+import { SchematicBody, OrbitEllipse } from './SchematicBody';
 import { ParticleExplosion } from './ParticleExplosion';
 import { Stars } from './Stars';
 import type { VisualBody, Particle, PhysicsBody } from '../../types';
 import { SOLAR_SYSTEM_DATA } from '../../data/solarSystem';
+import importedBodiesData from '../../data/bodies.json';
 import { useCameraFocus } from '../../hooks/useCameraFocus';
 
 interface SceneProps {
@@ -24,6 +27,7 @@ interface SceneProps {
   orbitVisibility: Record<string, boolean>;
   setObserverPosition: (x: number, y: number, z: number) => void;
   simTime: number;
+  viewMode: 'realistic' | 'simplistic';
 }
 
 // Component that calls updatePhysics on every frame
@@ -83,14 +87,15 @@ export function Scene({
   updatePhysics,
   setObserverPosition,
   focusedObject,
-  orbitVisibility
+  orbitVisibility,
+  viewMode
 }: SceneProps) {
   // Find Sun for lighting reference
   const sun = visualBodies.find(vb => vb.body.name === 'Sun');
   const sunPosition = sun ? sun.mesh.position : new THREE.Vector3(0, 0, 0);
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
       <Canvas
         shadows
         camera={{ position: [0, 20000, 10000], fov: 50, near: 1e-6, far: 1000000, layers: undefined }} 
@@ -144,28 +149,52 @@ export function Scene({
           const staticData = SOLAR_SYSTEM_DATA.find(d => d.name === vb.body.name);
           if (!staticData) return null;
           
-          // Use the texture from the visual body (which comes from SetupScreen) 
-          // instead of the static data
           const data = {
             ...staticData,
             texture: vb.textureUrl || staticData.texture
           };
+
+          // Get orbit element data from bodies.json for orbit ellipses
+          const bodyJsonData = (importedBodiesData as any[]).find((d: any) => d.name === vb.body.name);
+
+          if (viewMode === 'simplistic') {
+            // Find parent position for orbit ellipse centering
+            const parentVb = vb.body.parentName
+              ? visualBodies.find(p => p.body.name === vb.body.parentName)
+              : visualBodies.find(p => p.body.name === 'Sun');
+            const parentPos = parentVb ? parentVb.mesh.position : new THREE.Vector3();
+
+            return (
+              <group key={vb.body.name}>
+                <SchematicBody
+                  data={data}
+                  visualBody={vb}
+                  onClick={() => onObjectSelect(index)}
+                />
+                {bodyJsonData && bodyJsonData.rel_a && data.type !== 'star' && (
+                  <OrbitEllipse
+                    data={bodyJsonData}
+                    parentPosition={parentPos}
+                    visible={orbitVisibility[vb.body.name] !== false}
+                  />
+                )}
+              </group>
+            );
+          }
           
-          // Determine if this body should be in the "High Quality" layer (Layer 1)
+          // Realistic mode
           let layer = 0;
           if (data.type === 'star') {
-            layer = 1; // Stars exist in both effectively, but we put them in 1 to interact with SpotLight
+            layer = 1;
           } else if (focusedObject) {
             const isFocused = vb.body.name === focusedObject.name;
             const isChildOfFocused = vb.body.parentName === focusedObject.name;
             const isParentOfFocused = focusedObject.parentName === vb.body.name;
-            
             if (isFocused || isChildOfFocused || isParentOfFocused) {
               layer = 1;
             }
           }
 
-          // Find parent visual body if it exists
           const parentVisualBody = vb.body.parentName 
             ? visualBodies.find(p => p.body.name === vb.body.parentName)
             : undefined;
@@ -182,13 +211,14 @@ export function Scene({
                   onClick={() => onObjectSelect(index)}
                   layer={layer}
                   sunPosition={sunPosition}
+                  viewMode={viewMode}
                 />
               </Suspense>
               
               <OrbitalTrail 
                 key={`trail-${vb.body.name}`} 
                 trail={vb.trail} 
-                visible={orbitVisibility[vb.body.name] !== false} // Default to true if undefined
+                visible={orbitVisibility[vb.body.name] !== false}
               />
             </group>
           );
@@ -202,6 +232,12 @@ export function Scene({
             onComplete={() => onParticleComplete(index)}
           />
         ))}
+        
+        {viewMode === 'realistic' && (
+          <EffectComposer multisampling={4}>
+            <Bloom luminanceThreshold={0.9} mipmapBlur intensity={1.5} />
+          </EffectComposer>
+        )}
       </Canvas>
     </div>
   );

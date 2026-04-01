@@ -95,8 +95,9 @@ impl Simulation {
     }
 
     fn handle_collisions(&mut self) {
-        let removed_indices = crate::dynamics::collisions::resolve_collisions(&mut self.bodies);
+        let mut removed_indices = crate::dynamics::collisions::resolve_collisions(&mut self.bodies);
         if !removed_indices.is_empty() {
+            removed_indices.sort_unstable_by(|a, b| b.cmp(a));
             for &idx in &removed_indices {
                 if idx < self.bodies.len() {
                     self.bodies.remove(idx);

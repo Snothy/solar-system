@@ -1,5 +1,3 @@
-import styles from './StatusBar.module.css';
-
 interface StatusBarProps {
   currentDate: Date;
   timeStep: number;
@@ -16,9 +14,19 @@ export function StatusBar({ currentDate, timeStep }: StatusBarProps) {
   };
 
   return (
-    <div className={styles.statusBar}>
-      <div className={styles.dateDisplay}>{currentDate.toLocaleString()}</div>
-      <div className={styles.speedDisplay}>{formatSpeed(timeStep)}</div>
+    <div style={{ 
+      display: 'flex', alignItems: 'center', gap: '8px', 
+      background: 'rgba(255, 255, 255, 0.05)', padding: '6px 12px', 
+      borderRadius: '8px', backdropFilter: 'blur(20px)'
+    }}>
+      <div style={{ fontSize: '12px', fontWeight: 500, color: '#fff' }}>
+        {currentDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+        {currentDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      </div>
+      <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.2)' }} />
+      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace' }}>
+        {formatSpeed(timeStep)}
+      </div>
     </div>
   );
 }

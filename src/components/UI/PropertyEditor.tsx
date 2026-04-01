@@ -7,14 +7,15 @@ interface PropertyEditorProps {
   body: PhysicsBody;
   onUpdate: (name: string, updates: Partial<PhysicsBody>) => void;
   onClose: () => void;
+  onFocusCamera: () => void;
+  onUnfocusCamera: () => void;
 }
 
-export function PropertyEditor({ body, onUpdate, onClose }: PropertyEditorProps) {
+export function PropertyEditor({ body, onUpdate, onClose, onFocusCamera, onUnfocusCamera }: PropertyEditorProps) {
   const [mass, setMass] = useState(body.mass.toExponential(2));
   const [radius, setRadius] = useState((body.radius / 1000).toFixed(0)); // km
   const [isEditing, setIsEditing] = useState(false);
   
-  // Get static data for this body
   const staticData = SOLAR_SYSTEM_DATA.find(d => d.name === body.name);
 
   useEffect(() => {
@@ -24,205 +25,151 @@ export function PropertyEditor({ body, onUpdate, onClose }: PropertyEditorProps)
 
   const handleSave = () => {
     const newMass = parseFloat(mass);
-    const newRadius = parseFloat(radius) * 1000; // Convert km back to meters
-
+    const newRadius = parseFloat(radius) * 1000;
     if (!isNaN(newMass) && !isNaN(newRadius)) {
-      onUpdate(body.name, {
-        mass: newMass,
-        radius: newRadius
-      });
+      onUpdate(body.name, { mass: newMass, radius: newRadius });
       setIsEditing(false);
     }
   };
 
   const distanceFromSun = body.pos.length() / AU;
-  const velocity = body.vel.length() / 1000; // km/s
+  const velocity = body.vel.length() / 1000;
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '80px',
-      right: '20px',
-      width: '320px',
-      backgroundColor: 'rgba(16, 20, 28, 0.85)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '12px',
-      padding: '20px',
-      color: '#e0e0e0',
-      zIndex: 1000,
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+    <div className="apple-panel" style={{
+      position: 'absolute', top: '80px', right: '24px', width: '320px',
+      padding: '24px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '20px',
+      maxHeight: 'calc(100vh - 160px)', overflowY: 'auto'
     }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        paddingBottom: '12px'
-      }}>
-        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#00d2ff' }}>{body.name}</h2>
-        <button 
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#8a8f98',
-            cursor: 'pointer',
-            fontSize: '1.2rem',
-            padding: '4px'
-          }}
-        >
-          ✕
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 500, color: '#fff', letterSpacing: '-0.03em' }}>
+            {body.name}
+          </h2>
+          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginTop: '2px', fontWeight: 400 }}>
+            {staticData?.type === 'star' ? 'Star' : staticData?.parent ? 'Moon' : 'Planet'}
+          </div>
+        </div>
+        <button onClick={onClose} style={{
+          width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)',
+          cursor: 'pointer', border: 'none'
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      
+      {/* Camera Actions */}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button onClick={onFocusCamera} style={{
+          flex: 1, padding: '10px', background: '#fff', color: '#000', borderRadius: '12px',
+          fontSize: '13px', fontWeight: 500, border: 'none'
+        }}>
+          Focus Camera
+        </button>
+        <button onClick={onUnfocusCamera} style={{
+          flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px',
+          fontSize: '13px', fontWeight: 500, border: 'none'
+        }}>
+          Free Cam
         </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Dynamic Properties */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.75rem', color: '#8a8f98', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Physical Properties</label>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Mass (kg)</span>
-            {isEditing ? (
-              <input 
-                type="text" 
-                value={mass} 
-                onChange={e => setMass(e.target.value)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  color: 'white',
-                  fontSize: '0.875rem',
-                  width: '100%'
-                }}
-              />
-            ) : (
-              <span style={{ fontSize: '0.875rem', fontFamily: 'monospace', textAlign: 'right' }}>{Number(mass).toExponential(2)}</span>
-            )}
+        {/* Physical Properties Area */}
+        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Mass</span>
+             {isEditing ? (
+               <input type="text" value={mass} onChange={e => setMass(e.target.value)}
+                 style={{ width: '80px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: '#fff', padding: '2px 6px', fontSize: '13px', textAlign: 'right' }}/>
+             ) : (
+               <span style={{ fontSize: '14px', color: '#fff' }}>{Number(mass).toExponential(2)} kg</span>
+             )}
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Radius (km)</span>
-            {isEditing ? (
-              <input 
-                type="text" 
-                value={radius} 
-                onChange={e => setRadius(e.target.value)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  color: 'white',
-                  fontSize: '0.875rem',
-                  width: '100%'
-                }}
-              />
-            ) : (
-              <span style={{ fontSize: '0.875rem', fontFamily: 'monospace', textAlign: 'right' }}>{Number(radius).toLocaleString()}</span>
-            )}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Radius</span>
+             {isEditing ? (
+               <input type="text" value={radius} onChange={e => setRadius(e.target.value)}
+                 style={{ width: '80px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: '#fff', padding: '2px 6px', fontSize: '13px', textAlign: 'right' }}/>
+             ) : (
+               <span style={{ fontSize: '14px', color: '#fff' }}>{Number(radius).toLocaleString()} km</span>
+             )}
           </div>
         </div>
 
-        {/* Read-only Real-time Data */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <label style={{ fontSize: '0.75rem', color: '#8a8f98', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Real-time Data</label>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Distance from Sun</span>
-            <span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{distanceFromSun.toFixed(3)} AU</span>
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Orbital Velocity</span>
-            <span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{velocity.toFixed(2)} km/s</span>
-          </div>
+        {/* Live Data Area */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+           <div style={{ flex: 1, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
+             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>DISTANCE</span>
+             <span style={{ fontSize: '18px', color: '#fff', fontWeight: 500, marginTop: '4px' }}>{distanceFromSun.toFixed(2)}</span>
+             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>AU</span>
+           </div>
+           <div style={{ flex: 1, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
+             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>VELOCITY</span>
+             <span style={{ fontSize: '18px', color: '#fff', fontWeight: 500, marginTop: '4px' }}>{velocity.toFixed(1)}</span>
+             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>km/s</span>
+           </div>
         </div>
 
-        {/* Static Data */}
+        {/* Static Profile Area */}
         {staticData && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-            <label style={{ fontSize: '0.75rem', color: '#8a8f98', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Characteristics</label>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Axial Tilt</span>
-              <span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{staticData.axialTilt}°</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Rotation Period</span>
-              <span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{staticData.rotationPeriod} h</span>
-            </div>
-
-            {staticData.meanTemperature && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Mean Temp</span>
-                <span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{staticData.meanTemperature} K</span>
-              </div>
+          <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {staticData.rotationPeriod && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Day Length</span>
+                  <span style={{ fontSize: '14px', color: '#fff' }}>{staticData.rotationPeriod}h</span>
+                </div>
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+              </>
             )}
-
+            {staticData.axialTilt && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Axial Tilt</span>
+                  <span style={{ fontSize: '14px', color: '#fff' }}>{staticData.axialTilt}°</span>
+                </div>
+              </>
+            )}
+            {staticData.meanTemperature && (
+              <>
+                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Mean Temp</span>
+                   <span style={{ fontSize: '14px', color: '#fff' }}>{staticData.meanTemperature}K</span>
+                 </div>
+              </>
+            )}
             {staticData.surfaceGravity && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.875rem', color: '#ccc' }}>Surface Gravity</span>
-                <span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{staticData.surfaceGravity} m/s²</span>
-              </div>
+              <>
+                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Gravity</span>
+                   <span style={{ fontSize: '14px', color: '#fff' }}>{staticData.surfaceGravity} m/s²</span>
+                 </div>
+              </>
             )}
           </div>
         )}
 
-        {/* Actions */}
-        <div style={{ paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+        {/* Editable Actions */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
           {isEditing ? (
-            <>
-              <button 
-                onClick={() => setIsEditing(false)}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '0.875rem',
-                  borderRadius: '4px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+              <button onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px', fontSize: '13px', fontWeight: 500 }}>
                 Cancel
               </button>
-              <button 
-                onClick={handleSave}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '0.875rem',
-                  borderRadius: '4px',
-                  background: '#2563eb',
-                  color: 'white',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Save Changes
+              <button onClick={handleSave} style={{ flex: 1, padding: '10px', background: '#fff', color: '#000', borderRadius: '12px', fontSize: '13px', fontWeight: 500 }}>
+                Save
               </button>
-            </>
+            </div>
           ) : (
-            <button 
-              onClick={() => setIsEditing(true)}
-              style={{
-                width: '100%',
-                padding: '6px 12px',
-                fontSize: '0.875rem',
-                borderRadius: '4px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Edit Properties
-            </button>
+             <button onClick={() => setIsEditing(true)} style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', borderRadius: '12px', fontSize: '13px', fontWeight: 500 }}>
+               Edit Properties...
+             </button>
           )}
         </div>
       </div>
