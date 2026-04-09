@@ -275,6 +275,31 @@ export function IntegrationTestView({
             visualScale={visualScale}
             useVisualScale={useVisualScale}
           />
+          {/* Current error HUD */}
+          {(() => {
+            if (!focusedBody) return null;
+            const frameData = testRun.frames[frameIdx]?.bodies[focusedBody];
+            if (!frameData) return null;
+            const errKm = frameData.errorKm;
+            const color = errKm < 100 ? '#4ade80' : errKm < 1000 ? '#facc15' : '#f87171';
+            return (
+              <div style={{
+                position: 'absolute', bottom: '16px', right: '16px',
+                background: 'rgba(12,12,18,0.75)', backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px', padding: '8px 14px',
+                display: 'flex', flexDirection: 'column', gap: '2px',
+                pointerEvents: 'none',
+              }}>
+                <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+                  {focusedBody}
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color, fontFamily: 'monospace' }}>
+                  {fmtKm(errKm)}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

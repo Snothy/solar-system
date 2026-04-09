@@ -310,7 +310,7 @@ export function App() {
                   boxShadow: (viewMode as string) === 'test' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
                 }}
               >
-                Test
+                Validation
               </button>
             </div>
           </div>

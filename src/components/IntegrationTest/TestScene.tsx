@@ -101,12 +101,12 @@ function BodyTrail({
     const refPts = slice.map(f => f.bodies[name]?.refPos).filter(Boolean)
       .map(p => toScene(p as [number, number, number]));
 
-    const makeL = (pts: THREE.Vector3[], color: string) => {
+    const makeL = (pts: THREE.Vector3[], color: string, opacity: number) => {
       if (pts.length < 2) return null;
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      return new THREE.Line(geo, new THREE.LineBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.28 }));
+      return new THREE.Line(geo, new THREE.LineBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity }));
     };
-    return { simLine: makeL(simPts, colorHex), refLine: makeL(refPts, '#fb923c') };
+    return { simLine: makeL(simPts, colorHex, 0.65), refLine: makeL(refPts, '#fb923c', 0.55) };
   }, [frames, frameIdx, name, trailLength, colorHex]);
 
   return (
@@ -117,28 +117,14 @@ function BodyTrail({
   );
 }
 
-// ─── Focus ring on selected body ──────────────────────────────────────────────
-
-function FocusRing({ position, radius }: { position: THREE.Vector3; radius: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const { camera } = useThree();
-  useFrame(() => { if (meshRef.current) meshRef.current.lookAt(camera.position); });
-  return (
-    <mesh ref={meshRef} position={position}>
-      <ringGeometry args={[radius * 1.6, radius * 1.9, 64]} />
-      <meshBasicMaterial color="#ffffff" transparent opacity={0.55} side={THREE.DoubleSide} />
-    </mesh>
-  );
-}
-
 // ─── Textured body (requires Suspense) ───────────────────────────────────────
 
 function TexturedBody({
-  simPos, refPos, radius, texture, colorHex, onClick, isFocused, errorT,
+  simPos, refPos, radius, texture, colorHex, onClick, errorT,
 }: {
   simPos: THREE.Vector3; refPos: THREE.Vector3; radius: number;
   texture: string; colorHex: string; onClick: () => void;
-  isFocused: boolean; errorT: number;
+  errorT: number;
 }) {
   const tex = useTexture(texture);
   const col = useMemo(() => new THREE.Color(colorHex), [colorHex]);
@@ -153,7 +139,6 @@ function TexturedBody({
       </mesh>
       {showRef && <RefMarker position={refPos} radius={radius} />}
       {showRef && <ErrorLine from={simPos} to={refPos} t={errorT} />}
-      {isFocused && <FocusRing position={simPos} radius={radius} />}
     </group>
   );
 }
@@ -161,10 +146,10 @@ function TexturedBody({
 // ─── Flat (untextured) body ───────────────────────────────────────────────────
 
 function FlatBody({
-  simPos, refPos, radius, colorHex, onClick, isFocused, errorT,
+  simPos, refPos, radius, colorHex, onClick, errorT,
 }: {
   simPos: THREE.Vector3; refPos: THREE.Vector3; radius: number;
-  colorHex: string; onClick: () => void; isFocused: boolean; errorT: number;
+  colorHex: string; onClick: () => void; errorT: number;
 }) {
   const col = useMemo(() => new THREE.Color(colorHex), [colorHex]);
   const errSceneUnits = simPos.distanceTo(refPos);
@@ -178,7 +163,6 @@ function FlatBody({
       </mesh>
       {showRef && <RefMarker position={refPos} radius={radius} />}
       {showRef && <ErrorLine from={simPos} to={refPos} t={errorT} />}
-      {isFocused && <FocusRing position={simPos} radius={radius} />}
     </group>
   );
 }
@@ -197,6 +181,12 @@ function CameraController({
 }) {
   const { camera } = useThree();
 
+  // Refs so useFrame always reads the latest values without re-subscribing
+  const focusedBodyRef = useRef(focusedBody);
+  const frameRef = useRef(frame);
+  useEffect(() => { focusedBodyRef.current = focusedBody; frameRef.current = frame; });
+
+  // Jump camera to focused body when selection changes
   useEffect(() => {
     if (!focusedBody || !frame) return;
     const bodyData = frame.bodies[focusedBody];
@@ -209,7 +199,6 @@ function CameraController({
     const refPos = toScene(bodyData.refPos);
     const errScene = simPos.distanceTo(refPos);
 
-    // Frame both sim + ref positions if error is visible
     const mid = errScene > MIN_VISIBLE_ERROR_SCENE
       ? new THREE.Vector3().addVectors(simPos, refPos).multiplyScalar(0.5)
       : simPos.clone();
@@ -223,6 +212,22 @@ function CameraController({
       controlsRef.current.update();
     }
   }, [focusedBody]); // only repositions on focus change — user can freely orbit after
+
+  // Continuously update orbit target to track the focused body during playback
+  useFrame(() => {
+    const name = focusedBodyRef.current;
+    const f = frameRef.current;
+    if (!name || !f || !controlsRef.current) return;
+    const bodyData = f.bodies[name];
+    if (!bodyData) return;
+    const simPos = toScene(bodyData.simPos);
+    const refPos = toScene(bodyData.refPos);
+    const errScene = simPos.distanceTo(refPos);
+    const mid = errScene > MIN_VISIBLE_ERROR_SCENE
+      ? new THREE.Vector3().addVectors(simPos, refPos).multiplyScalar(0.5)
+      : simPos.clone();
+    controlsRef.current.target.copy(mid);
+  });
 
   return null;
 }
@@ -281,23 +286,25 @@ function SceneContent({
           <Suspense fallback={
             <FlatBody simPos={simPos} refPos={refPos} radius={radius}
               colorHex={meta.colorHex} onClick={() => onBodyClick(name)}
-              isFocused={isFocused} errorT={errorT} />
+              errorT={errorT} />
           }>
             <TexturedBody simPos={simPos} refPos={refPos} radius={radius}
               texture={meta.texture} colorHex={meta.colorHex}
-              onClick={() => onBodyClick(name)} isFocused={isFocused} errorT={errorT} />
+              onClick={() => onBodyClick(name)} errorT={errorT} />
           </Suspense>
         ) : (
           <FlatBody simPos={simPos} refPos={refPos} radius={radius}
             colorHex={meta.colorHex} onClick={() => onBodyClick(name)}
-            isFocused={isFocused} errorT={errorT} />
+            errorT={errorT} />
         );
 
         return (
           <group key={name}>
             {bodyEl}
-            <BodyTrail frames={frames} frameIdx={frameIdx} name={name}
-              trailLength={trailLength} colorHex={meta.colorHex} />
+            {isFocused && (
+              <BodyTrail frames={frames} frameIdx={frameIdx} name={name}
+                trailLength={trailLength} colorHex={meta.colorHex} />
+            )}
           </group>
         );
       })}
