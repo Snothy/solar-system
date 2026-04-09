@@ -192,10 +192,9 @@ export function App() {
                       background: viewMode === mode ? 'rgba(255,255,255,0.15)' : 'transparent',
                       color: viewMode === mode ? '#fff' : 'rgba(255,255,255,0.5)',
                       boxShadow: viewMode === mode ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                      textTransform: 'capitalize',
                     }}
                   >
-                    {mode}
+                    {mode === 'test' ? 'Validation' : mode.charAt(0).toUpperCase() + mode.slice(1)}
                   </button>
                 ))}
               </div>
