@@ -455,6 +455,83 @@ function parsePhysicalProperties(text: string): Record<string, any> {
 }
 
 
+// --- JPL Date Parsing (TS port of physics-wasm/src/common/time.rs) ---
+
+const MONTH_MAP: Record<string, number> = {
+  Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6,
+  Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12
+};
+
+function parseJplDate(dateStr: string): number | null {
+  const cleaned = dateStr.trim()
+    .replace(/^A\.D\.\s*/, '')
+    .replace(/\s*TDB$/, '');
+  const [datePart, timePart] = cleaned.split(' ');
+  if (!datePart || !timePart) return null;
+  const [yearStr, monthStr, dayStr] = datePart.split('-');
+  const month = MONTH_MAP[monthStr];
+  if (!month) return null;
+  const [hStr, mStr, sStr] = timePart.split(':');
+  let y = parseInt(yearStr), mo = month;
+  if (mo <= 2) { y -= 1; mo += 12; }
+  const a = Math.floor(y / 100);
+  const b = 2 - a + Math.floor(a / 4);
+  const h = parseInt(hStr), mi = parseInt(mStr), s = parseFloat(sStr);
+  const dayFrac = (h + mi / 60 + s / 3600) / 24;
+  const jd = Math.floor(365.25 * (y + 4716))
+           + Math.floor(30.6001 * (mo + 1))
+           + parseInt(dayStr) + dayFrac + b - 1524.5;
+  return jd;
+}
+
+function jdToUnixMs(jd: number): number {
+  return (jd - 2440587.5) * 86400000;
+}
+
+// --- Snapshot Generation ---
+
+async function generateJplSnapshot(): Promise<void> {
+  const snapshotBodies: Record<string, { pos: number[]; vel: number[] }> = {};
+  let epochDate: string | null = null;
+  let epochJd: number | null = null;
+
+  for (const body of ALL_BODIES) {
+    if (!body.jplId) continue;
+    try {
+      const dataPath = path.join(FORMATTED_DATA_DIR, body.name, 'vector_data', 'data.json');
+      const raw = await fs.readFile(dataPath, 'utf-8');
+      const entries: Array<{ date: string; pos: number[]; vel: number[] }> = JSON.parse(raw);
+      if (!entries.length) continue;
+      const first = entries[0];
+      snapshotBodies[body.name] = { pos: first.pos, vel: first.vel };
+      if (!epochDate) {
+        epochDate = first.date;
+        epochJd = parseJplDate(first.date);
+      }
+    } catch {
+      // body not yet pulled, skip
+    }
+  }
+
+  if (!epochDate || epochJd === null || Object.keys(snapshotBodies).length === 0) {
+    console.warn('No snapshot data found — skipping jplSnapshot.json generation.');
+    return;
+  }
+
+  const snapshot = {
+    epoch: {
+      date: epochDate,
+      jd: epochJd,
+      unix_ms: jdToUnixMs(epochJd)
+    },
+    bodies: snapshotBodies
+  };
+
+  const outPath = path.join(__dirname, '../src/data/jplSnapshot.json');
+  await fs.writeFile(outPath, JSON.stringify(snapshot, null, 2));
+  console.log(`jplSnapshot.json written: epoch=${epochDate}, bodies=${Object.keys(snapshotBodies).length}`);
+}
+
 // --- Main Processing ---
 
 async function processBody(body: any) {
@@ -640,6 +717,7 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
+  await generateJplSnapshot();
   console.log('Done!');
 }
 

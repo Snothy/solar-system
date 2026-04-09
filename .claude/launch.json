@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Solar System",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "source \"${NVM_DIR:-$HOME/.nvm}/nvm.sh\" && nvm use 22 && npm run dev"],
+      "port": 5173
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import type { PhysicsBody, VisualBody, Particle } from '../types';
 import type { SolarSystemData } from '../types/data';
@@ -36,6 +36,10 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
 
   const initialized = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Internal state that can be updated by reinitialize()
+  const [liveData, setLiveData] = useState<SolarSystemData[] | null>(initialData as SolarSystemData[] | null);
+  const [liveEpoch, setLiveEpoch] = useState<Date>(startDate);
   
   const observerPos = useRef(new THREE.Vector3(0, 0, 500)); // Default camera pos
   const setObserverPosition = (x: number, y: number, z: number) => {
@@ -49,7 +53,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
   const physicsCompute = usePhysicsCompute();
 
   // Physics Engine Hook
-  const physics = usePhysicsEngine(bodies, startDate.getTime());
+  const physics = usePhysicsEngine(bodies, liveEpoch.getTime());
 
   // Sync bodies to WASM when manual updates occur
   useEffect(() => {
@@ -70,7 +74,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
 
   // Initialize bodies from passed data
   useEffect(() => {
-    if (initialized.current || !initialData) return;
+    if (initialized.current || !liveData) return;
     initialized.current = true;
 
     const initSimulation = () => {
@@ -78,8 +82,8 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
       const newVisualBodies: VisualBody[] = [];
 
       try {
-        // Build bodies from initialData
-        initialData.forEach(data => {
+        // Build bodies from liveData
+        liveData.forEach(data => {
           // Calculate initial state from orbital elements if pos/vel are missing
           let initialPos: THREE.Vector3 | null = null;
           let initialVel: THREE.Vector3 | null = null;
@@ -273,9 +277,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
 
         setBodies(newBodies);
         setVisualBodies(newVisualBodies);
-        // Initialize simTime in physics engine if needed, but it defaults to Date.now()
-        // We should sync it with startDate
-        physics.setSimTime(startDate.getTime());
+        physics.setSimTime(liveEpoch.getTime());
         setIsLoading(false);
 
       } catch (error) {
@@ -285,7 +287,7 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     };
 
     initSimulation();
-  }, [initialData, startDate, physics]); // Added physics to deps, but setSimTime is stable
+  }, [liveData, liveEpoch, physics]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const removeParticle = (index: number) => {
     setParticles(prev => prev.filter((_, i) => i !== index));
@@ -476,6 +478,16 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     }
   };
 
+  // Reinitialize simulation with new body data and epoch (used by DataPanel)
+  const reinitialize = useCallback((newBodies: any[], newEpoch: Date) => {
+    initialized.current = false;
+    setBodies([]);
+    setVisualBodies([]);
+    physics.setIsPaused(true);
+    setLiveEpoch(newEpoch);
+    setLiveData(newBodies as SolarSystemData[]);
+  }, [physics]);
+
   // Combine everything into a single return object
   return {
     // State
@@ -561,6 +573,9 @@ export function useSimulation(initialData: SolarSystemData[] | null = null, star
     setAllOrbitVisibility,
     
     // External Compute
-    physicsCompute
+    physicsCompute,
+
+    // Reinitialize with new snapshot
+    reinitialize
   };
 }

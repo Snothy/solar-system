@@ -7,7 +7,7 @@ export const C_LIGHT = 299792458; // Speed of light (m/s)
 // Time constants
 export const J2000 = new Date('2000-01-01T12:00:00Z').getTime();
 export const MS_PER_DAY = 86400000;  // Milliseconds per day
-export const START_DATE = new Date();
+export const START_DATE = new Date(J2000);  // sensible default; App.tsx always overrides with snapshot epoch
 
 // Time conversion constants (for TDB)
 export const TT_TAI_OFFSET = 32.184;    // TT - TAI in seconds

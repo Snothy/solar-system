@@ -15,6 +15,14 @@ export default defineConfig({
     fs: {
       // Allow serving files from one level up to the project root
       allow: ['..']
+    },
+    proxy: {
+      '/api/horizons': {
+        target: 'https://ssd.jpl.nasa.gov',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api\/horizons/, '/api/horizons.api'),
+        secure: false,
+      }
     }
   },
   publicDir: 'public',
