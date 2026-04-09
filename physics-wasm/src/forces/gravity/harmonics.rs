@@ -20,7 +20,7 @@ pub fn apply_zonal_harmonics(
     if let Some(harmonics) = &primary.gravity_harmonics {
         // Use override if provided, otherwise fallback to static pole
         if let Some(pole) = pole_override.or(harmonics.pole_vector) {
-            let coeffs = harmonics.get_zonal_coeffs();
+            let coeffs: &[f64] = harmonics.get_zonal_coeffs();
             if coeffs.is_empty() {
                 return Vector3::zero();
             }

@@ -181,6 +181,34 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     loadWasm();
   }, []);
 
+  // Push config to WASM engine whenever settings change
+  useEffect(() => {
+    if (!wasmReady || !wasmEngineRef.current) return;
+    const config = {
+      relativity: enableRelativity,
+      gravitationalHarmonics: enableGravitationalHarmonics,
+      tidalForces: enableTidalEvolution,
+      solarRadiationPressure: enableSolarRadiationPressure,
+      yarkovskyEffect: enableYarkovsky,
+      atmosphericDrag: enableAtmosphericDrag,
+      useEih: useEIH,
+      poyntingRobertsonDrag: enablePRDrag,
+      yorpEffect: enableYORP,
+      cometForces: enableCometForces,
+      precession: enablePrecession,
+      nutation: enableNutation,
+      solarMassLoss: enableSolarMassLoss,
+      collisions: enableCollisions
+    };
+    wasmEngineRef.current.set_config(config);
+  }, [
+    wasmReady,
+    enableRelativity, enableGravitationalHarmonics, enableTidalEvolution,
+    enableSolarRadiationPressure, enableYarkovsky, enableAtmosphericDrag,
+    useEIH, enablePRDrag, enableYORP, enableCometForces, enablePrecession,
+    enableNutation, enableSolarMassLoss, enableCollisions
+  ]);
+
   // Create/Update WASM engine when bodies change
   useEffect(() => {
     // Only proceed if WASM module is loaded and there are bodies
@@ -301,28 +329,9 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
         const tdbTime = useTDBTime ? utcToTDB(currentSimTime) : currentSimTime;
         const jdTime = tdbTime / 86400000 + 2440587.5;
 
-        // Construct PhysicsConfig object
-        const config = {
-            relativity: enableRelativity,
-            gravitationalHarmonics: enableGravitationalHarmonics,
-            tidalForces: enableTidalEvolution,
-            solarRadiationPressure: enableSolarRadiationPressure,
-            yarkovskyEffect: enableYarkovsky,
-            atmosphericDrag: enableAtmosphericDrag,
-            useEih: useEIH,
-            poyntingRobertsonDrag: enablePRDrag,
-            yorpEffect: enableYORP,
-            cometForces: enableCometForces,
-            precession: enablePrecession,
-            nutation: enableNutation,
-            solarMassLoss: enableSolarMassLoss,
-            collisions: enableCollisions
-        };
-
         const simulatedDt = wasmEngineRef.current.step(
             dt,
             jdTime, // Pass Julian Date to WASM
-            config,
             integratorType,
             quality
         );

@@ -90,12 +90,12 @@ impl Default for HarmonicsParams {
 impl HarmonicsParams {
     /// Get the effective zonal coefficients.
     ///
-    /// Returns a vector where index i contains J_{i+2}.
-    pub fn get_zonal_coeffs(&self) -> Vec<f64> {
+    /// Returns a slice where index i contains J_{i+2}.
+    pub fn get_zonal_coeffs(&self) -> &[f64] {
         if let Some(coeffs) = &self.zonal_coeffs {
-            return coeffs.clone();
+            return coeffs.as_slice();
         }
-        Vec::new()
+        &[]
     }
 }
 

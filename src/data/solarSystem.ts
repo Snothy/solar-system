@@ -38,11 +38,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 3.7,
     jplId: "199",
     type: "planet",
-    J: [6.0e-5],
-    C22: 1.0e-5,
+    // Mazarico et al. 2014, JGR (MESSENGER HgM008) — R_ref = 2439.4 km
+    J: [5.0328e-5],
+    C22: 8.088e-6,
+    S22: 0.0,
     tidal: {
-      k2: 0.4,
-      tidalQ: 100 // Assumed default if not present, but Mercury didn't have one. Let's check if I missed it.
+      k2: 0.569, // Verma & Margot 2016
+      tidalQ: 50  // Padovan et al. 2014
     },
     poleRA: 281.01,
     poleDec: 61.45,
@@ -71,10 +73,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 8.87,
     jplId: "299",
     type: "planet",
+    // Konopliv & Sjogren 1996 (MGNP180U) — R_ref = 6051.8 km
     J: [4.458e-6],
+    C22: -1.349e-6,
+    S22: -0.232e-6,
     tidal: {
       k2: 0.295,
-      tidalQ: 100 // Assumed default
+      tidalQ: 12 // Bills et al. 2005
     },
     poleRA: 272.76,
     poleDec: 67.16,
@@ -151,9 +156,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.62,
     jplId: "301",
     type: "moon",
-    J: [2.027e-4],
-    C22: 2.24e-5,
-    S22: 0.0,
+    // GRAIL GRGM900C model (Zuber et al. 2013) — R_ref = 1737.4 km
+    J: [2.0321e-4],
+    C22: 2.2431e-5,
+    S22: 2.74e-6,
     tidal: {
       k2: 0.0202,
       tidalQ: 26.5
@@ -275,7 +281,12 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 24.79,
     jplId: "599",
     type: "planet",
-    J: [1.4696572e-2, 0.0, -5.87146e-4, 0.0, 3.4255e-5],
+    // Bolton et al. 2022 (Juno) — R_ref = 71492 km; J3/J5/J7/J9 ≈ 0 (symmetric oblate)
+    J: [1.4696572e-2, 0.0, -5.87146e-4, 0.0, 3.4255e-5, 0.0, -2.426e-6, 0.0, 1.72e-7],
+    tidal: {
+      k2: 0.565, // Lainey et al. 2020 (Juno)
+      tidalQ: 36000
+    },
     poleRA: 268.057,
     poleDec: 64.495,
     poleRA_rate: -0.006499, // Added
@@ -307,10 +318,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.796,
     jplId: "501",
     type: "moon",
-    J: [1.96045e-3],
-    C22: -6.316e-5,
-    S22: -1.5e-5,
-    poleRA: 317.68143,
+    // Anderson et al. 2001, JGR (Galileo flybys) — R_ref = 1821.6 km
+    J: [1.8459e-3],
+    C22: 5.5865e-4,
+    tidal: {
+      k2: 1.3,   // highly tidally active (Lainey et al. 2009)
+      tidalQ: 36
+    },
+    poleRA: 268.05,
     poleDec: 64.50
   },
 
@@ -328,7 +343,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.315,
     jplId: "502",
     type: "moon",
+    // Anderson et al. 1998, Science (Galileo flybys) — R_ref = 1560.8 km
     J: [4.355e-4],
+    C22: 1.315e-4,
+    tidal: {
+      k2: 0.26, // Moore & Schubert 2000
+      tidalQ: 100
+    },
     poleRA: 268.08,
     poleDec: 64.51
   },
@@ -347,9 +368,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.428,
     jplId: "503",
     type: "moon",
-    J: [2.027e-4],
-    C22: 2.24e-5,
-    S22: 0.0,
+    // Schubert et al. 2004, JGR (Galileo flybys) — R_ref = 2634.1 km
+    J: [1.3748e-4],
+    C22: 3.874e-5,
+    tidal: {
+      k2: 0.804, // Harada et al. 2019
+      tidalQ: 100
+    },
     poleRA: 269.9949,
     poleDec: 64.57
   },
@@ -368,16 +393,18 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.236,
     jplId: "504",
     type: "moon",
+    // Anderson et al. 2001, Icarus (Galileo flybys) — R_ref = 2410.3 km
     J: [3.27e-5],
+    C22: 1.04e-5,
     poleRA: 268.72,
     poleDec: 64.83
   },
 
 {
     name: "Saturn",
-    mass: 5.68317e26, // GM: 37931206.234 (System GM - Baseline) 
-    radius: 60268e3, 
-    radii: { x: 60268e3, y: 54364e3, z: 60268e3 },
+    mass: 5.68317e26, // GM: 37931206.234 (System GM - Baseline)
+    radius: 60330e3,  // R_ref = IAU conventional equatorial radius — matches Jn literature
+    radii: { x: 60268e3, y: 54364e3, z: 60268e3 }, // physical shape
     color: 0xf4d03f,
     ringColor: 0xa89f91,
     hasRings: true,
@@ -397,8 +424,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 10.44,
     jplId: "699",
     type: "planet",
-    // Scaled from R_ref=60330km to R_sim=60268km: J_new = J_old * (R_ref/R_sim)^n
-    J: [1.63242e-2, 0.0, -9.3968e-4, 0.0, 8.667e-5],
+    // Iess et al. 2019 (Cassini Grand Finale) — R_ref = 60330 km
+    J: [1.629071e-2, 0.0, -9.3583e-4, 0.0, 8.614e-5, 0.0, -1.467e-5, 0.0, 4.597e-6],
     ringInnerRadius: 74500e3,
     ringOuterRadius: 140220e3,
     ringTexture: "/SaturnRings.png",
@@ -422,7 +449,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 1.352,
     jplId: "606",
     type: "moon",
-    J: [3.17e-5],
+    // Iess et al. 2012, Science (Cassini) — R_ref = 2574.7 km
+    J: [3.19e-5],
+    C22: 1.09e-5,
+    tidal: {
+      k2: 0.637, // Lainey et al. 2020
+      tidalQ: 70
+    },
     poleRA: 36.41,
     poleDec: 83.94
   },
@@ -461,9 +494,14 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 8.69,
     jplId: "799",
     type: "planet",
+    // Anderson et al. 1987 / Jacobson 2014 — R_ref = 25559 km
     J: [3.343e-3, -4.2e-6, -3.4e-5],
+    tidal: {
+      k2: 0.104, // Gavrilov & Zharkov 1977
+      tidalQ: 11000
+    },
     // FIXED: Use JPL Ephemeris Pole (Jacobson 2014) to match moon positions
-    poleRA: 257.43, 
+    poleRA: 257.43,
     poleDec: -15.10,
     W0: 203.81,
     Wdot: -501.1600928,

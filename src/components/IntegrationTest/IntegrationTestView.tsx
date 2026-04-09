@@ -85,8 +85,13 @@ export function IntegrationTestView({
     return () => { if (playRef.current) clearInterval(playRef.current); };
   }, [isPlaying, framesPerSec, viewState]);
 
+  // SABA4 uses heliocentric Kepler drift — error scales as dt².
+  // The Rust reference test always uses 60s substeps (Ultra quality = 3).
+  // Force Ultra when running SABA4 so web results match the benchmark.
+  const effectiveQuality = integratorMode === 'saba4' ? 3 : quality;
+
   const handleRun = useCallback((archive: ArchiveRecord) => {
-    run(archive, integratorMode as any, quality, {
+    run(archive, integratorMode as any, effectiveQuality, {
       relativity: enableRelativity,
       gravitationalHarmonics: enableGravitationalHarmonics,
       tidalForces: enableTidalEvolution,
@@ -94,7 +99,7 @@ export function IntegrationTestView({
       yarkovskyEffect: enableYarkovsky,
       atmosphericDrag: enableAtmosphericDrag,
     });
-  }, [run, integratorMode, quality, enableRelativity, enableGravitationalHarmonics, enableTidalEvolution, enableSolarRadiationPressure, enableYarkovsky, enableAtmosphericDrag]);
+  }, [run, integratorMode, effectiveQuality, enableRelativity, enableGravitationalHarmonics, enableTidalEvolution, enableSolarRadiationPressure, enableYarkovsky, enableAtmosphericDrag]);
 
   const handleReplay = useCallback((testRun: TestRun) => {
     setFrameIdx(0);
@@ -121,7 +126,7 @@ export function IntegrationTestView({
 
   const activeSettings = {
     integratorMode,
-    quality,
+    quality: effectiveQuality,
     enableRelativity,
     enableTidalEvolution,
     enableAtmosphericDrag,

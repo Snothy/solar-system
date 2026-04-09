@@ -95,3 +95,8 @@ pub mod math;
 
 pub use physics_engine::PhysicsEngine;
 pub use frontend_simulation::FrontendSimulation;
+
+#[wasm_bindgen::prelude::wasm_bindgen(start)]
+pub fn main() {
+    console_error_panic_hook::set_once();
+}

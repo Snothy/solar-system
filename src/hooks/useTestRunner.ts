@@ -152,6 +152,7 @@ export function useTestRunner() {
         });
 
       const sim = new FrontendSimulation(wasmBodies, archive.startEpoch.unix_ms);
+      sim.set_config(mergedConfig);
       const intType = integToType(integrator);
 
       // ── Main stepping loop ─────────────────────────────────────────────
@@ -163,21 +164,39 @@ export function useTestRunner() {
       const errAcc: Record<string, number[]> = {};
       for (const n of bodyNames) errAcc[n] = [];
 
+      // Step size matches the Rust integration test: 60s outer dt.
+      // Each archive interval (typically 1 hour = 3600s) is walked in 60s
+      // increments so that hierarchy updates, torques, and JD advances all
+      // run at 60s granularity.  Positions are compared to JPL reference only
+      // at the hour boundary (end of each archive interval).
+      const OUTER_DT_SEC = 60;
+
       for (let i = 1; i < refTimeline.length; i++) {
         if (cancelRef.current) break;
 
         const prevMs = refTimeline[i - 1].unix_ms;
         const currMs = refTimeline[i].unix_ms;
-        const dtSec = (currMs - prevMs) / 1000;
-        const jdTime = currMs / 86400000 + 2440587.5;
+        const intervalSec = (currMs - prevMs) / 1000;
 
-        try {
-          sim.step(dtSec, jdTime, mergedConfig, intType, quality);
-        } catch (err) {
-          console.warn(`WASM step crashed at frame ${i}:`, err);
-          crashedAtFrame = i;
-          break;
+        // Walk the interval in OUTER_DT_SEC substeps
+        let elapsed = 0;
+        let stepped = false;
+        while (elapsed < intervalSec - 1e-6) {
+          if (cancelRef.current) break;
+          const dt = Math.min(OUTER_DT_SEC, intervalSec - elapsed);
+          const stepJd = (prevMs / 1000 + elapsed + dt) / 86400 + 2440587.5;
+          try {
+            sim.step(dt, stepJd, intType, quality);
+          } catch (err) {
+            console.warn(`WASM step crashed at frame ${i} (elapsed ${elapsed}s):`, err);
+            crashedAtFrame = i;
+            stepped = true; // sentinel to break outer loop
+            break;
+          }
+          elapsed += dt;
+          stepped = true;
         }
+        if (crashedAtFrame !== undefined) break;
 
         // Read back positions
         const simStates = sim.get_bodies();

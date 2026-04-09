@@ -137,7 +137,7 @@ impl FrontendState {
 
     pub fn get_trail(&self, body_idx: usize) -> Float32Array {
         if body_idx < self.trails.len() {
-            unsafe { js_sys::Float32Array::view(&self.trails[body_idx]).into() }
+            js_sys::Float32Array::from(self.trails[body_idx].as_slice())
         } else {
             Float32Array::new_with_length(0)
         }
@@ -156,6 +156,7 @@ impl FrontendState {
 pub struct FrontendSimulation {
     sim: Simulation,
     frontend_state: FrontendState,
+    cached_config: crate::common::config::PhysicsConfig,
 }
 
 #[wasm_bindgen]
@@ -168,6 +169,14 @@ impl FrontendSimulation {
         FrontendSimulation {
             sim: Simulation::new(bodies, initial_jd),
             frontend_state: FrontendState::new(n_bodies),
+            cached_config: crate::common::config::PhysicsConfig::default(),
+        }
+    }
+
+    /// Update the physics config. Call this when settings change, not on every step.
+    pub fn set_config(&mut self, config_js: JsValue) {
+        if let Ok(config) = serde_wasm_bindgen::from_value(config_js) {
+            self.cached_config = config;
         }
     }
 
@@ -182,15 +191,13 @@ impl FrontendSimulation {
     }
 
     pub fn step(
-        &mut self, 
-        dt: f64, 
+        &mut self,
+        dt: f64,
         sim_time: f64,
-        config_js: JsValue,
-        integrator_type: u8, 
-        quality: u8 
+        integrator_type: u8,
+        quality: u8
     ) -> f64 {
-        let config: crate::common::config::PhysicsConfig = serde_wasm_bindgen::from_value(config_js).unwrap_or_default();
-        self.sim.step(dt, sim_time, &config, integrator_type, quality)
+        self.sim.step(dt, sim_time, &self.cached_config, integrator_type, quality)
     }
 
     pub fn get_bodies(&self) -> JsValue {
