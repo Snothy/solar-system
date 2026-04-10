@@ -212,7 +212,7 @@
     "c22": 0.015,
     "s22": 0,
     "tidal": {
-      "k2": 0,
+      "k2": 0.04,
       "tidalQ": 100
     },
     "meanTemperature": 233,
@@ -239,7 +239,7 @@
       0.08
     ],
     "tidal": {
-      "k2": 0,
+      "k2": 0.02,
       "tidalQ": 100
     },
     "meanTemperature": 233,
@@ -381,6 +381,10 @@
       0.0000327
     ],
     "c22": 0.0000104,
+    "tidal": {
+      "k2": 0.03,
+      "tidalQ": 100
+    },
     "meanTemperature": 134,
     "poleRA": 268.72,
     "poleDec": 64.83
@@ -462,6 +466,10 @@
       0,
       0
     ],
+    "tidal": {
+      "k2": 0.0045,
+      "tidalQ": 30
+    },
     "meanTemperature": 75,
     "poleRA": 40.66,
     "poleDec": 83.52
@@ -800,6 +808,13 @@
       0,
       0
     ],
+    "J": [
+      0.019
+    ],
+    "tidal": {
+      "k2": 0.023,
+      "tidalQ": 1000
+    },
     "meanTemperature": 64
   },
   {
@@ -832,6 +847,13 @@
       0,
       0
     ],
+    "J": [
+      0.00525
+    ],
+    "tidal": {
+      "k2": 0.01,
+      "tidalQ": 200
+    },
     "meanTemperature": 60,
     "poleRA": 257.43,
     "poleDec": -15.1
@@ -886,6 +908,13 @@
       0,
       0
     ],
+    "J": [
+      0.001088
+    ],
+    "tidal": {
+      "k2": 0.032,
+      "tidalQ": 400
+    },
     "meanTemperature": 86
   },
   {
@@ -905,6 +934,10 @@
     "J": [
       0.0014
     ],
+    "tidal": {
+      "k2": 0.034,
+      "tidalQ": 600
+    },
     "meanTemperature": 87,
     "albedo": 0.6,
     "poleRA": 40.66,
@@ -924,6 +957,13 @@
       0,
       0
     ],
+    "J": [
+      0.0007947
+    ],
+    "tidal": {
+      "k2": 0.032,
+      "tidalQ": 400
+    },
     "meanTemperature": 76
   }
 ]

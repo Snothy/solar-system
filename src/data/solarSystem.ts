@@ -228,7 +228,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     c22: 0.015,
     s22: 0.0,
     tidal: {
-      k2: 0.0, // Not specified, assuming 0 or need to find value. Phobos usually tidalQ=100. k2?
+      k2: 0.04, // Rubble-pile estimate; Nimmo et al. 2010 range 0.03–0.05
       tidalQ: 100
     },
     poleRA: 317.68,
@@ -256,7 +256,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     J: [0.08],
     tidal: {
-      k2: 0.0,
+      k2: 0.02, // Conservative estimate for more rigid/distant body
       tidalQ: 100
     },
     poleRA: 316.65,
@@ -396,6 +396,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     // Anderson et al. 2001, Icarus (Galileo flybys) — R_ref = 2410.3 km
     J: [3.27e-5],
     c22: 1.04e-5,
+    tidal: {
+      k2: 0.03, // Undifferentiated ice/rock; Castillo-Rogez et al. 2019 estimate
+      tidalQ: 100
+    },
     poleRA: 268.72,
     poleDec: 64.83
   },
@@ -474,6 +478,10 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     surfaceGravity: 0.113,
     jplId: "602",
     type: "moon",
+    tidal: {
+      k2: 0.0045, // Nimmo et al. 2018 (Cassini); k2/Q ≈ 1.5e-4
+      tidalQ: 30
+    },
     poleRA: 40.66,
     poleDec: 83.52
   },

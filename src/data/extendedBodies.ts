@@ -229,7 +229,12 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 64,
     surfaceGravity: 0.064,
     jplId: "601",
-    type: "moon"
+    type: "moon",
+    J: [1.9e-2], // Tajeddine et al. 2014 (Cassini)
+    tidal: {
+      k2: 0.023, // Lainey et al. 2017; k2/Q ≈ 2.3e-5
+      tidalQ: 1000
+    }
   },
 
   {
@@ -250,7 +255,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
 
 {
     name: "Miranda",
-    mass: 6.44262e19, // GM: 4.3e9 / 6.67430e-11 
+    mass: 6.44262e19, // GM: 4.3e9 / 6.67430e-11
     radius: 235.8e3,
     radii: { x: 240e3, y: 234.2e3, z: 232.9e3 },
     color: 0xcccccc,
@@ -262,7 +267,12 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     surfaceGravity: 0.079,
     jplId: "705",
     type: "moon",
-    poleRA: 257.43, 
+    J: [5.25e-3], // Highly non-spherical; Thomas et al. 1988 estimate
+    tidal: {
+      k2: 0.01, // Low-rigidity estimate; Hussmann et al. 2006
+      tidalQ: 200
+    },
+    poleRA: 257.43,
     poleDec: -15.10,
   },
 
@@ -314,7 +324,12 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 86,
     surfaceGravity: 0.146,
     jplId: "603",
-    type: "moon"
+    type: "moon",
+    J: [1.088e-3], // Iess et al. 2010 (Cassini)
+    tidal: {
+      k2: 0.032, // Estimated for icy moon; Nimmo & Manga 2009
+      tidalQ: 400
+    }
   },
 
   {
@@ -332,6 +347,10 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     jplId: "604",
     type: "moon",
     J: [0.0014],
+    tidal: {
+      k2: 0.034, // Lainey et al. 2017 (Cassini)
+      tidalQ: 600
+    },
     poleRA: 40.66,
     poleDec: 83.52,
     albedo: 0.6
@@ -350,7 +369,12 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     meanTemperature: 76,
     surfaceGravity: 0.264,
     jplId: "605",
-    type: "moon"
+    type: "moon",
+    J: [7.947e-4], // Iess et al. 2007 (Cassini)
+    tidal: {
+      k2: 0.032, // Estimated for icy moon; Nimmo & Manga 2009
+      tidalQ: 400
+    }
   }
 
 ];
