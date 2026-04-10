@@ -51,8 +51,8 @@ export interface CelestialBodyData {
   
   // Physical Properties
   J?: number[];             // Zonal harmonic coefficients [J2, J3, J4, ...]
-  C22?: number;             // Tesseral harmonic C22
-  S22?: number;             // Tesseral harmonic S22
+  c22?: number;             // Tesseral harmonic C22
+  s22?: number;             // Tesseral harmonic S22
   
   tidal?: {
     k2: number;
@@ -96,35 +96,37 @@ export interface PhysicsBody {
   poleVector?: THREE.Vector3; // North pole direction vector
   
   // Higher-order gravity harmonics
-  C22?: number;
-  S22?: number;
-  
-  // Tidal parameters
+  c22?: number;
+  s22?: number;
+
+  // Tidal parameters (nested — matches Rust TidalParams which is not flattened)
   tidal?: {
-    k2: number;
-    tidalQ: number;
+    k2?: number;
+    tidalQ?: number;
   };
-  k2?: number;
-  tidalQ?: number;
-  
+
   // Atmospheric parameters
   hasAtmosphere?: boolean;
   surfacePressure?: number;
   scaleHeight?: number;
   dragCoefficient?: number;
-  
+
   // Thermal properties
   albedo?: number;
   thermalInertia?: number;
-  
+
   // Time-dependent pole orientation
   poleRA0?: number;        // Initial pole RA at J2000
   poleDec0?: number;       // Initial pole Dec at J2000
-  poleRA_rate?: number;    // Rate of change of RA (degrees/century)
-  poleDec_rate?: number;   // Rate of change of Dec (degrees/century)
+  poleRARate?: number;     // Rate of change of RA (degrees/century)
+  poleDecRate?: number;    // Rate of change of Dec (degrees/century)
   precessionRate?: number; // arcsec/year
   nutationAmplitude?: number;
-  
+
+  // IAU rotational elements
+  W0?: number;             // Prime meridian angle at J2000 (degrees)
+  Wdot?: number;           // Rotation rate (degrees/day)
+
   // Temperature for atmospheric calculations
   meanTemperature?: number; // Kelvin
 
@@ -133,6 +135,12 @@ export interface PhysicsBody {
   angularVelocity?: THREE.Vector3; // rad/s
   torque?: THREE.Vector3; // N*m
   libration?: number; // Moon libration angle
+
+  // Comet / YORP forces
+  yorpFactor?: number;
+  cometA1?: number;
+  cometA2?: number;
+  cometA3?: number;
 }
 
 export interface VisualBody {

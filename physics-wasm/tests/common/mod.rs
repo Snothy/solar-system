@@ -64,7 +64,17 @@ pub struct JPLVector {
     pub vel: [f64; 3],
 }
 
-// Simplified structure for deserializing from bodies.json
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct TidalData {
+    #[serde(default)]
+    k2: Option<f64>,
+    #[serde(default)]
+    tidal_q: Option<f64>,
+}
+
+// Simplified structure for deserializing from bodies.json.
+// All physics-relevant fields; rendering/orbital fields are ignored by serde.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SimplifiedBody {
@@ -75,43 +85,34 @@ struct SimplifiedBody {
     pos: [f64; 3],
     #[serde(default)]
     vel: [f64; 3],
-    
+
+    // HarmonicsParams fields (exported at top level)
     #[serde(default, alias = "J")]
     zonal_coeffs: Option<Vec<f64>>,
-    
     #[serde(default)]
     c22: Option<f64>,
-    
     #[serde(default)]
     s22: Option<f64>,
-    
-    #[serde(default)]
-    k2: Option<f64>,
 
-    #[serde(default, alias = "tidalQ")]
-    tidal_q: Option<f64>,
-    
+    // TidalParams (nested object in JSON)
+    #[serde(default)]
+    tidal: Option<TidalData>,
+
+    // PrecessionParams fields (exported at top level)
     #[serde(default, alias = "poleRA")]
     pole_ra: Option<f64>,
-    
     #[serde(default, alias = "poleDec")]
     pole_dec: Option<f64>,
-
     #[serde(default, alias = "precessionRate")]
     precession_rate: Option<f64>,
-    
     #[serde(default, alias = "nutationAmplitude")]
     nutation_amplitude: Option<f64>,
-
     #[serde(default, alias = "W0")]
     w0: Option<f64>,
-
     #[serde(default, alias = "Wdot")]
     wdot: Option<f64>,
-
     #[serde(default, alias = "poleRARate", alias = "poleRA_rate")]
     pole_ra_rate: Option<f64>,
-
     #[serde(default, alias = "poleDecRate", alias = "poleDec_rate")]
     pole_dec_rate: Option<f64>,
 }
@@ -176,6 +177,11 @@ impl SimplifiedBody {
         precession.pole_ra_rate = self.pole_ra_rate;
         precession.pole_dec_rate = self.pole_dec_rate;
 
+        let tidal_params = self.tidal.as_ref().map(|t| physics_wasm::common::types::TidalParams {
+            k2: t.k2,
+            tidal_q: t.tidal_q,
+        });
+
         PhysicsBody {
             name: self.name,
             mass: self.mass,
@@ -183,10 +189,7 @@ impl SimplifiedBody {
             pos: Vector3::new(self.pos[0], self.pos[1], self.pos[2]),
             vel: Vector3::new(self.vel[0], self.vel[1], self.vel[2]),
             gravity_harmonics: Some(harmonics),
-            tidal: Some(physics_wasm::common::types::TidalParams {
-                k2: self.k2,
-                tidal_q: self.tidal_q,
-            }),
+            tidal: tidal_params,
             precession: Some(precession),
             ..Default::default()
         }

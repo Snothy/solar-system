@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { PhysicsBody, Particle } from '../types';
 import { SCALE } from '../utils/constants';
+import { bodyToWasm, wasmToPhysicsPos } from '../physics/wasmInterface';
 
 /**
  * Convert UTC time to Barycentric Dynamical Time (TDB)
@@ -215,38 +216,8 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     if (!wasmReady || bodies.length === 0) return;
     
     try {
-      // Convert bodies to plain objects for WASM
-      const wasmBodies = bodies.map(b => {
-        // Three.js Y-up (x,y,z) → ecliptic Z-up (x,-z,y)
-        return {
-          name: b.name,
-          mass: b.mass,
-          radius: b.radius,
-          pos: { x: b.pos.x, y: -b.pos.z, z: b.pos.y },
-          vel: { x: b.vel.x, y: -b.vel.z, z: b.vel.y },
-          J: b.J,
-          c22: b.C22,
-          s22: b.S22,
-          pole_vector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : { x: 0, y: 1, z: 0 },
-          k2: b.k2,
-          tidal_q: b.tidalQ,
-          angular_velocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
-          moment_of_inertia: b.momentOfInertia,
-          has_atmosphere: b.hasAtmosphere,
-          surface_pressure: b.surfacePressure,
-          scale_height: b.scaleHeight,
-          mean_temperature: b.meanTemperature,
-          drag_coefficient: b.dragCoefficient,
-          albedo: b.albedo,
-          thermal_inertia: b.thermalInertia,
-          pole_ra0: b.poleRA0,
-          pole_dec0: b.poleDec0,
-          precession_rate: b.precessionRate,
-          nutation_amplitude: b.nutationAmplitude,
-          libration: b.libration
-        };
-      });
-      
+      const wasmBodies = bodies.map(b => bodyToWasm(b));
+
       if (!wasmEngineRef.current) {
         // Create engine for the first time
         // Pass initial time as Unix timestamp (milliseconds)
@@ -265,37 +236,7 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
     if (!wasmReady || !wasmEngineRef.current || bodies.length === 0) return;
     
     try {
-      const wasmBodies = bodies.map(b => {
-        // Three.js Y-up (x,y,z) → ecliptic Z-up (x,-z,y)
-        return {
-          name: b.name,
-          mass: b.mass,
-          radius: b.radius,
-          pos: { x: b.pos.x, y: -b.pos.z, z: b.pos.y },
-          vel: { x: b.vel.x, y: -b.vel.z, z: b.vel.y },
-          J: b.J,
-          c22: b.C22,
-          s22: b.S22,
-          pole_vector: b.poleVector ? { x: b.poleVector.x, y: b.poleVector.y, z: b.poleVector.z } : { x: 0, y: 1, z: 0 },
-          k2: b.k2,
-          tidal_q: b.tidalQ,
-          angular_velocity: b.angularVelocity ? { x: b.angularVelocity.x, y: b.angularVelocity.y, z: b.angularVelocity.z } : null,
-          moment_of_inertia: b.momentOfInertia,
-          has_atmosphere: b.hasAtmosphere,
-          surface_pressure: b.surfacePressure,
-          scale_height: b.scaleHeight,
-          mean_temperature: b.meanTemperature,
-          drag_coefficient: b.dragCoefficient,
-          albedo: b.albedo,
-          thermal_inertia: b.thermalInertia,
-          pole_ra0: b.poleRA0,
-          pole_dec0: b.poleDec0,
-          precession_rate: b.precessionRate,
-          nutation_amplitude: b.nutationAmplitude,
-          libration: b.libration
-        };
-      });
-      
+      const wasmBodies = bodies.map(b => bodyToWasm(b));
       wasmEngineRef.current.update_bodies(wasmBodies);
     } catch (e) {
       console.error("Failed to sync bodies to WASM:", e);
@@ -376,47 +317,11 @@ export function usePhysicsEngine(bodies: PhysicsBody[], initialTime: number): Ph
             setParticles(prev => [...prev, ...newParticles]);
         }
 
-        // Helper to handle both Map (WASM) and Object (JS) formats
-        const getValue = (obj: any, key: string): any => {
-            if (!obj) return undefined;
-            if (obj instanceof Map || (obj.get && typeof obj.get === 'function')) {
-                return obj.get(key);
-            }
-            return obj[key];
-        };
-
-        // Let's fetch state for the bodies array occasionally
-        // We use a separate timer for this so it doesn't get reset by UI updates
+        // Sync positions/velocities from WASM back into PhysicsBody objects
         if (now - lastBodySyncTime.current > 500) {
-             const states = wasmEngineRef.current.get_bodies();
-             
-             // Update mutable objects in the array without triggering React re-render
-             for (let i = 0; i < bodies.length; i++) {
-                const nb = states[i];
-                if (nb) {
-                    const pos = getValue(nb, 'pos');
-                    const vel = getValue(nb, 'vel');
-
-                    if (pos && vel) {
-                        // Handle both object {x,y,z} and array [x,y,z] formats
-                        const px = typeof getValue(pos, 'x') === 'number' ? getValue(pos, 'x') : (Array.isArray(pos) ? pos[0] : 0);
-                        const py = typeof getValue(pos, 'y') === 'number' ? getValue(pos, 'y') : (Array.isArray(pos) ? pos[1] : 0);
-                        const pz = typeof getValue(pos, 'z') === 'number' ? getValue(pos, 'z') : (Array.isArray(pos) ? pos[2] : 0);
-                        
-                        const vx = typeof getValue(vel, 'x') === 'number' ? getValue(vel, 'x') : (Array.isArray(vel) ? vel[0] : 0);
-                        const vy = typeof getValue(vel, 'y') === 'number' ? getValue(vel, 'y') : (Array.isArray(vel) ? vel[1] : 0);
-                        const vz = typeof getValue(vel, 'z') === 'number' ? getValue(vel, 'z') : (Array.isArray(vel) ? vel[2] : 0);
-
-                        // Only update if values are valid numbers (not NaN)
-                        // Ecliptic Z-up (x,y,z) → Three.js Y-up (x,z,-y)
-                        if (!isNaN(px) && !isNaN(py) && !isNaN(pz)) {
-                            bodies[i].pos.set(px, pz, -py);
-                        }
-                        if (!isNaN(vx) && !isNaN(vy) && !isNaN(vz)) {
-                            bodies[i].vel.set(vx, vz, -vy);
-                        }
-                    }
-                }
+            const states = wasmEngineRef.current.get_bodies();
+            for (let i = 0; i < bodies.length; i++) {
+                if (states[i]) wasmToPhysicsPos(states[i], bodies[i]);
             }
             lastBodySyncTime.current = now;
         }

@@ -113,7 +113,7 @@ function BodyCard({ body }: { body: CelestialBodyData }) {
   const color = typeColor(body.type);
 
   const hasOrbital = body.rel_a != null || body.rel_e != null || body.rel_i != null;
-  const hasHarmonics = body.J != null || body.C22 != null;
+  const hasHarmonics = body.J != null || body.c22 != null;
   const hasTidal = body.tidal != null;
   const hasPole = body.poleRA != null || body.poleDec != null;
 
@@ -227,8 +227,8 @@ function BodyCard({ body }: { body: CelestialBodyData }) {
                   {body.J?.map((val, i) => (
                     <Param key={i} label={`J${i + 2}`} value={val.toExponential(3)} />
                   ))}
-                  {body.C22 != null && <Param label="C₂₂" value={body.C22.toExponential(3)} />}
-                  {body.S22 != null && <Param label="S₂₂" value={body.S22.toExponential(3)} />}
+                  {body.c22 != null && <Param label="C₂₂" value={body.c22.toExponential(3)} />}
+                  {body.s22 != null && <Param label="S₂₂" value={body.s22.toExponential(3)} />}
                 </ParamGroup>
               )}
             </div>

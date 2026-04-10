@@ -40,8 +40,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     // Mazarico et al. 2014, JGR (MESSENGER HgM008) — R_ref = 2439.4 km
     J: [5.0328e-5],
-    C22: 8.088e-6,
-    S22: 0.0,
+    c22: 8.088e-6,
+    s22: 0.0,
     tidal: {
       k2: 0.569, // Verma & Margot 2016
       tidalQ: 50  // Padovan et al. 2014
@@ -75,8 +75,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "planet",
     // Konopliv & Sjogren 1996 (MGNP180U) — R_ref = 6051.8 km
     J: [4.458e-6],
-    C22: -1.349e-6,
-    S22: -0.232e-6,
+    c22: -1.349e-6,
+    s22: -0.232e-6,
     tidal: {
       k2: 0.295,
       tidalQ: 12 // Bills et al. 2005
@@ -110,8 +110,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "399",
     type: "planet",
     J: [1.08263e-3, -2.53e-6, -1.62e-6],
-    C22: 2.43e-6,
-    S22: -1.40e-6,
+    c22: 2.43e-6,
+    s22: -1.40e-6,
     tidal: {
       k2: 0.299,
       tidalQ: 12
@@ -158,8 +158,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     // GRAIL GRGM900C model (Zuber et al. 2013) — R_ref = 1737.4 km
     J: [2.0321e-4],
-    C22: 2.2431e-5,
-    S22: 2.74e-6,
+    c22: 2.2431e-5,
+    s22: 2.74e-6,
     tidal: {
       k2: 0.0202,
       tidalQ: 26.5
@@ -188,8 +188,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     // J: [1.9532e-3, 3.138e-5, -1.544e-5],
     // REVERTED to Standard J2 for Equatorial Radius 3396.2 km
     J: [1.96045e-3, 3.138e-5, -1.544e-5],
-    C22: -6.316e-5,
-    S22: -1.5e-5,
+    c22: -6.316e-5,
+    s22: -1.5e-5,
     tidal: {
       k2: 0.148,
       tidalQ: 92
@@ -225,8 +225,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     jplId: "401",
     type: "moon",
     J: [0.105],
-    C22: 0.015,
-    S22: 0.0,
+    c22: 0.015,
+    s22: 0.0,
     tidal: {
       k2: 0.0, // Not specified, assuming 0 or need to find value. Phobos usually tidalQ=100. k2?
       tidalQ: 100
@@ -320,7 +320,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     // Anderson et al. 2001, JGR (Galileo flybys) — R_ref = 1821.6 km
     J: [1.8459e-3],
-    C22: 5.5865e-4,
+    c22: 5.5865e-4,
     tidal: {
       k2: 1.3,   // highly tidally active (Lainey et al. 2009)
       tidalQ: 36
@@ -345,7 +345,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     // Anderson et al. 1998, Science (Galileo flybys) — R_ref = 1560.8 km
     J: [4.355e-4],
-    C22: 1.315e-4,
+    c22: 1.315e-4,
     tidal: {
       k2: 0.26, // Moore & Schubert 2000
       tidalQ: 100
@@ -370,7 +370,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     // Schubert et al. 2004, JGR (Galileo flybys) — R_ref = 2634.1 km
     J: [1.3748e-4],
-    C22: 3.874e-5,
+    c22: 3.874e-5,
     tidal: {
       k2: 0.804, // Harada et al. 2019
       tidalQ: 100
@@ -395,7 +395,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     // Anderson et al. 2001, Icarus (Galileo flybys) — R_ref = 2410.3 km
     J: [3.27e-5],
-    C22: 1.04e-5,
+    c22: 1.04e-5,
     poleRA: 268.72,
     poleDec: 64.83
   },
@@ -451,7 +451,7 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
     // Iess et al. 2012, Science (Cassini) — R_ref = 2574.7 km
     J: [3.19e-5],
-    C22: 1.09e-5,
+    c22: 1.09e-5,
     tidal: {
       k2: 0.637, // Lainey et al. 2020
       tidalQ: 70

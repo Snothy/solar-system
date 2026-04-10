@@ -1,3 +1,17 @@
+/// COORDINATE FRAME: Heliocentric Ecliptic J2000
+/// - Origin: Center of the Sun.
+/// - X-axis: Points toward the First Point of Aries.
+/// - Z-axis: Normal to the Ecliptic Plane (Earth's orbital plane).
+/// - Y-axis: Completes the right-handed system.
+///
+/// UNIT CONVENTIONS:
+/// - Distances: Meters (m)
+/// - Mass: Kilograms (kg)
+/// - Time: Seconds (s)
+/// - Angles (Precession): Radians (Converted from IAU degrees/arcseconds)
+/// - Rotation Rates: Degrees/Day (wdot) or Degrees/Century (pole_rates) 
+///   *Check specific implementation for rotational state integration.*
+
 use serde::{Deserialize, Serialize};
 
 pub use crate::math::Vector3;
@@ -32,10 +46,10 @@ pub struct PhysicsBody {
     #[serde(default)]
     pub force: Option<Vector3>,
 
-    #[serde(flatten)]
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
     pub gravity_harmonics: Option<HarmonicsParams>,
 
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tidal: Option<TidalParams>,
 
     #[serde(flatten)]

@@ -18,18 +18,21 @@ export interface SolarSystemData {
   
   // Advanced Physics Properties
   J?: number[];
-  C22?: number;
-  S22?: number;
-  k2?: number;
-  tidalQ?: number;
-  
+  c22?: number;
+  s22?: number;
+  tidal?: { k2?: number; tidalQ?: number };
+  poleRA_rate?: number;
+  poleDec_rate?: number;
+  W0?: number;
+  Wdot?: number;
+
   // Atmosphere
   hasAtmosphere?: boolean;
   surfacePressure?: number;
   scaleHeight?: number;
   dragCoefficient?: number;
   meanTemperature?: number;
-  
+
   // Other
   albedo?: number;
   thermalInertia?: number;

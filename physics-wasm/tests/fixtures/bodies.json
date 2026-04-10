@@ -3,23 +3,20 @@
     "name": "Sun",
     "mass": 1.98840987e+30,
     "radius": 695700000,
-    "radii": {
-      "x": 695700000,
-      "y": 695700000,
-      "z": 695700000
-    },
-    "color": 16777215,
-    "emissive": 16755200,
-    "texture": "/Sun.jpg",
-    "type": "star",
-    "rotationPeriod": 609.12,
-    "axialTilt": 7.25,
-    "meanTemperature": 5772,
-    "surfaceGravity": 274,
-    "jplId": "10",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       2.2e-7
     ],
+    "meanTemperature": 5772,
     "poleRA": 286.13,
     "poleDec": 63.87,
     "W0": 84.176,
@@ -29,258 +26,215 @@
     "name": "Mercury",
     "mass": 3.3009871e+23,
     "radius": 2439400,
-    "radii": {
-      "x": 2440500,
-      "y": 2439700,
-      "z": 2440500
-    },
-    "color": 11184810,
-    "texture": "/Mercury.jpg",
-    "rotationPeriod": 1407.6,
-    "axialTilt": 0.034,
-    "meanTemperature": 440,
-    "surfaceGravity": 3.7,
-    "jplId": "199",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.000050328
     ],
-    "C22": 0.000008088,
-    "S22": 0,
+    "c22": 0.000008088,
+    "s22": 0,
     "tidal": {
       "k2": 0.569,
       "tidalQ": 50
     },
+    "meanTemperature": 440,
+    "albedo": 0.142,
     "poleRA": 281.01,
     "poleDec": 61.45,
     "W0": 329.5469,
-    "Wdot": 6.1385025,
-    "albedo": 0.142,
-    "rel_a": 57909175678.24835,
-    "rel_e": 0.20563069,
-    "rel_i": 7.00487
+    "Wdot": 6.1385025
   },
   {
     "name": "Venus",
     "mass": 4.8673118e+24,
     "radius": 6051800,
-    "radii": {
-      "x": 6051800,
-      "y": 6051800,
-      "z": 6051800
-    },
-    "color": 14924662,
-    "texture": "/Venus.jpg",
-    "cloudMap": "/VenusAtmosphere.jpg",
-    "cloudTransparency": 1,
-    "rotationPeriod": -5832.6,
-    "axialTilt": 177.36,
-    "meanTemperature": 737,
-    "surfaceGravity": 8.87,
-    "jplId": "299",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.000004458
     ],
-    "C22": -0.000001349,
-    "S22": -2.32e-7,
+    "c22": -0.000001349,
+    "s22": -2.32e-7,
     "tidal": {
       "k2": 0.295,
       "tidalQ": 12
     },
-    "poleRA": 272.76,
-    "poleDec": 67.16,
-    "W0": 160.2,
-    "Wdot": -1.4813688,
     "hasAtmosphere": true,
     "surfacePressure": 9200000,
     "scaleHeight": 15.9,
+    "meanTemperature": 737,
     "dragCoefficient": 2.2,
     "albedo": 0.76,
-    "rel_a": 108208927009.1724,
-    "rel_e": 0.006772,
-    "rel_i": 3.39458
+    "poleRA": 272.76,
+    "poleDec": 67.16,
+    "W0": 160.2,
+    "Wdot": -1.4813688
   },
   {
     "name": "Earth",
     "mass": 5.9721686e+24,
     "radius": 6371000,
-    "radii": {
-      "x": 6378100,
-      "y": 6356800,
-      "z": 6378100
-    },
-    "color": 2241535,
-    "texture": "/Earth.jpg",
-    "rotationPeriod": 23.9345,
-    "axialTilt": 23.439281,
-    "meanTemperature": 288,
-    "surfaceGravity": 9.807,
-    "jplId": "399",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.00108263,
       -0.00000253,
       -0.00000162
     ],
-    "C22": 0.00000243,
-    "S22": -0.0000014,
+    "c22": 0.00000243,
+    "s22": -0.0000014,
     "tidal": {
       "k2": 0.299,
       "tidalQ": 12
     },
-    "poleRA": 0,
-    "poleDec": 90,
-    "W0": 100.21,
-    "Wdot": 360.9856235,
-    "precessionRate": 50.29,
-    "nutationAmplitude": 9.2,
     "hasAtmosphere": true,
     "surfacePressure": 101325,
     "scaleHeight": 8.5,
+    "meanTemperature": 288,
     "dragCoefficient": 2.2,
     "albedo": 0.306,
-    "normalMap": "/EarthNormal.jpg",
-    "emissiveMap": "/EarthNight.jpg",
-    "cloudMap": "/EarthClouds.jpg",
-    "cloudTransparency": 0.8,
-    "rel_a": 149597870700,
-    "rel_e": 0.01671123,
-    "rel_i": 0.00005
+    "poleRA": 0,
+    "poleDec": 90,
+    "precessionRate": 50.29,
+    "nutationAmplitude": 9.2,
+    "W0": 100.21,
+    "Wdot": 360.9856235
   },
   {
     "name": "Moon",
     "mass": 7.3457904e+22,
     "radius": 1737400,
-    "radii": {
-      "x": 1738100,
-      "y": 1736000,
-      "z": 1738100
-    },
-    "color": 13421772,
-    "texture": "/Moon.jpg",
-    "parent": "Earth",
-    "rel_a": 384400000,
-    "rel_e": 0.0549,
-    "rel_i": 5.145,
-    "rel_v": 1022,
-    "rotationPeriod": 655.728,
-    "axialTilt": 6.68,
-    "meanTemperature": 220,
-    "surfaceGravity": 1.62,
-    "jplId": "301",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.00020321
     ],
-    "C22": 0.000022431,
-    "S22": 0.00000274,
+    "c22": 0.000022431,
+    "s22": 0.00000274,
     "tidal": {
       "k2": 0.0202,
       "tidalQ": 26.5
     },
+    "meanTemperature": 220,
+    "albedo": 0.12,
     "poleRA": 266.86,
     "poleDec": 65.64,
     "W0": 38.3213,
-    "Wdot": 13.17635815,
-    "albedo": 0.12
+    "Wdot": 13.17635815
   },
   {
     "name": "Mars",
     "mass": 6.4171167e+23,
     "radius": 3396200,
-    "radii": {
-      "x": 3396200,
-      "y": 3376200,
-      "z": 3396200
-    },
-    "color": 16729344,
-    "texture": "/Mars.jpg",
-    "rotationPeriod": 24.6229,
-    "axialTilt": 25.19,
-    "meanTemperature": 210,
-    "surfaceGravity": 3.721,
-    "jplId": "499",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.00196045,
       0.00003138,
       -0.00001544
     ],
-    "C22": -0.00006316,
-    "S22": -0.000015,
+    "c22": -0.00006316,
+    "s22": -0.000015,
     "tidal": {
       "k2": 0.148,
       "tidalQ": 92
     },
+    "hasAtmosphere": true,
+    "surfacePressure": 610,
+    "scaleHeight": 11.1,
+    "meanTemperature": 210,
+    "dragCoefficient": 2.2,
+    "albedo": 0.25,
     "poleRA": 317.68,
     "poleDec": 52.89,
     "poleRA_rate": -0.108,
     "poleDec_rate": -0.061,
     "W0": 176.63,
-    "Wdot": 350.89198226,
-    "hasAtmosphere": true,
-    "surfacePressure": 610,
-    "scaleHeight": 11.1,
-    "dragCoefficient": 2.2,
-    "albedo": 0.25,
-    "rel_a": 227939134030.3053,
-    "rel_e": 0.0934,
-    "rel_i": 1.85
+    "Wdot": 350.89198226
   },
   {
     "name": "Phobos",
     "mass": 10659000000000000,
     "radius": 11266.7,
-    "radii": {
-      "x": 13000,
-      "y": 11400,
-      "z": 9100
-    },
-    "color": 8947848,
-    "texture": "/Phobos.png",
-    "parent": "Mars",
-    "rotationPeriod": 7.6538,
-    "axialTilt": 0,
-    "meanTemperature": 233,
-    "surfaceGravity": 0.0057,
-    "jplId": "401",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.105
     ],
-    "C22": 0.015,
-    "S22": 0,
+    "c22": 0.015,
+    "s22": 0,
     "tidal": {
       "k2": 0,
       "tidalQ": 100
     },
-    "poleRA": 317.68,
-    "poleDec": 52.9,
+    "meanTemperature": 233,
     "albedo": 0.071,
     "thermalInertia": 25,
-    "rel_a": 9376000,
-    "rel_e": 0.0151,
-    "rel_i": 1.093
+    "poleRA": 317.68,
+    "poleDec": 52.9
   },
   {
     "name": "Deimos",
     "mass": 1476200000000000,
     "radius": 6200,
-    "radii": {
-      "x": 7500,
-      "y": 6100,
-      "z": 5200
-    },
-    "color": 7829367,
-    "texture": "/Deimos.png",
-    "parent": "Mars",
-    "rotationPeriod": 30.312,
-    "axialTilt": 0,
-    "meanTemperature": 233,
-    "surfaceGravity": 0.003,
-    "jplId": "402",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.08
     ],
@@ -288,31 +242,26 @@
       "k2": 0,
       "tidalQ": 100
     },
-    "poleRA": 316.65,
-    "poleDec": 53.52,
+    "meanTemperature": 233,
     "albedo": 0.068,
     "thermalInertia": 25,
-    "rel_a": 23463200,
-    "rel_e": 0.0002,
-    "rel_i": 0.93
+    "poleRA": 316.65,
+    "poleDec": 53.52
   },
   {
     "name": "Jupiter",
     "mass": 1.898125e+27,
     "radius": 71492000,
-    "radii": {
-      "x": 71492000,
-      "y": 66854000,
-      "z": 71492000
-    },
-    "color": 14207645,
-    "texture": "/Jupiter.jpg",
-    "rotationPeriod": 9.9258,
-    "axialTilt": 3.13,
-    "meanTemperature": 165,
-    "surfaceGravity": 24.79,
-    "jplId": "599",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.014696572,
       0,
@@ -328,48 +277,37 @@
       "k2": 0.565,
       "tidalQ": 36000
     },
+    "meanTemperature": 165,
     "poleRA": 268.057,
     "poleDec": 64.495,
     "poleRA_rate": -0.006499,
     "poleDec_rate": 0,
     "W0": 284.95,
-    "Wdot": 870.536,
-    "hasRings": true,
-    "ringInnerRadius": 92000000,
-    "ringOuterRadius": 129000000,
-    "ringTexture": "/JupiterRings.png",
-    "ringColor": 5588019,
-    "ringOpacity": 0.15,
-    "rel_a": 778297882103.8201,
-    "rel_e": 0.0489,
-    "rel_i": 1.303
+    "Wdot": 870.536
   },
   {
     "name": "Io",
     "mass": 8.929638e+22,
     "radius": 1821600,
-    "radii": {
-      "x": 1829400,
-      "y": 1815700,
-      "z": 1820600
-    },
-    "color": 16514979,
-    "texture": "/Io.jpg",
-    "parent": "Jupiter",
-    "rotationPeriod": 42.459,
-    "axialTilt": 0,
-    "meanTemperature": 110,
-    "surfaceGravity": 1.796,
-    "jplId": "501",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.0018459
     ],
-    "C22": 0.00055865,
+    "c22": 0.00055865,
     "tidal": {
       "k2": 1.3,
       "tidalQ": 36
     },
+    "meanTemperature": 110,
     "poleRA": 268.05,
     "poleDec": 64.5
   },
@@ -377,28 +315,25 @@
     "name": "Europa",
     "mass": 4.798585e+22,
     "radius": 1560800,
-    "radii": {
-      "x": 1564100,
-      "y": 1559500,
-      "z": 1560800
-    },
-    "color": 13222075,
-    "texture": "/Europa.jpg",
-    "parent": "Jupiter",
-    "rotationPeriod": 85.228,
-    "axialTilt": 0.1,
-    "meanTemperature": 102,
-    "surfaceGravity": 1.315,
-    "jplId": "502",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.0004355
     ],
-    "C22": 0.0001315,
+    "c22": 0.0001315,
     "tidal": {
       "k2": 0.26,
       "tidalQ": 100
     },
+    "meanTemperature": 102,
     "poleRA": 268.08,
     "poleDec": 64.51
   },
@@ -406,28 +341,25 @@
     "name": "Ganymede",
     "mass": 1.4814737e+23,
     "radius": 2634100,
-    "radii": {
-      "x": 2634100,
-      "y": 2634100,
-      "z": 2634100
-    },
-    "color": 8155752,
-    "texture": "/Ganymede.png",
-    "parent": "Jupiter",
-    "rotationPeriod": 171.714,
-    "axialTilt": 0.33,
-    "meanTemperature": 110,
-    "surfaceGravity": 1.428,
-    "jplId": "503",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.00013748
     ],
-    "C22": 0.00003874,
+    "c22": 0.00003874,
     "tidal": {
       "k2": 0.804,
       "tidalQ": 100
     },
+    "meanTemperature": 110,
     "poleRA": 269.9949,
     "poleDec": 64.57
   },
@@ -435,24 +367,21 @@
     "name": "Callisto",
     "mass": 1.0756608e+23,
     "radius": 2410300,
-    "radii": {
-      "x": 2410300,
-      "y": 2410300,
-      "z": 2410300
-    },
-    "color": 6182477,
-    "texture": "/Callisto.jpg",
-    "parent": "Jupiter",
-    "rotationPeriod": 400.536,
-    "axialTilt": 0,
-    "meanTemperature": 134,
-    "surfaceGravity": 1.236,
-    "jplId": "504",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.0000327
     ],
-    "C22": 0.0000104,
+    "c22": 0.0000104,
+    "meanTemperature": 134,
     "poleRA": 268.72,
     "poleDec": 64.83
   },
@@ -460,31 +389,16 @@
     "name": "Saturn",
     "mass": 5.68317e+26,
     "radius": 60330000,
-    "radii": {
-      "x": 60268000,
-      "y": 54364000,
-      "z": 60268000
-    },
-    "color": 16044095,
-    "ringColor": 11050897,
-    "hasRings": true,
-    "texture": "/Saturn.jpg",
-    "poleRA": 40.589,
-    "poleDec": 83.537,
-    "poleRA_rate": -0.036,
-    "poleDec_rate": -0.004,
-    "tidal": {
-      "k2": 0.341,
-      "tidalQ": 10000
-    },
-    "rotationPeriod": 10.656,
-    "W0": 38.9,
-    "Wdot": 810.7939024,
-    "axialTilt": 26.73,
-    "meanTemperature": 134,
-    "surfaceGravity": 10.44,
-    "jplId": "699",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.01629071,
       0,
@@ -496,40 +410,41 @@
       0,
       0.000004597
     ],
-    "ringInnerRadius": 74500000,
-    "ringOuterRadius": 140220000,
-    "ringTexture": "/SaturnRings.png",
-    "ringOpacity": 0.9,
-    "rel_a": 1429392694751.43,
-    "rel_e": 0.055723,
-    "rel_i": 2.485
+    "tidal": {
+      "k2": 0.341,
+      "tidalQ": 10000
+    },
+    "meanTemperature": 134,
+    "poleRA": 40.589,
+    "poleDec": 83.537,
+    "poleRA_rate": -0.036,
+    "poleDec_rate": -0.004,
+    "W0": 38.9,
+    "Wdot": 810.7939024
   },
   {
     "name": "Titan",
     "mass": 1.3451807e+23,
     "radius": 2574700,
-    "radii": {
-      "x": 2574700,
-      "y": 2574700,
-      "z": 2574700
-    },
-    "color": 14928232,
-    "texture": "/Titan.jpg",
-    "parent": "Saturn",
-    "rotationPeriod": 382.687,
-    "axialTilt": 0,
-    "meanTemperature": 94,
-    "surfaceGravity": 1.352,
-    "jplId": "606",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.0000319
     ],
-    "C22": 0.0000109,
+    "c22": 0.0000109,
     "tidal": {
       "k2": 0.637,
       "tidalQ": 70
     },
+    "meanTemperature": 94,
     "poleRA": 36.41,
     "poleDec": 83.94
   },
@@ -537,20 +452,17 @@
     "name": "Enceladus",
     "mass": 108026300000000000000,
     "radius": 252100,
-    "radii": {
-      "x": 256600,
-      "y": 248300,
-      "z": 251400
-    },
-    "color": 16777215,
-    "texture": "/Enceladus.jpg",
-    "parent": "Saturn",
-    "rotationPeriod": 32.885,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 75,
-    "surfaceGravity": 0.113,
-    "jplId": "602",
-    "type": "moon",
     "poleRA": 40.66,
     "poleDec": 83.52
   },
@@ -558,19 +470,16 @@
     "name": "Uranus",
     "mass": 8.6809842e+25,
     "radius": 25559000,
-    "radii": {
-      "x": 25559000,
-      "y": 24973000,
-      "z": 25559000
-    },
-    "color": 11393254,
-    "texture": "/Uranus.jpg",
-    "rotationPeriod": -17.24,
-    "axialTilt": 97.77,
-    "meanTemperature": 76,
-    "surfaceGravity": 8.69,
-    "jplId": "799",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.003343,
       -0.0000042,
@@ -580,38 +489,27 @@
       "k2": 0.104,
       "tidalQ": 11000
     },
+    "meanTemperature": 76,
     "poleRA": 257.43,
     "poleDec": -15.1,
     "W0": 203.81,
-    "Wdot": -501.1600928,
-    "hasRings": true,
-    "ringInnerRadius": 38000000,
-    "ringOuterRadius": 51000000,
-    "ringTexture": "/UranusRings.png",
-    "ringColor": 3355443,
-    "ringOpacity": 0.25,
-    "rel_a": 2875031718260.88,
-    "rel_e": 0.047167,
-    "rel_i": 0.772
+    "Wdot": -501.1600928
   },
   {
     "name": "Titania",
     "mass": 3.399607e+21,
     "radius": 788400,
-    "radii": {
-      "x": 788400,
-      "y": 788400,
-      "z": 788400
-    },
-    "color": 13882323,
-    "texture": "/Titania.jpg",
-    "parent": "Uranus",
-    "rotationPeriod": 208.93,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 60,
-    "surfaceGravity": 0.38,
-    "jplId": "703",
-    "type": "moon",
     "poleRA": 257.43,
     "poleDec": -15.1
   },
@@ -619,20 +517,17 @@
     "name": "Oberon",
     "mass": 3.075985e+21,
     "radius": 761400,
-    "radii": {
-      "x": 761400,
-      "y": 761400,
-      "z": 761400
-    },
-    "color": 10526880,
-    "texture": "/Oberon.jpg",
-    "parent": "Uranus",
-    "rotationPeriod": 323.11,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 61,
-    "surfaceGravity": 0.346,
-    "jplId": "704",
-    "type": "moon",
     "poleRA": 257.43,
     "poleDec": -15.1
   },
@@ -640,56 +535,42 @@
     "name": "Neptune",
     "mass": 1.0240915e+26,
     "radius": 24622000,
-    "radii": {
-      "x": 24764000,
-      "y": 24341000,
-      "z": 24764000
-    },
-    "color": 139,
-    "texture": "/Neptune.jpg",
-    "rotationPeriod": 16.11,
-    "axialTilt": 28.32,
-    "meanTemperature": 55,
-    "surfaceGravity": 11.15,
-    "jplId": "899",
-    "type": "planet",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.003411,
       -0.000004,
       -0.000033
     ],
+    "meanTemperature": 55,
     "poleRA": 299.36,
     "poleDec": 41.28,
     "W0": 253.18,
-    "Wdot": 536.3128492,
-    "hasRings": true,
-    "ringInnerRadius": 41000000,
-    "ringOuterRadius": 63000000,
-    "ringTexture": "/NeptuneRings.png",
-    "ringColor": 4473924,
-    "ringOpacity": 0.2,
-    "rel_a": 4504449781152.961,
-    "rel_e": 0.00859,
-    "rel_i": 1.77
+    "Wdot": 536.3128492
   },
   {
     "name": "Triton",
     "mass": 2.1403e+22,
     "radius": 1353400,
-    "radii": {
-      "x": 1353400,
-      "y": 1353400,
-      "z": 1353400
-    },
-    "color": 16770273,
-    "texture": "/Triton.jpg",
-    "parent": "Neptune",
-    "rotationPeriod": -141.044,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 38,
-    "surfaceGravity": 0.779,
-    "jplId": "801",
-    "type": "moon",
     "poleRA": 299.36,
     "poleDec": 41.17
   },
@@ -697,44 +578,35 @@
     "name": "Ceres",
     "mass": 939300000000000000000,
     "radius": 473000,
-    "radii": {
-      "x": 482000,
-      "y": 446000,
-      "z": 482000
-    },
-    "color": 8947848,
-    "texture": "/Ceres.jpg",
-    "rotationPeriod": 9.074,
-    "axialTilt": 4,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 168,
-    "surfaceGravity": 0.27,
-    "jplId": "1;",
-    "type": "dwarf planet",
-    "shape": "sphere",
     "poleRA": 291.41,
-    "poleDec": 66.76,
-    "rel_a": 414012107162.25,
-    "rel_e": 0.0758,
-    "rel_i": 10.594
+    "poleDec": 66.76
   },
   {
     "name": "Vesta",
     "mass": 259000000000000000000,
     "radius": 262700,
-    "radii": {
-      "x": 286300,
-      "y": 223200,
-      "z": 279100
-    },
-    "color": 10066329,
-    "texture": "/Vesta.png",
-    "rotationPeriod": 5.342,
-    "axialTilt": 29,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 143,
-    "surfaceGravity": 0.22,
-    "jplId": "4;",
-    "type": "asteroid",
-    "shape": "sphere",
     "poleRA": 301.04,
     "poleDec": 42.23
   },
@@ -742,20 +614,17 @@
     "name": "Pallas",
     "mass": 211000000000000000000,
     "radius": 256000,
-    "radii": {
-      "x": 272500,
-      "y": 258500,
-      "z": 282500
-    },
-    "color": 11184810,
-    "texture": "/Pallas.png",
-    "rotationPeriod": 7.813,
-    "axialTilt": 84,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 164,
-    "surfaceGravity": 0.21,
-    "jplId": "2;",
-    "type": "asteroid",
-    "shape": "sphere",
     "poleRA": 34.83,
     "poleDec": -2.93
   },
@@ -763,20 +632,17 @@
     "name": "Hygiea",
     "mass": 86700000000000000000,
     "radius": 216000,
-    "radii": {
-      "x": 216000,
-      "y": 216000,
-      "z": 216000
-    },
-    "color": 3355443,
-    "texture": "/Hygiea.jpg",
-    "rotationPeriod": 13.82,
-    "axialTilt": 60,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 164,
-    "surfaceGravity": 0.09,
-    "jplId": "10;",
-    "type": "asteroid",
-    "shape": "sphere",
     "poleRA": 308.57,
     "poleDec": 41.65
   },
@@ -784,15 +650,17 @@
     "name": "1P/Halley",
     "mass": 220000000000000,
     "radius": 5500,
-    "color": 4473924,
-    "texture": "/1P_Halley.jpg",
-    "rotationPeriod": 52.8,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 200,
-    "surfaceGravity": 0.001,
-    "jplId": "90000030;",
-    "type": "comet",
-    "shape": "sphere",
     "poleRA": 0,
     "poleDec": 0
   },
@@ -800,45 +668,36 @@
     "name": "Pluto",
     "mass": 1.30291e+22,
     "radius": 1188300,
-    "radii": {
-      "x": 1188300,
-      "y": 1188300,
-      "z": 1188300
-    },
-    "color": 14928294,
-    "texture": "/Pluto.jpg",
-    "rotationPeriod": -153.2928,
-    "axialTilt": 122.53,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 44,
-    "surfaceGravity": 0.62,
-    "jplId": "999",
-    "type": "dwarf planet",
-    "shape": "sphere",
-    "poleRA": 132.99,
-    "poleDec": -6.16,
     "albedo": 0.52,
-    "rel_a": 5906123935236,
-    "rel_e": 0.2488,
-    "rel_i": 17.16
+    "poleRA": 132.99,
+    "poleDec": -6.16
   },
   {
     "name": "Charon",
     "mass": 1.58668e+21,
     "radius": 606000,
-    "radii": {
-      "x": 606000,
-      "y": 606000,
-      "z": 606000
-    },
-    "color": 8947848,
-    "texture": "/Charon.jpg",
-    "parent": "Pluto",
-    "rotationPeriod": 153.2928,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 53,
-    "surfaceGravity": 0.288,
-    "jplId": "901",
-    "type": "moon",
     "poleRA": 132.99,
     "poleDec": -6.16
   },
@@ -846,144 +705,134 @@
     "name": "Eris",
     "mass": 1.66e+22,
     "radius": 1163000,
-    "radii": {
-      "x": 1163000,
-      "y": 1163000,
-      "z": 1163000
-    },
-    "color": 16777215,
-    "texture": "/Eris.jpg",
-    "rotationPeriod": 25.9,
-    "axialTilt": 78,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 42,
-    "surfaceGravity": 0.82,
-    "jplId": "136199;",
-    "type": "dwarf planet",
     "albedo": 0.96
   },
   {
     "name": "Haumea",
     "mass": 4.006e+21,
     "radius": 718000,
-    "radii": {
-      "x": 980000,
-      "y": 498000,
-      "z": 759000
-    },
-    "color": 10066329,
-    "texture": "/Haumea.jpg",
-    "rotationPeriod": 3.915,
-    "axialTilt": 28,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 50,
-    "surfaceGravity": 0.4,
-    "jplId": "136108;",
-    "type": "dwarf planet",
-    "shape": "model",
     "albedo": 0.7
   },
   {
     "name": "Makemake",
     "mass": 3.1e+21,
     "radius": 715000,
-    "radii": {
-      "x": 715000,
-      "y": 715000,
-      "z": 715000
-    },
-    "color": 14531481,
-    "texture": "/Makemake.jpg",
-    "rotationPeriod": 22.83,
-    "axialTilt": 29,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 30,
-    "surfaceGravity": 0.4,
-    "jplId": "136472;",
-    "type": "dwarf planet",
     "albedo": 0.8
   },
   {
     "name": "Sedna",
     "mass": 1e+21,
     "radius": 498000,
-    "color": 16724736,
-    "texture": "/Sedna.jpg",
-    "rotationPeriod": 10.27,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 12,
-    "surfaceGravity": 0.3,
-    "jplId": "90377;",
-    "type": "asteroid",
     "albedo": 0.32
   },
   {
     "name": "Quaoar",
     "mass": 1.4e+21,
     "radius": 555000,
-    "color": 8930338,
-    "texture": "/Quaoar.jpg",
-    "rotationPeriod": 8.84,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 44,
-    "surfaceGravity": 0.3,
-    "jplId": "50000;",
-    "type": "asteroid",
     "albedo": 0.1
   },
   {
     "name": "Mimas",
     "mass": 37509400000000000000,
     "radius": 198200,
-    "radii": {
-      "x": 207400,
-      "y": 196200,
-      "z": 190600
-    },
-    "color": 11184810,
-    "texture": "/Mimas.jpg",
-    "parent": "Saturn",
-    "rotationPeriod": 22.618,
-    "axialTilt": 0,
-    "meanTemperature": 64,
-    "surfaceGravity": 0.064,
-    "jplId": "601",
-    "type": "moon"
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 64
   },
   {
     "name": "Iapetus",
     "mass": 1.80566e+21,
     "radius": 734500,
-    "radii": {
-      "x": 746000,
-      "y": 712000,
-      "z": 746000
-    },
-    "color": 14540253,
-    "texture": "/Iapetus.jpg",
-    "parent": "Saturn",
-    "rotationPeriod": 1903.6,
-    "axialTilt": 0,
-    "meanTemperature": 110,
-    "surfaceGravity": 0.223,
-    "jplId": "608",
-    "type": "moon"
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 110
   },
   {
     "name": "Miranda",
     "mass": 64426200000000000000,
     "radius": 235800,
-    "radii": {
-      "x": 240000,
-      "y": 234200,
-      "z": 232900
-    },
-    "color": 13421772,
-    "texture": "/Miranda.png",
-    "parent": "Uranus",
-    "rotationPeriod": 33.92,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 60,
-    "surfaceGravity": 0.079,
-    "jplId": "705",
-    "type": "moon",
     "poleRA": 257.43,
     "poleDec": -15.1
   },
@@ -991,20 +840,17 @@
     "name": "Ariel",
     "mass": 1.2510675e+21,
     "radius": 578900,
-    "radii": {
-      "x": 581100,
-      "y": 577900,
-      "z": 577700
-    },
-    "color": 14540253,
-    "texture": "/Ariel.png",
-    "parent": "Uranus",
-    "rotationPeriod": 60.489,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 60,
-    "surfaceGravity": 0.269,
-    "jplId": "701",
-    "type": "moon",
     "poleRA": 257.43,
     "poleDec": -15.1
   },
@@ -1012,20 +858,17 @@
     "name": "Umbriel",
     "mass": 1.2750399e+21,
     "radius": 584700,
-    "radii": {
-      "x": 584700,
-      "y": 584700,
-      "z": 584700
-    },
-    "color": 8947848,
-    "texture": "/Umbriel.webp",
-    "parent": "Uranus",
-    "rotationPeriod": 99.46,
-    "axialTilt": 0,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "meanTemperature": 60,
-    "surfaceGravity": 0.23,
-    "jplId": "702",
-    "type": "moon",
     "poleRA": 257.43,
     "poleDec": -15.1
   },
@@ -1033,63 +876,54 @@
     "name": "Tethys",
     "mass": 617443000000000000000,
     "radius": 531100,
-    "radii": {
-      "x": 531100,
-      "y": 531100,
-      "z": 531100
-    },
-    "color": 13421772,
-    "texture": "/Umbriel.webp",
-    "parent": "Saturn",
-    "rotationPeriod": 45.307,
-    "axialTilt": 0,
-    "meanTemperature": 86,
-    "surfaceGravity": 0.146,
-    "jplId": "603",
-    "type": "moon"
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 86
   },
   {
     "name": "Dione",
     "mass": 1.09548e+21,
     "radius": 561400,
-    "radii": {
-      "x": 563800,
-      "y": 561000,
-      "z": 559600
-    },
-    "color": 10066329,
-    "texture": "/Umbriel.webp",
-    "parent": "Saturn",
-    "rotationPeriod": 65.685,
-    "axialTilt": 0,
-    "meanTemperature": 87,
-    "surfaceGravity": 0.232,
-    "jplId": "604",
-    "type": "moon",
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
     "J": [
       0.0014
     ],
+    "meanTemperature": 87,
+    "albedo": 0.6,
     "poleRA": 40.66,
-    "poleDec": 83.52,
-    "albedo": 0.6
+    "poleDec": 83.52
   },
   {
     "name": "Rhea",
     "mass": 2.30646e+21,
     "radius": 763800,
-    "radii": {
-      "x": 763800,
-      "y": 763800,
-      "z": 763800
-    },
-    "color": 11184810,
-    "texture": "/Umbriel.webp",
-    "parent": "Saturn",
-    "rotationPeriod": 108.418,
-    "axialTilt": 0,
-    "meanTemperature": 76,
-    "surfaceGravity": 0.264,
-    "jplId": "605",
-    "type": "moon"
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 76
   }
 ]
