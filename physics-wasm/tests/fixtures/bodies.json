@@ -1,7 +1,7 @@
 [
   {
     "name": "Sun",
-    "mass": 1.98840987e+30,
+    "mass": 1.988409871326422e+30,
     "radius": 695700000,
     "pos": [
       0,
@@ -24,8 +24,8 @@
   },
   {
     "name": "Mercury",
-    "mass": 3.3009871e+23,
-    "radius": 2439400,
+    "mass": 3.30100064e+23,
+    "radius": 2440530,
     "pos": [
       0,
       0,
@@ -37,7 +37,7 @@
       0
     ],
     "J": [
-      0.000050328
+      0.0000503104
     ],
     "c22": 0.000008088,
     "s22": 0,
@@ -46,16 +46,16 @@
       "tidalQ": 50
     },
     "meanTemperature": 440,
-    "albedo": 0.142,
+    "albedo": 0.106,
     "poleRA": 281.01,
     "poleDec": 61.45,
     "W0": 329.5469,
-    "Wdot": 6.1385025
+    "Wdot": 6.138547
   },
   {
     "name": "Venus",
-    "mass": 4.8673118e+24,
-    "radius": 6051800,
+    "mass": 4.86731175e+24,
+    "radius": 6051893,
     "pos": [
       0,
       0,
@@ -72,24 +72,24 @@
     "c22": -0.000001349,
     "s22": -2.32e-7,
     "tidal": {
-      "k2": 0.295,
+      "k2": 0.25,
       "tidalQ": 12
     },
     "hasAtmosphere": true,
-    "surfacePressure": 9200000,
+    "surfacePressure": 9000000,
     "scaleHeight": 15.9,
-    "meanTemperature": 737,
+    "meanTemperature": 735,
     "dragCoefficient": 2.2,
-    "albedo": 0.76,
+    "albedo": 0.65,
     "poleRA": 272.76,
     "poleDec": 67.16,
     "W0": 160.2,
-    "Wdot": -1.4813688
+    "Wdot": -1.481335
   },
   {
     "name": "Earth",
-    "mass": 5.9721686e+24,
-    "radius": 6371000,
+    "mass": 5.9721683987e+24,
+    "radius": 6378137,
     "pos": [
       0,
       0,
@@ -101,9 +101,9 @@
       0
     ],
     "J": [
-      0.00108263,
-      -0.00000253,
-      -0.00000162
+      0.00108262545,
+      -0.0000025327,
+      -0.0000016196
     ],
     "c22": 0.00000243,
     "s22": -0.0000014,
@@ -113,10 +113,10 @@
     },
     "hasAtmosphere": true,
     "surfacePressure": 101325,
-    "scaleHeight": 8.5,
-    "meanTemperature": 288,
+    "scaleHeight": 8500,
+    "meanTemperature": 287.6,
     "dragCoefficient": 2.2,
-    "albedo": 0.306,
+    "albedo": 0.367,
     "poleRA": 0,
     "poleDec": 90,
     "precessionRate": 50.29,
@@ -126,8 +126,8 @@
   },
   {
     "name": "Moon",
-    "mass": 7.3457904e+22,
-    "radius": 1737400,
+    "mass": 7.345789170399893e+22,
+    "radius": 1738000,
     "pos": [
       0,
       0,
@@ -156,8 +156,8 @@
   },
   {
     "name": "Mars",
-    "mass": 6.4171167e+23,
-    "radius": 3396200,
+    "mass": 6.417074451006122e+23,
+    "radius": 3396190,
     "pos": [
       0,
       0,
@@ -170,8 +170,8 @@
     ],
     "J": [
       0.00196045,
-      0.00003138,
-      -0.00001544
+      0.00003145,
+      -0.0000154477
     ],
     "c22": -0.00006316,
     "s22": -0.000015,
@@ -180,22 +180,22 @@
       "tidalQ": 92
     },
     "hasAtmosphere": true,
-    "surfacePressure": 610,
-    "scaleHeight": 11.1,
+    "surfacePressure": 560,
+    "scaleHeight": 11100,
     "meanTemperature": 210,
     "dragCoefficient": 2.2,
-    "albedo": 0.25,
+    "albedo": 0.15,
     "poleRA": 317.68,
     "poleDec": 52.89,
     "poleRA_rate": -0.108,
     "poleDec_rate": -0.061,
     "W0": 176.63,
-    "Wdot": 350.89198226
+    "Wdot": 350.892015
   },
   {
     "name": "Phobos",
-    "mass": 10659000000000000,
-    "radius": 11266.7,
+    "mass": 10619089222000000,
+    "radius": 13000,
     "pos": [
       0,
       0,
@@ -223,8 +223,8 @@
   },
   {
     "name": "Deimos",
-    "mass": 1476200000000000,
-    "radius": 6200,
+    "mass": 1800000000000000,
+    "radius": 7800,
     "pos": [
       0,
       0,
@@ -243,14 +243,14 @@
       "tidalQ": 100
     },
     "meanTemperature": 233,
-    "albedo": 0.068,
+    "albedo": 0.06,
     "thermalInertia": 25,
     "poleRA": 316.65,
     "poleDec": 53.52
   },
   {
     "name": "Jupiter",
-    "mass": 1.898125e+27,
+    "mass": 1.898124625803455e+27,
     "radius": 71492000,
     "pos": [
       0,
@@ -287,8 +287,8 @@
   },
   {
     "name": "Io",
-    "mass": 8.929638e+22,
-    "radius": 1821600,
+    "mass": 8.9296488021e+22,
+    "radius": 1829400,
     "pos": [
       0,
       0,
@@ -313,8 +313,8 @@
   },
   {
     "name": "Europa",
-    "mass": 4.798585e+22,
-    "radius": 1560800,
+    "mass": 4.7985732e+22,
+    "radius": 1562600,
     "pos": [
       0,
       0,
@@ -339,7 +339,7 @@
   },
   {
     "name": "Ganymede",
-    "mass": 1.4814737e+23,
+    "mass": 1.4814786e+23,
     "radius": 2634100,
     "pos": [
       0,
@@ -365,7 +365,7 @@
   },
   {
     "name": "Callisto",
-    "mass": 1.0756608e+23,
+    "mass": 1.07566088e+23,
     "radius": 2410300,
     "pos": [
       0,
@@ -391,7 +391,7 @@
   },
   {
     "name": "Saturn",
-    "mass": 5.68317e+26,
+    "mass": 5.6831737012e+26,
     "radius": 60330000,
     "pos": [
       0,
@@ -404,58 +404,23 @@
       0
     ],
     "J": [
-      0.01629071,
+      0.016290573,
       0,
-      -0.00093583,
+      -0.000935314,
       0,
-      0.00008614,
+      0.00008634,
       0,
-      -0.00001467,
-      0,
-      0.000004597
+      -0.000014624
     ],
-    "tidal": {
-      "k2": 0.341,
-      "tidalQ": 10000
-    },
     "meanTemperature": 134,
+    "albedo": 0.47,
     "poleRA": 40.589,
-    "poleDec": 83.537,
-    "poleRA_rate": -0.036,
-    "poleDec_rate": -0.004,
-    "W0": 38.9,
-    "Wdot": 810.7939024
-  },
-  {
-    "name": "Titan",
-    "mass": 1.3451807e+23,
-    "radius": 2574700,
-    "pos": [
-      0,
-      0,
-      0
-    ],
-    "vel": [
-      0,
-      0,
-      0
-    ],
-    "J": [
-      0.0000319
-    ],
-    "c22": 0.0000109,
-    "tidal": {
-      "k2": 0.637,
-      "tidalQ": 70
-    },
-    "meanTemperature": 94,
-    "poleRA": 36.41,
-    "poleDec": 83.94
+    "poleDec": 83.537
   },
   {
     "name": "Enceladus",
-    "mass": 108026300000000000000,
-    "radius": 252100,
+    "mass": 108031677000000000000,
+    "radius": 256600,
     "pos": [
       0,
       0,
@@ -475,8 +440,35 @@
     "poleDec": 83.52
   },
   {
+    "name": "Titan",
+    "mass": 1.345180768e+23,
+    "radius": 2575500,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "J": [
+      0.0000319
+    ],
+    "c22": 0.0000109,
+    "tidal": {
+      "k2": 0.637,
+      "tidalQ": 70
+    },
+    "meanTemperature": 94,
+    "albedo": 0.2,
+    "poleRA": 36.41,
+    "poleDec": 83.94
+  },
+  {
     "name": "Uranus",
-    "mass": 8.6809842e+25,
+    "mass": 8.680986186266726e+25,
     "radius": 25559000,
     "pos": [
       0,
@@ -489,24 +481,23 @@
       0
     ],
     "J": [
-      0.003343,
-      -0.0000042,
-      -0.000034
+      0.00351068,
+      0,
+      -0.00003215
     ],
     "tidal": {
       "k2": 0.104,
       "tidalQ": 11000
     },
     "meanTemperature": 76,
-    "poleRA": 257.43,
-    "poleDec": -15.1,
-    "W0": 203.81,
-    "Wdot": -501.1600928
+    "albedo": 0.51,
+    "poleRA": 257.311,
+    "poleDec": -15.175
   },
   {
     "name": "Titania",
-    "mass": 3.399607e+21,
-    "radius": 788400,
+    "mass": 3.3381777864e+21,
+    "radius": 788900,
     "pos": [
       0,
       0,
@@ -517,13 +508,17 @@
       0,
       0
     ],
+    "J": [
+      0
+    ],
     "meanTemperature": 60,
-    "poleRA": 257.43,
-    "poleDec": -15.1
+    "albedo": 0.27,
+    "poleRA": 257.311,
+    "poleDec": -15.175
   },
   {
     "name": "Oberon",
-    "mass": 3.075985e+21,
+    "mass": 3.076577319e+21,
     "radius": 761400,
     "pos": [
       0,
@@ -536,13 +531,14 @@
       0
     ],
     "meanTemperature": 61,
-    "poleRA": 257.43,
-    "poleDec": -15.1
+    "albedo": 0.24,
+    "poleRA": 257.311,
+    "poleDec": -15.175
   },
   {
     "name": "Neptune",
-    "mass": 1.0240915e+26,
-    "radius": 24622000,
+    "mass": 1.024092409690904e+26,
+    "radius": 24766000,
     "pos": [
       0,
       0,
@@ -554,20 +550,18 @@
       0
     ],
     "J": [
-      0.003411,
-      -0.000004,
-      -0.000033
+      0.00340843,
+      0,
+      -0.0000334
     ],
-    "meanTemperature": 55,
+    "meanTemperature": 72,
     "poleRA": 299.36,
-    "poleDec": 41.28,
-    "W0": 253.18,
-    "Wdot": 536.3128492
+    "poleDec": 41.28
   },
   {
     "name": "Triton",
-    "mass": 2.1403e+22,
-    "radius": 1353400,
+    "mass": 2.14029188e+22,
+    "radius": 1352600,
     "pos": [
       0,
       0,
@@ -584,8 +578,8 @@
   },
   {
     "name": "Ceres",
-    "mass": 939300000000000000000,
-    "radius": 473000,
+    "mass": 938351587430000000000,
+    "radius": 482000,
     "pos": [
       0,
       0,
@@ -602,8 +596,8 @@
   },
   {
     "name": "Vesta",
-    "mass": 259000000000000000000,
-    "radius": 262700,
+    "mass": 259053385000000000000,
+    "radius": 286300,
     "pos": [
       0,
       0,
@@ -620,8 +614,8 @@
   },
   {
     "name": "Pallas",
-    "mass": 211000000000000000000,
-    "radius": 256000,
+    "mass": 214254600000000000000,
+    "radius": 272500,
     "pos": [
       0,
       0,
@@ -638,7 +632,7 @@
   },
   {
     "name": "Hygiea",
-    "mass": 86700000000000000000,
+    "mass": 80907360000000000000,
     "radius": 216000,
     "pos": [
       0,
@@ -674,7 +668,7 @@
   },
   {
     "name": "Pluto",
-    "mass": 1.30291e+22,
+    "mass": 1.30249764e+22,
     "radius": 1188300,
     "pos": [
       0,
@@ -693,7 +687,7 @@
   },
   {
     "name": "Charon",
-    "mass": 1.58668e+21,
+    "mass": 1.58967982e+21,
     "radius": 606000,
     "pos": [
       0,
@@ -711,7 +705,7 @@
   },
   {
     "name": "Eris",
-    "mass": 1.66e+22,
+    "mass": 1.66010068e+22,
     "radius": 1163000,
     "pos": [
       0,
@@ -728,8 +722,8 @@
   },
   {
     "name": "Haumea",
-    "mass": 4.006e+21,
-    "radius": 718000,
+    "mass": 4.006412e+21,
+    "radius": 980000,
     "pos": [
       0,
       0,
@@ -745,7 +739,7 @@
   },
   {
     "name": "Makemake",
-    "mass": 3.1e+21,
+    "mass": 3.101449e+21,
     "radius": 715000,
     "pos": [
       0,
@@ -759,23 +753,6 @@
     ],
     "meanTemperature": 30,
     "albedo": 0.8
-  },
-  {
-    "name": "Sedna",
-    "mass": 1e+21,
-    "radius": 498000,
-    "pos": [
-      0,
-      0,
-      0
-    ],
-    "vel": [
-      0,
-      0,
-      0
-    ],
-    "meanTemperature": 12,
-    "albedo": 0.32
   },
   {
     "name": "Quaoar",
@@ -795,9 +772,26 @@
     "albedo": 0.1
   },
   {
+    "name": "Sedna",
+    "mass": 1e+21,
+    "radius": 498000,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 12,
+    "albedo": 0.32
+  },
+  {
     "name": "Mimas",
-    "mass": 37509400000000000000,
-    "radius": 198200,
+    "mass": 37509386752000000000,
+    "radius": 207400,
     "pos": [
       0,
       0,
@@ -809,95 +803,22 @@
       0
     ],
     "J": [
-      0.019
+      0.0125
     ],
+    "c22": 0.0031,
     "tidal": {
       "k2": 0.023,
       "tidalQ": 1000
     },
-    "meanTemperature": 64
-  },
-  {
-    "name": "Iapetus",
-    "mass": 1.80566e+21,
-    "radius": 734500,
-    "pos": [
-      0,
-      0,
-      0
-    ],
-    "vel": [
-      0,
-      0,
-      0
-    ],
-    "meanTemperature": 110
-  },
-  {
-    "name": "Miranda",
-    "mass": 64426200000000000000,
-    "radius": 235800,
-    "pos": [
-      0,
-      0,
-      0
-    ],
-    "vel": [
-      0,
-      0,
-      0
-    ],
-    "J": [
-      0.00525
-    ],
-    "tidal": {
-      "k2": 0.01,
-      "tidalQ": 200
-    },
-    "meanTemperature": 60,
-    "poleRA": 257.43,
-    "poleDec": -15.1
-  },
-  {
-    "name": "Ariel",
-    "mass": 1.2510675e+21,
-    "radius": 578900,
-    "pos": [
-      0,
-      0,
-      0
-    ],
-    "vel": [
-      0,
-      0,
-      0
-    ],
-    "meanTemperature": 60,
-    "poleRA": 257.43,
-    "poleDec": -15.1
-  },
-  {
-    "name": "Umbriel",
-    "mass": 1.2750399e+21,
-    "radius": 584700,
-    "pos": [
-      0,
-      0,
-      0
-    ],
-    "vel": [
-      0,
-      0,
-      0
-    ],
-    "meanTemperature": 60,
-    "poleRA": 257.43,
-    "poleDec": -15.1
+    "meanTemperature": 64,
+    "albedo": 0.6,
+    "poleRA": 40.589,
+    "poleDec": 83.537
   },
   {
     "name": "Tethys",
-    "mass": 617443000000000000000,
-    "radius": 531100,
+    "mass": 617443027730000000000,
+    "radius": 538800,
     "pos": [
       0,
       0,
@@ -915,12 +836,15 @@
       "k2": 0.032,
       "tidalQ": 400
     },
-    "meanTemperature": 86
+    "meanTemperature": 86,
+    "albedo": 0.8,
+    "poleRA": 40.589,
+    "poleDec": 83.537
   },
   {
     "name": "Dione",
-    "mass": 1.09548e+21,
-    "radius": 561400,
+    "mass": 1.095485e+21,
+    "radius": 563800,
     "pos": [
       0,
       0,
@@ -939,14 +863,13 @@
       "tidalQ": 600
     },
     "meanTemperature": 87,
-    "albedo": 0.6,
     "poleRA": 40.66,
     "poleDec": 83.52
   },
   {
     "name": "Rhea",
-    "mass": 2.30646e+21,
-    "radius": 763800,
+    "mass": 2.306456e+21,
+    "radius": 766500,
     "pos": [
       0,
       0,
@@ -965,5 +888,83 @@
       "tidalQ": 400
     },
     "meanTemperature": 76
+  },
+  {
+    "name": "Iapetus",
+    "mass": 1.8055826e+21,
+    "radius": 746000,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 110
+  },
+  {
+    "name": "Miranda",
+    "mass": 64426231964000000000,
+    "radius": 240000,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "J": [
+      0.00525
+    ],
+    "tidal": {
+      "k2": 0.01,
+      "tidalQ": 200
+    },
+    "meanTemperature": 60,
+    "albedo": 0.27,
+    "poleRA": 257.43,
+    "poleDec": -15.1
+  },
+  {
+    "name": "Ariel",
+    "mass": 1.250026e+21,
+    "radius": 581100,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 60,
+    "poleRA": 257.43,
+    "poleDec": -15.1
+  },
+  {
+    "name": "Umbriel",
+    "mass": 1.279535e+21,
+    "radius": 584700,
+    "pos": [
+      0,
+      0,
+      0
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "meanTemperature": 60,
+    "poleRA": 257.43,
+    "poleDec": -15.1
   }
 ]
