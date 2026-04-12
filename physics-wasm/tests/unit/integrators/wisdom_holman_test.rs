@@ -121,19 +121,22 @@ fn test_wisdom_holman_solar_system() {
     assert!(drift < 1e-3, "Multi-body energy drift too large");
 }
 
-fn calculate_energy(bodies: &Vec<physics_wasm::common::types::PhysicsBody>) -> f64 {
+fn calculate_energy(bodies: &[physics_wasm::common::types::PhysicsBody]) -> f64 {
     let mut ke = 0.0;
     let mut pe = 0.0;
+    let g = physics_wasm::common::constants::G;
 
     for body in bodies {
-        ke += 0.5 * body.mass * body.vel.len_sq();
+        // KE = 1/2 * m * v^2  =>  1/2 * (GM / G) * v^2
+        ke += 0.5 * (body.gm / g) * body.vel.len_sq();
     }
 
     for i in 0..bodies.len() {
         for j in (i + 1)..bodies.len() {
             let dist = bodies[i].pos.distance_to(&bodies[j].pos);
             if dist > 0.0 {
-                pe -= G * bodies[i].mass * bodies[j].mass / dist;
+                // Simplified from: -G * (gm1/G) * (gm2/G) / dist
+                pe -= (bodies[i].gm * bodies[j].gm) / (g * dist);
             }
         }
     }

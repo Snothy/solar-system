@@ -44,23 +44,20 @@ pub fn apply_body_interactions(
         let mut calculated_ra = 0.0;
         let mut calculated_dec = std::f64::consts::FRAC_PI_2;
         let mut has_dynamic_orientation = false;
+        let t_centuries = (current_jd - 2451545.0) / 36525.0;
 
         if let Some(precession) = &body.precession {
             // Check for dynamic rates first
             if let (Some(ra0), Some(dec0), Some(ra_rate), Some(dec_rate)) = (
                 precession.pole_ra0, precession.pole_dec0, 
                 precession.pole_ra_rate, precession.pole_dec_rate
-            ) {
-                // T = Julian centuries since J2000.0
-                let t = (current_jd - 2451545.0) / 36525.0;
-                
+            ) { 
                 // Rates: degrees/century -> radians/century
                 let ra_rate_rad = ra_rate.to_radians();
                 let dec_rate_rad = dec_rate.to_radians();
-                
-                // Apply precession: alpha = alpha_0 + T * rate
-                calculated_ra = ra0 + ra_rate_rad * t;
-                calculated_dec = dec0 + dec_rate_rad * t;
+
+                calculated_ra = ra0 + ra_rate_rad * t_centuries;
+                calculated_dec = dec0 + dec_rate_rad * t_centuries;
                 has_dynamic_orientation = true;
 
             } else if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
@@ -161,12 +158,12 @@ pub fn apply_body_interactions(
                          let dist = r_vec.len();
                          
                          // Simple cutoff to avoid expensive calc for far away bodies
-                         if dist < bodies[j].radius + 2_000_000.0 { 
-                            let f = apply_drag(&bodies[j], &bodies[i], &r_vec, dist);
-                            let mut a = f; 
-                            a.scale(1.0 / bodies[i].mass);
+                         let drag_cutoff = bodies[j].equatorial_radius
+                            + atmosphere.scale_height.unwrap_or(8_500.0) * 10.0;
+                        if dist < drag_cutoff {
+                            let a = apply_drag(&bodies[j], &bodies[i], &r_vec, dist);
                             accs[i].add(&a);
-                         }
+                        }
                      }
                  }
              }
@@ -198,22 +195,19 @@ pub fn apply_body_interactions(
                 
                 // --- Newtonian Gravity ---
                 if !is_sun_interaction && !is_parent_child {
-                    let f = apply_newtonian(b1, b2, &r_vec, dist_sq);
-                    let mut a1 = f; a1.scale(1.0 / b1.mass);
-                    let mut a2 = f; a2.scale(-1.0 / b2.mass);
+                    let a1 = apply_newtonian(b1, b2, &r_vec, dist_sq);
+                    let mut a2 = a1; a2.scale(-b1.gm / b2.gm);
                     accs[i].add(&a1);
                     accs[j].add(&a2);
                 }
 
                 // --- Post-Newtonian Relativity ---
                 if enable_relativity {
-                    let (f1, f2) = if use_eih {
+                    let (a1, a2) = if use_eih {
                          apply_relativity_eih(b1, b2, &r_vec, dist, dist_sq)
                     } else {
                          apply_relativity_ppn(b1, b2, &r_vec, dist, dist_sq)
                     };
-                    let mut a1 = f1; a1.scale(1.0 / b1.mass);
-                    let mut a2 = f2; a2.scale(1.0 / b2.mass);
                     accs[i].add(&a1);
                     accs[j].add(&a2);
                 }
@@ -230,7 +224,7 @@ pub fn apply_body_interactions(
                     
                     accs[j].add(&a_total);
                     // Reaction
-                    let mut a_reaction = a_total; a_reaction.scale(-b2.mass / b1.mass); accs[i].add(&a_reaction);
+                    let mut a_reaction = a_total; a_reaction.scale(-b2.gm / b1.gm); accs[i].add(&a_reaction);
                     
                     // 2. b2 acts on b1
                     let mut r_vec_neg = r_vec; r_vec_neg.scale(-1.0);
@@ -240,24 +234,31 @@ pub fn apply_body_interactions(
                     
                     accs[i].add(&a_total_b);
                     // Reaction
-                    let mut a_reaction_b = a_total_b; a_reaction_b.scale(-b1.mass / b2.mass); accs[j].add(&a_reaction_b);
+                    let mut a_reaction_b = a_total_b; a_reaction_b.scale(-b1.gm / b2.gm); accs[j].add(&a_reaction_b);
                 }
                 
                 // --- Tidal Forces ---
+                // Returns the acceleration ON THE PERTURBER due to the tidal bulge of the deforming body.
                 if enable_tidal {
-                    // Note: This now uses the pre-calculated angular velocities, 
-                    // which are correctly populated even if enable_j2 is false.
-                    
-                    // 1. Tides on b1 caused by b2
-                    let f1 = apply_tidal(b1, b2, &r_vec, dist, effective_angular_velocities[i]);
-                    let mut a_sat = f1; a_sat.scale(1.0 / b2.mass); accs[j].add(&a_sat);
-                    let mut a_pri = f1; a_pri.scale(-1.0 / b1.mass); accs[i].add(&a_pri);
+                    // 1. b1 is deformed by b2. r_vec points from b1 to b2.
+                    //    a_on_b2 = tidal pull on b2 from b1's bulge
+                    let a_on_b2 = apply_tidal(b1, b2, &r_vec, dist, effective_angular_velocities[i]);
+                    accs[j].add(&a_on_b2);
+                    // Newton's 3rd: reaction on b1, scaled by mass ratio
+                    let mut a_on_b1_reaction = a_on_b2;
+                    a_on_b1_reaction.scale(-b2.gm / b1.gm);
+                    accs[i].add(&a_on_b1_reaction);
 
-                    // 2. Tides on b2 caused by b1
-                    let mut r_vec_neg = r_vec; r_vec_neg.scale(-1.0);
-                    let f2 = apply_tidal(b2, b1, &r_vec_neg, dist, effective_angular_velocities[j]);
-                    let mut a_sat2 = f2; a_sat2.scale(1.0 / b1.mass); accs[i].add(&a_sat2);
-                    let mut a_pri2 = f2; a_pri2.scale(-1.0 / b2.mass); accs[j].add(&a_pri2);
+                    // 2. b2 is deformed by b1. r_vec_neg points from b2 to b1.
+                    //    a_on_b1 = tidal pull on b1 from b2's bulge
+                    let mut r_vec_neg = r_vec;
+                    r_vec_neg.scale(-1.0);
+                    let a_on_b1 = apply_tidal(b2, b1, &r_vec_neg, dist, effective_angular_velocities[j]);
+                    accs[i].add(&a_on_b1);
+                    // Newton's 3rd: reaction on b2, scaled by mass ratio
+                    let mut a_on_b2_reaction = a_on_b1;
+                    a_on_b2_reaction.scale(-b1.gm / b2.gm);
+                    accs[j].add(&a_on_b2_reaction);
                 }
             }
         }

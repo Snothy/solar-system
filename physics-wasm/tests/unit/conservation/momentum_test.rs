@@ -69,7 +69,7 @@ fn test_linear_momentum_conservation() {
     // Calculate total momentum scale (scalar sum of momenta)
     let mut p_scale = 0.0;
     for body in &bodies {
-        p_scale += body.mass * body.vel.len();
+        p_scale += body.gm / physics_wasm::common::constants::G * body.vel.len();
     }
 
     // Due to floating-point arithmetic, recentering cannot achieve perfect zero momentum
@@ -155,7 +155,7 @@ fn calculate_total_momentum(bodies: &Vec<physics_wasm::common::types::PhysicsBod
     let mut p = Vector3::zero();
     for body in bodies {
         let mut p_body = body.vel;
-        p_body.scale(body.mass);
+        p_body.scale(body.gm / physics_wasm::common::constants::G);
         p.add(&p_body);
     }
     p
@@ -168,7 +168,7 @@ fn calculate_total_angular_momentum(
     for body in bodies {
         // L = r × p = r × (m * v)
         let mut p = body.vel;
-        p.scale(body.mass);
+        p.scale(body.gm / physics_wasm::common::constants::G);
         let l_body = body.pos.cross(&p);
         l.add(&l_body);
     }

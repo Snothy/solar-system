@@ -1,3 +1,4 @@
+use crate::common::load_body;
 use approx::assert_relative_eq;
 use physics_wasm::dynamics::collisions::{check_collisions, resolve_collisions};
 use physics_wasm::common::types::{PhysicsBody, Vector3};
@@ -7,14 +8,14 @@ use physics_wasm::common::types::{PhysicsBody, Vector3};
 fn test_collision_detection_overlapping() {
     let mut body1 = PhysicsBody::default();
     body1.name = "Body1".to_string();
-    body1.mass = 1.0e20;
-    body1.radius = 100e3; // 100 km
+    body1.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body1.equatorial_radius = 100e3; // 100 km
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
     body2.name = "Body2".to_string();
-    body2.mass = 1.0e20;
-    body2.radius = 100e3;
+    body2.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body2.equatorial_radius = 100e3;
     body2.pos = Vector3::new(150e3, 0.0, 0.0); // 150 km apart (overlapping!)
 
     let bodies = vec![body1, body2];
@@ -33,11 +34,11 @@ fn test_collision_detection_overlapping() {
 #[test]
 fn test_no_collision_when_separated() {
     let mut body1 = PhysicsBody::default();
-    body1.radius = 100e3;
+    body1.equatorial_radius = 100e3;
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
-    body2.radius = 100e3;
+    body2.equatorial_radius = 100e3;
     body2.pos = Vector3::new(1e9, 0.0, 0.0); // 1 million km apart
 
     let bodies = vec![body1, body2];
@@ -51,23 +52,23 @@ fn test_no_collision_when_separated() {
 fn test_collision_momentum_conservation() {
     let mut body1 = PhysicsBody::default();
     body1.name = "Body1".to_string();
-    body1.mass = 1.0e20;
-    body1.radius = 100e3;
+    body1.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body1.equatorial_radius = 100e3;
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
     body1.vel = Vector3::new(1000.0, 500.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
     body2.name = "Body2".to_string();
-    body2.mass = 2.0e20; // Twice as massive
-    body2.radius = 100e3;
+    body2.gm = (2.0e20) * physics_wasm::common::constants::G; // Twice as massive
+    body2.equatorial_radius = 100e3;
     body2.pos = Vector3::new(150e3, 0.0, 0.0);
     body2.vel = Vector3::new(-500.0, 1000.0, 0.0);
 
     // Calculate initial momentum
     let mut p_initial = body1.vel;
-    p_initial.scale(body1.mass);
+    p_initial.scale(body1.gm / physics_wasm::common::constants::G);
     let mut p2 = body2.vel;
-    p2.scale(body2.mass);
+    p2.scale(body2.gm / physics_wasm::common::constants::G);
     p_initial.add(&p2);
 
     let mut bodies = vec![body1, body2];
@@ -84,7 +85,7 @@ fn test_collision_momentum_conservation() {
     let mut p_final = Vector3::zero();
     for body in &bodies {
         let mut p_body = body.vel;
-        p_body.scale(body.mass);
+        p_body.scale(body.gm / physics_wasm::common::constants::G);
         p_final.add(&p_body);
     }
 
@@ -108,19 +109,19 @@ fn test_collision_momentum_conservation() {
 fn test_collision_mass_conservation() {
     let mut body1 = PhysicsBody::default();
     body1.name = "Body1".to_string();
-    body1.mass = 1.0e20;
-    body1.radius = 100e3;
+    body1.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body1.equatorial_radius = 100e3;
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
     body1.vel = Vector3::new(1000.0, 0.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
     body2.name = "Body2".to_string();
-    body2.mass = 2.0e20;
-    body2.radius = 100e3;
+    body2.gm = (2.0e20) * physics_wasm::common::constants::G;
+    body2.equatorial_radius = 100e3;
     body2.pos = Vector3::new(150e3, 0.0, 0.0);
     body2.vel = Vector3::new(-1000.0, 0.0, 0.0);
 
-    let total_mass = body1.mass + body2.mass;
+    let total_mass = body1.gm / physics_wasm::common::constants::G + body2.gm / physics_wasm::common::constants::G;
 
     let mut bodies = vec![body1, body2];
     let to_remove = resolve_collisions(&mut bodies);
@@ -129,7 +130,7 @@ fn test_collision_mass_conservation() {
         bodies.remove(idx);
     }
 
-    let final_mass: f64 = bodies.iter().map(|b| b.mass).sum();
+    let final_mass: f64 = bodies.iter().map(|b| b.gm / physics_wasm::common::constants::G).sum();
 
     println!("Initial total mass: {:.3e} kg", total_mass);
     println!("Final total mass:   {:.3e} kg", final_mass);
@@ -142,21 +143,21 @@ fn test_collision_mass_conservation() {
 fn test_collision_volume_conservation() {
     let mut body1 = PhysicsBody::default();
     body1.name = "Body1".to_string();
-    body1.mass = 1.0e20;
-    body1.radius = 100e3; // 100 km
+    body1.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body1.equatorial_radius = 100e3; // 100 km
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
     body1.vel = Vector3::new(1000.0, 0.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
     body2.name = "Body2".to_string();
-    body2.mass = 1.0e20;
-    body2.radius = 100e3; // Same size
+    body2.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body2.equatorial_radius = 100e3; // Same size
     body2.pos = Vector3::new(150e3, 0.0, 0.0);
     body2.vel = Vector3::new(-1000.0, 0.0, 0.0);
 
     // V = 4/3 π R³
-    let vol1 = (4.0 / 3.0) * std::f64::consts::PI * body1.radius.powi(3);
-    let vol2 = (4.0 / 3.0) * std::f64::consts::PI * body2.radius.powi(3);
+    let vol1 = (4.0 / 3.0) * std::f64::consts::PI * body1.equatorial_radius.powi(3);
+    let vol2 = (4.0 / 3.0) * std::f64::consts::PI * body2.equatorial_radius.powi(3);
     let total_vol = vol1 + vol2;
 
     let mut bodies = vec![body1, body2];
@@ -168,12 +169,12 @@ fn test_collision_volume_conservation() {
 
     let final_vol: f64 = bodies
         .iter()
-        .map(|b| (4.0 / 3.0) * std::f64::consts::PI * b.radius.powi(3))
+        .map(|b| (4.0 / 3.0) * std::f64::consts::PI * b.equatorial_radius.powi(3))
         .sum();
 
     println!("Initial total volume: {:.3e} m³", total_vol);
     println!("Final total volume:   {:.3e} m³", final_vol);
-    println!("Final radius:         {:.3} km", bodies[0].radius / 1000.0);
+    println!("Final radius:         {:.3} km", bodies[0].equatorial_radius / 1000.0);
 
     // For equal spheres: R_new = 2^(1/3) * R_original ≈ 1.26 * R
     let expected_radius = (2.0_f64).powf(1.0 / 3.0) * 100e3;
@@ -187,15 +188,15 @@ fn test_collision_volume_conservation() {
 fn test_equal_mass_head_on_collision() {
     let mut body1 = PhysicsBody::default();
     body1.name = "Body1".to_string();
-    body1.mass = 1.0e20;
-    body1.radius = 100e3;
+    body1.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body1.equatorial_radius = 100e3;
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
     body1.vel = Vector3::new(1000.0, 0.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
     body2.name = "Body2".to_string();
-    body2.mass = 1.0e20; // Equal mass
-    body2.radius = 100e3;
+    body2.gm = (1.0e20) * physics_wasm::common::constants::G; // Equal mass
+    body2.equatorial_radius = 100e3;
     body2.pos = Vector3::new(150e3, 0.0, 0.0);
     body2.vel = Vector3::new(-1000.0, 0.0, 0.0); // Equal opposite velocity
 
@@ -225,18 +226,18 @@ fn test_equal_mass_head_on_collision() {
 #[test]
 fn test_multiple_collisions() {
     let mut body1 = PhysicsBody::default();
-    body1.mass = 1.0e20;
-    body1.radius = 100e3;
+    body1.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body1.equatorial_radius = 100e3;
     body1.pos = Vector3::new(0.0, 0.0, 0.0);
 
     let mut body2 = PhysicsBody::default();
-    body2.mass = 1.0e20;
-    body2.radius = 100e3;
+    body2.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body2.equatorial_radius = 100e3;
     body2.pos = Vector3::new(150e3, 0.0, 0.0); // Colliding with body1
 
     let mut body3 = PhysicsBody::default();
-    body3.mass = 1.0e20;
-    body3.radius = 100e3;
+    body3.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body3.equatorial_radius = 100e3;
     body3.pos = Vector3::new(0.0, 150e3, 0.0); // Also colliding with body1
 
     let bodies = vec![body1, body2, body3];

@@ -102,9 +102,9 @@ fn calculate_center_of_mass(bodies: &Vec<physics_wasm::common::types::PhysicsBod
 
     for body in bodies {
         let mut weighted_pos = body.pos;
-        weighted_pos.scale(body.mass);
+        weighted_pos.scale(body.gm / physics_wasm::common::constants::G);
         cm.add(&weighted_pos);
-        total_mass += body.mass;
+        total_mass += body.gm / physics_wasm::common::constants::G;
     }
 
     cm.scale(1.0 / total_mass);

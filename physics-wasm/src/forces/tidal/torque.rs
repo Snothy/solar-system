@@ -24,7 +24,7 @@ pub fn calculate_tidal_torque(
             let mut diff = orbital_ang_vel;
             diff.sub(&ang_vel);
 
-            let factor = 1.5 * (k2 / q) * G * satellite.mass * satellite.mass * primary.radius.powi(5)
+            let factor = 1.5 * (k2 / q) * G * (satellite.gm / G) * (satellite.gm / G) * primary.equatorial_radius.powi(5)
                 / dist.powi(6);
 
             let mut torque = diff;

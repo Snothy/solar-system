@@ -1,3 +1,4 @@
+use crate::common::load_body;
 use physics_wasm::analysis::update_moon_libration;
 use physics_wasm::common::constants::G;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
@@ -5,16 +6,11 @@ use physics_wasm::common::types::{PhysicsBody, Vector3};
 /// Test Moon libration calculation
 #[test]
 fn test_moon_libration_calculation() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
+    let mut earth = load_body("Earth");
     earth.pos = Vector3::zero();
     earth.vel = Vector3::zero();
 
-    let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
-    moon.radius = 1737.4e3;
+    let mut moon = load_body("Moon");
     // Moon at periapsis (closest point) - about 363,000 km
     moon.pos = Vector3::new(363000e3, 0.0, 0.0);
     // Orbital velocity at periapsis (faster)
@@ -41,16 +37,12 @@ fn test_moon_libration_calculation() {
 /// Test libration varies with orbital position
 #[test]
 fn test_libration_varies_with_position() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
+    let mut earth = load_body("Earth");
     earth.pos = Vector3::zero();
     earth.vel = Vector3::zero();
 
     // Test at periapsis
-    let mut moon_peri = PhysicsBody::default();
-    moon_peri.name = "Moon".to_string();
-    moon_peri.mass = 7.342e22;
+    let mut moon_peri = load_body("Moon");
     moon_peri.pos = Vector3::new(363000e3, 0.0, 0.0);
     moon_peri.vel = Vector3::new(0.0, 1082.0, 0.0);
     moon_peri.moon = Some(physics_wasm::common::types::MoonParams {
@@ -62,9 +54,7 @@ fn test_libration_varies_with_position() {
     let lib_peri = bodies[1].moon.as_ref().unwrap().libration.unwrap();
 
     // Test at apoapsis (farthest point) - about 405,000 km
-    let mut moon_apo = PhysicsBody::default();
-    moon_apo.name = "Moon".to_string();
-    moon_apo.mass = 7.342e22;
+    let mut moon_apo = load_body("Moon");
     moon_apo.pos = Vector3::new(405000e3, 0.0, 0.0);
     moon_apo.vel = Vector3::new(0.0, 970.0, 0.0); // Slower at apoapsis
     moon_apo.moon = Some(physics_wasm::common::types::MoonParams {
@@ -93,19 +83,16 @@ fn test_libration_varies_with_position() {
 /// Test libration is zero for circular orbit
 #[test]
 fn test_circular_orbit_zero_libration() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
+    let mut earth = load_body("Earth");
     earth.pos = Vector3::zero();
     earth.vel = Vector3::zero();
 
-    let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
+    let mut moon = load_body("Moon");
 
     // Perfectly circular orbit
     let r = 384400e3; // Average Moon distance
-    let v = (G * earth.mass / r).sqrt(); // Circular orbit velocity
+    // This is mathematically identical to your refactor, but cleaner:
+    let v = (earth.gm / r).sqrt();
 
     moon.pos = Vector3::new(r, 0.0, 0.0);
     moon.vel = Vector3::new(0.0, v, 0.0);
@@ -131,9 +118,7 @@ fn test_circular_orbit_zero_libration() {
 /// Test libration handles missing Earth
 #[test]
 fn test_libration_no_earth() {
-    let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
+    let mut moon = load_body("Moon");
     moon.pos = Vector3::new(384400e3, 0.0, 0.0);
     moon.vel = Vector3::new(0.0, 1022.0, 0.0);
     moon.moon = Some(physics_wasm::common::types::MoonParams {
@@ -153,15 +138,11 @@ fn test_libration_no_earth() {
 /// Test libration calculation with eccentric orbit
 #[test]
 fn test_eccentric_orbit_libration() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
+    let mut earth = load_body("Earth");
     earth.pos = Vector3::zero();
     earth.vel = Vector3::zero();
 
-    let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
+    let mut moon = load_body("Moon");
     moon.moon = Some(physics_wasm::common::types::MoonParams {
         libration: None,
     });
@@ -172,9 +153,12 @@ fn test_eccentric_orbit_libration() {
     // Place Moon at true anomaly = 90 degrees (where libration is non-zero)
     // r = a(1-e^2) / (1 + e cos 90) = a(1-e^2)
     let p = a * (1.0 - ecc * ecc);
-    let h = (G * earth.mass * p).sqrt(); // Angular momentum
-    let mu = G * earth.mass;
+    // Since earth.gm IS the gravitational parameter (mu)...
+    let mu = earth.gm; 
 
+    // Angular momentum for a conic section: h = sqrt(mu * p)
+    // where p is the semi-latus rectum
+    let h = (mu * p).sqrt();
     // At theta = 90:
     // Pos = (0, p, 0)
     // Vel components: Vx = -mu/h * (sin 90 + 0) = -mu/h

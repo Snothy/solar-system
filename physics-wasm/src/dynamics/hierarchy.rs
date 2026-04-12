@@ -15,10 +15,10 @@ pub fn update_hierarchy(bodies: &Vec<PhysicsBody>) -> Vec<ParentIndex> {
     // 1. Find the Sun (Most massive body)
     // We assume the most massive body determines the primary frame of reference for SOI calculations.
     let mut sun_idx = 0;
-    let mut max_mass = 0.0;
+    let mut max_gm = 0.0;
     for (i, b) in bodies.iter().enumerate() {
-        if b.mass > max_mass {
-            max_mass = b.mass;
+        if b.gm > max_gm {
+            max_gm = b.gm;
             sun_idx = i;
         }
     }
@@ -45,7 +45,7 @@ pub fn update_hierarchy(bodies: &Vec<PhysicsBody>) -> Vec<ParentIndex> {
 
             // A. Physics Check: Parent must be more massive
             // This prevents smaller bodies from capturing larger ones (e.g., Moon capturing Earth)
-            if parent.mass <= body.mass {
+            if parent.gm <= body.gm {
                 continue;
             }
 
@@ -61,8 +61,8 @@ pub fn update_hierarchy(bodies: &Vec<PhysicsBody>) -> Vec<ParentIndex> {
                 let dz = parent.pos.z - sun_pos.z;
                 let dist_to_sun_sq = dx*dx + dy*dy + dz*dz;
                 
-                let mass_ratio = parent.mass / max_mass;
-                dist_to_sun_sq * mass_ratio.powf(0.8)
+                let gm_ratio = parent.gm / max_gm;
+                dist_to_sun_sq * gm_ratio.powf(0.8)
             };
 
             // C. Geometry Check: Is body inside this SOI?

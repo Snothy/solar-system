@@ -50,7 +50,11 @@ impl Simulation {
         // Apply Solar Mass Loss
         if config.solar_mass_loss {
             if let Some(sun_idx) = self.bodies.iter().position(|b| b.name == "Sun") {
-                self.bodies[sun_idx].mass -= SOLAR_MASS_LOSS * dt;
+                // Calculate mass loss and update GM accordingly
+                let mass_loss = SOLAR_MASS_LOSS * dt;
+                let old_mass = self.bodies[sun_idx].gm / crate::common::constants::G;
+                let new_mass = old_mass - mass_loss;
+                self.bodies[sun_idx].gm = new_mass * crate::common::constants::G;
             }
         }
 
@@ -112,10 +116,11 @@ impl Simulation {
         let mut bary = Vector3::zero();
         let mut total_mass = 0.0;
         for b in &self.bodies {
+            let mass = b.gm / crate::common::constants::G;
             let mut p = b.pos;
-            p.scale(b.mass);
+            p.scale(mass);
             bary.add(&p);
-            total_mass += b.mass;
+            total_mass += mass;
         }
         if total_mass > 0.0 {
             bary.scale(1.0 / total_mass);

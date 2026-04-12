@@ -1,13 +1,10 @@
+mod common;
+
 use physics_wasm::common::types::PhysicsBody;
-use std::fs;
 
 #[test]
 fn test_saturn_precession_data() {
-    let data = fs::read_to_string("tests/fixtures/bodies.json")
-        .expect("Failed to read bodies.json");
-    
-    let bodies: Vec<PhysicsBody> = serde_json::from_str(&data)
-        .expect("Failed to parse bodies.json");
+    let bodies: Vec<PhysicsBody> = common::load_bodies();
     
     let saturn = bodies.iter().find(|b| b.name == "Saturn")
         .expect("Saturn not found");

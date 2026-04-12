@@ -25,8 +25,8 @@ export type Vec3 = { x: number; y: number; z: number };
 export interface WasmBody {
   // Core (required)
   name: string;
-  mass: number;
-  radius: number;
+  gm: number;
+  equatorialRadius: number;
   pos: Vec3;
   vel: Vec3;
   force?: Vec3 | null;
@@ -96,8 +96,8 @@ function toEcliptic(v: THREE.Vector3): Vec3 {
 export function bodyToWasm(b: PhysicsBody): WasmBody {
   return {
     name: b.name,
-    mass: b.mass,
-    radius: b.radius,
+    gm: b.gm,
+    equatorialRadius: b.equatorialRadius,
     pos: toEcliptic(b.pos),
     vel: toEcliptic(b.vel),
 
@@ -234,8 +234,8 @@ export function celBodyToWasm(
   // 1. Core State (JPL starting point)
   const body: any = {
     name: data.name,
-    mass: data.mass,
-    radius: data.radius ?? 0,
+    gm: data.gm,
+    equatorialRadius: data.equatorialRadius ?? 0,
     pos: { x: pos[0], y: pos[1], z: pos[2] }, // Already Ecliptic Z-up from JPL
     vel: { x: vel[0], y: vel[1], z: vel[2] },
   };

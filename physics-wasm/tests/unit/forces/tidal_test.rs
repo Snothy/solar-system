@@ -8,8 +8,8 @@ fn test_two_way_tidal_forces() {
     // Setup two identical bodies with tidal properties
     let mut b1 = PhysicsBody::default();
     b1.name = "Body1".to_string();
-    b1.mass = 1.0e24;
-    b1.radius = 6000e3;
+    b1.gm = (1.0e24) * physics_wasm::common::constants::G;
+    b1.equatorial_radius = 6000e3;
     b1.pos = Vector3::new(0.0, 0.0, 0.0);
     b1.vel = Vector3::new(0.0, 0.0, 0.0);
     b1.tidal = Some(TidalParams { k2: Some(0.3), tidal_q: Some(10.0) });
@@ -17,8 +17,8 @@ fn test_two_way_tidal_forces() {
 
     let mut b2 = PhysicsBody::default();
     b2.name = "Body2".to_string();
-    b2.mass = 1.0e24;
-    b2.radius = 6000e3;
+    b2.gm = (1.0e24) * physics_wasm::common::constants::G;
+    b2.equatorial_radius = 6000e3;
     b2.pos = Vector3::new(1.0e8, 0.0, 0.0); // 100,000 km away
     b2.vel = Vector3::new(0.0, 1000.0, 0.0);
     b2.tidal = Some(TidalParams { k2: Some(0.3), tidal_q: Some(10.0) });
@@ -46,8 +46,8 @@ fn test_two_way_tidal_forces() {
     println!("Acc2: {:?}", accs[1]);
 
     // Force = mass * acc
-    let f1 = Vector3::new(accs[0].x * bodies[0].mass, accs[0].y * bodies[0].mass, accs[0].z * bodies[0].mass);
-    let f2 = Vector3::new(accs[1].x * bodies[1].mass, accs[1].y * bodies[1].mass, accs[1].z * bodies[1].mass);
+    let f1 = Vector3::new(accs[0].x * (bodies[0].gm / physics_wasm::common::constants::G), accs[0].y * (bodies[0].gm / physics_wasm::common::constants::G), accs[0].z * (bodies[0].gm / physics_wasm::common::constants::G));
+    let f2 = Vector3::new(accs[1].x * (bodies[1].gm / physics_wasm::common::constants::G), accs[1].y * (bodies[1].gm / physics_wasm::common::constants::G), accs[1].z * (bodies[1].gm / physics_wasm::common::constants::G));
 
     println!("Force1: {:?}", f1);
     println!("Force2: {:?}", f2);

@@ -35,24 +35,22 @@ pub fn apply_sun_interactions(
         match gravity_mode {
             GravityMode::FullNBody => {
                 // Standard N-body mode: Full gravity (Symplectic, DOP853)
-                let f = apply_newtonian(sun, b, &r_vec, dist_sq);
+                let mut r_vec_body = sun.pos;
+                r_vec_body.sub(&b.pos);  // from body to sun
+                let a_body = apply_newtonian(b, sun, &r_vec_body, dist_sq);
+                accs[i].add(&a_body);
                 
-                let mut a = f; a.scale(-1.0 / b.mass);
-                accs[i].add(&a);
-                
-                let mut a_sun = f; a_sun.scale(1.0 / sun.mass);
+                let mut a_sun = a_body; a_sun.scale(-b.gm / sun.gm);
                 accs[sun_idx].add(&a_sun);
             }
             
             GravityMode::SplitDriftKick => {
                 // SABA4/WH mode: Drift handles Sun's Keplerian term, kick handles perturbations
                 // Only apply reaction force on Sun for momentum conservation
-                let f_mag = (G * sun.mass * b.mass) / dist_sq;
-                let mut f_on_sun = r_vec; 
-                f_on_sun.normalize();
-                f_on_sun.scale(f_mag);
-                
-                let mut a_sun = f_on_sun; a_sun.scale(1.0 / sun.mass);
+                let a_sun_mag = b.gm / dist_sq;  // acceleration magnitude on sun due to body
+                let mut a_sun = r_vec; 
+                a_sun.normalize();
+                a_sun.scale(a_sun_mag);
                 accs[sun_idx].add(&a_sun);
             }
             
@@ -66,17 +64,16 @@ pub fn apply_sun_interactions(
                 
                 if !is_sun_parent {
                     // Apply TIDAL force (Sun->Body - Sun->Parent) for moons
-                    let f_sun_body = apply_newtonian(sun, b, &r_vec, dist_sq);
-                    let mut a_sun_body = f_sun_body; a_sun_body.scale(-1.0 / b.mass);
+                    let mut r_vec_body = sun.pos; r_vec_body.sub(&b.pos);
+                    let a_sun_body = apply_newtonian(b, sun, &r_vec_body, dist_sq);
                     
                     // Calculate parent's acceleration due to Sun
                     let mut a_sun_parent = Vector3::zero();
                     if let Some(p_idx) = parent_indices[i] {
                         let parent = &bodies[p_idx.as_usize()];
-                        let mut r_p = parent.pos; r_p.sub(&sun.pos);
+                        let mut r_p = sun.pos; r_p.sub(&parent.pos);  // from parent to sun
                         let dist_p_sq = r_p.len_sq();
-                        let f_sun_parent = apply_newtonian(sun, parent, &r_p, dist_p_sq);
-                        a_sun_parent = f_sun_parent; a_sun_parent.scale(-1.0 / parent.mass);
+                        a_sun_parent = apply_newtonian(parent, sun, &r_p, dist_p_sq);
                     }
                     
                     // Apply tidal acceleration
@@ -90,29 +87,25 @@ pub fn apply_sun_interactions(
 
         // --- Solar Radiation Pressure ---
         if enable_srp {
-            let f = apply_srp(sun, b, &r_vec, dist);
-            let mut a = f; a.scale(1.0 / b.mass);
+            let a = apply_srp(sun, b, &r_vec, dist);
             accs[i].add(&a);
         }
 
         // --- Poynting-Robertson Drag ---
         if enable_pr_drag {
-            let f_pr = apply_pr_drag(sun, b, &r_vec, dist);
-            let mut a_pr = f_pr; a_pr.scale(1.0 / b.mass);
+            let a_pr = apply_pr_drag(sun, b, &r_vec, dist);
             accs[i].add(&a_pr);
         }
         
         // --- Yarkovsky Effect ---
         if enable_yarkovsky {
-            let f = apply_yarkovsky(sun, b, &r_vec, dist);
-            let mut a = f; a.scale(1.0 / b.mass);
+            let a = apply_yarkovsky(sun, b, &r_vec, dist);
             accs[i].add(&a);
         }
 
         // --- Cometary Non-Gravitational Forces ---
         if enable_comet {
-            let f = apply_cometary_forces(sun, b, &r_vec, dist);
-            let mut a = f; a.scale(1.0 / b.mass);
+            let a = apply_cometary_forces(sun, b, &r_vec, dist);
             accs[i].add(&a);
         }
     }

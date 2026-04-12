@@ -105,7 +105,7 @@ fn step_saba4_internal(
 fn drift_system_kepler(bodies: &mut Vec<PhysicsBody>, dt: f64) {
     let sun_idx = bodies.iter().position(|b| b.name == "Sun");
     if let Some(s_idx) = sun_idx {
-        let sun_mass = bodies[s_idx].mass;
+        let sun_gm = bodies[s_idx].gm;
         let sun_pos_old = bodies[s_idx].pos;
         let sun_vel_old = bodies[s_idx].vel;
         
@@ -127,7 +127,7 @@ fn drift_system_kepler(bodies: &mut Vec<PhysicsBody>, dt: f64) {
             rel_vel.sub(&sun_vel_old);
             
             // Drift in heliocentric frame using Kepler solver
-            let mu = crate::common::constants::G * (sun_mass + bodies[i].mass);
+            let mu = sun_gm + bodies[i].gm;
             use crate::dynamics::kepler::solve_kepler_drift;
             solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt, mu);
             

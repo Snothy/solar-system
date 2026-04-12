@@ -9,7 +9,7 @@ use super::math::{solve_universal, stumpff_c, stumpff_s};
 pub fn drift_kepler(
     body: &mut PhysicsBody,
     dt: f64,
-    sun_mass: f64,
+    sun_gm: f64,
     sun_pos: &Vector3,
     sun_vel: &Vector3,
 ) {
@@ -21,7 +21,7 @@ pub fn drift_kepler(
 
     let r0 = r_vec.len();
     let v2 = v_vec.len_sq();
-    let mu = G * (sun_mass + body.mass);
+    let mu = sun_gm + body.gm;
 
     // 2. Compute Alpha = 1/a
     // Energy E = v^2/2 - mu/r
@@ -72,7 +72,7 @@ pub fn drift_kepler(
 pub fn drift_kepler_relative(
     body: &mut PhysicsBody,
     dt: f64,
-    parent_mass: f64,
+    parent_gm: f64,
     parent_pos: &Vector3,
     parent_vel: &Vector3,
 ) {
@@ -84,7 +84,7 @@ pub fn drift_kepler_relative(
 
     let r0 = r_vec.len();
     let v2 = v_vec.len_sq();
-    let mu = G * (parent_mass + body.mass);
+    let mu = parent_gm + body.gm;
 
     // 2. Compute Alpha
     let alpha = 2.0 / r0 - v2 / mu;

@@ -30,11 +30,11 @@ pub struct PhysicsBody {
     /// Name of the celestial body (e.g., "Earth", "Mars")
     pub name: String,
 
-    /// Mass in kilograms (kg)
-    pub mass: Kilograms,
+    /// Gravitational parameter GM (m³/s²)
+    pub gm: f64,
 
-    /// Mean radius in meters (m)
-    pub radius: Meters,
+    /// Equatorial radius in meters (m)
+    pub equatorial_radius: Meters,
 
     /// Position vector in meters (m) - heliocentric ecliptic J2000
     pub pos: Vector3,
@@ -88,6 +88,10 @@ pub struct HarmonicsParams {
     /// Pole vector (rotation axis) in Ecliptic J2000
     #[serde(default)]
     pub pole_vector: Option<Vector3>,
+
+    /// Reference radius for J2-Jn calculations (defaults to equatorial_radius if not provided)
+    #[serde(default)]
+    pub j_ref_radius: Option<f64>,
 }
 
 impl Default for HarmonicsParams {
@@ -97,6 +101,7 @@ impl Default for HarmonicsParams {
             c22: None,
             s22: None,
             pole_vector: None,
+            j_ref_radius: None,
         }
     }
 }

@@ -1,16 +1,15 @@
 use approx::assert_relative_eq;
-use physics_wasm::common::constants::G;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::forces::gravity::apply_newtonian;
 
 #[test]
 fn test_newtonian_gravity() {
     let mut b1 = PhysicsBody::default();
-    b1.mass = 1.0e24;
+    b1.gm = (1.0e24) * physics_wasm::common::constants::G;
     b1.pos = Vector3::zero();
 
     let mut b2 = PhysicsBody::default();
-    b2.mass = 10.0;
+    b2.gm = (10.0) * physics_wasm::common::constants::G;
     b2.pos = Vector3::new(1.0e7, 0.0, 0.0); // 10,000 km away
 
     let mut r_vec = b2.pos;
@@ -19,8 +18,8 @@ fn test_newtonian_gravity() {
 
     let force = apply_newtonian(&b1, &b2, &r_vec, dist_sq);
 
-    // F = G * m1 * m2 / r^2
-    let expected_mag = (G * b1.mass * b2.mass) / dist_sq;
+    // a = GM / r^2 for source body b2
+    let expected_mag = b2.gm / dist_sq;
 
     // Force should be attractive (towards b1, which is at origin)
     // But apply_newtonian returns force on b2?
@@ -31,7 +30,7 @@ fn test_newtonian_gravity() {
     // Wait, gravity is attractive.
     // In `calculate_accelerations`:
     // let f = apply_newtonian(...)
-    // let mut a = f; a.scale(-1.0 / b.mass);
+    // let mut a = f; a.scale(-1.0 / b.gm / physics_wasm::common::constants::G);
     // So `apply_newtonian` returns a vector pointing AWAY from the source (repulsive direction) if r_vec is source->target?
     // Implementation: f = *r_vec; f.normalize(); f.scale(f_mag);
     // Yes, it returns a vector in direction of r_vec.

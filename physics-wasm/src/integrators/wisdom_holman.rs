@@ -65,7 +65,7 @@ fn step_wisdom_holman_internal(
     
     if let Some(s_idx) = sun_idx {
         // Store Sun's state at t
-        let sun_mass = bodies[s_idx].mass;
+        let sun_gm = bodies[s_idx].gm;
         let sun_pos_t = bodies[s_idx].pos;
         let sun_vel_t = bodies[s_idx].vel;
         
@@ -90,7 +90,7 @@ fn step_wisdom_holman_internal(
             rel_vel.sub(&sun_vel_t);
             
             // Drift in heliocentric frame using Kepler solver
-            let mu = crate::common::constants::G * (sun_mass + bodies[i].mass);
+            let mu = sun_gm + bodies[i].gm;
             use crate::dynamics::kepler::solve_kepler_drift;
             solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt / 2.0, mu);
             
@@ -142,7 +142,7 @@ fn step_wisdom_holman_internal(
             rel_vel.sub(&sun_vel_t_plus);
             
             // Drift in heliocentric frame using Kepler solver
-            let mu = crate::common::constants::G * (sun_mass + bodies[i].mass);
+            let mu = sun_gm + bodies[i].gm;
             use crate::dynamics::kepler::solve_kepler_drift;
             solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt / 2.0, mu);
             
@@ -180,7 +180,7 @@ fn apply_hierarchical_drift(bodies: &mut [PhysicsBody], parent_indices: &[Parent
     for i in 0..n {
         if let Some(p_idx) = parent_indices[i] {
             let parent_idx = p_idx.as_usize();
-            let mu = crate::common::constants::G * (bodies[parent_idx].mass + bodies[i].mass);
+            let mu = bodies[parent_idx].gm + bodies[i].gm;
             
             // Relative state
             let mut rel_pos = bodies[i].pos;

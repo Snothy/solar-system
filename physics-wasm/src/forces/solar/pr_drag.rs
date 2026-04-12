@@ -8,13 +8,13 @@ pub fn apply_pr_drag(
     _r_vec: &Vector3,
     dist: f64,
 ) -> Vector3 {
-    let area = std::f64::consts::PI * body.radius * body.radius;
+    let area = std::f64::consts::PI * body.equatorial_radius * body.equatorial_radius;
     let solar_flux = SOLAR_LUMINOSITY / (4.0 * std::f64::consts::PI * dist * dist);
     let w = solar_flux * area;
     let factor = w / (C_LIGHT * C_LIGHT);
     let mut rel_vel = body.vel;
     rel_vel.sub(&sun.vel);
-    let mut f = rel_vel;
-    f.scale(-factor);
-    f
+    let mut a = rel_vel;
+    a.scale(-factor / (body.gm / crate::common::constants::G));
+    a
 }

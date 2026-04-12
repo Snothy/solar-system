@@ -114,7 +114,7 @@ fn calculate_total_energy(bodies: &Vec<physics_wasm::common::types::PhysicsBody>
     // Kinetic energy
     for body in bodies {
         let v_sq = body.vel.len_sq();
-        ke += 0.5 * body.mass * v_sq;
+        ke += 0.5 * body.gm / physics_wasm::common::constants::G * v_sq;
     }
 
     // Potential energy
@@ -124,7 +124,7 @@ fn calculate_total_energy(bodies: &Vec<physics_wasm::common::types::PhysicsBody>
             r.sub(&bodies[i].pos);
             let dist = r.len();
             if dist > 0.0 {
-                pe -= G * bodies[i].mass * bodies[j].mass / dist;
+                pe -= G * (bodies[i].gm / physics_wasm::common::constants::G) * (bodies[j].gm / physics_wasm::common::constants::G) / dist;
             }
         }
     }

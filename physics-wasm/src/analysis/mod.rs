@@ -15,7 +15,7 @@ pub fn update_moon_libration(bodies: &mut Vec<PhysicsBody>) {
         let m_vel = bodies[m_idx].vel;
         let e_vel = bodies[e_idx].vel;
         
-        let mu = G * (bodies[e_idx].mass + bodies[m_idx].mass);
+        let mu = bodies[e_idx].gm + bodies[m_idx].gm;
 
         let mut r_vec = m_pos;
         r_vec.sub(&e_pos);

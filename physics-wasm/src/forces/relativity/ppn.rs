@@ -16,7 +16,7 @@ pub fn apply_relativity_ppn(
     let mut v_rel = b1.vel;
     v_rel.sub(&b2.vel);
     let v_sq = b1.vel.len_sq();
-    let term1 = (4.0 * G * b2.mass / dist) - v_sq;
+    let term1 = (4.0 * G * (b2.gm / G) / dist) - v_sq;
     let r_dot_v = r_vec.dot(&b1.vel);
     let mut term1_vec = *r_vec;
     term1_vec.scale(term1);
@@ -25,13 +25,12 @@ pub fn apply_relativity_ppn(
     let mut acc_rel = Vector3::zero();
     acc_rel.add(&term1_vec);
     acc_rel.add(&term2_vec);
-    acc_rel.scale(G * b2.mass / (dist_sq * dist * C_LIGHT * C_LIGHT));
-    let mut f1 = acc_rel;
-    f1.scale(b1.mass);
+    acc_rel.scale(G * (b2.gm / G) / (dist_sq * dist * C_LIGHT * C_LIGHT));
+    let f1 = acc_rel;
 
     // Force on b2 due to b1 (symmetric calculation)
     let v2_sq = b2.vel.len_sq();
-    let term1_b = (4.0 * G * b1.mass / dist) - v2_sq;
+    let term1_b = (4.0 * G * (b1.gm / G) / dist) - v2_sq;
     let r_dot_v2 = r12.dot(&b2.vel);
     let mut term1_vec_b = r12;
     term1_vec_b.scale(term1_b);
@@ -40,9 +39,8 @@ pub fn apply_relativity_ppn(
     let mut acc_rel_b = Vector3::zero();
     acc_rel_b.add(&term1_vec_b);
     acc_rel_b.add(&term2_vec_b);
-    acc_rel_b.scale(G * b1.mass / (dist_sq * dist * C_LIGHT * C_LIGHT));
-    let mut f2 = acc_rel_b;
-    f2.scale(b2.mass);
+    acc_rel_b.scale(G * (b1.gm / G) / (dist_sq * dist * C_LIGHT * C_LIGHT));
+    let f2 = acc_rel_b;
 
     (f1, f2)
 }

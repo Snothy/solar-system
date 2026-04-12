@@ -18,7 +18,7 @@ pub fn apply_yarkovsky(
         ) {
             let solar_flux = SOLAR_LUMINOSITY / (4.0 * std::f64::consts::PI * dist * dist);
             let absorbed =
-                (1.0 - albedo) * solar_flux * std::f64::consts::PI * body.radius * body.radius;
+                (1.0 - albedo) * solar_flux * std::f64::consts::PI * body.equatorial_radius * body.equatorial_radius;
             let lag = std::f64::consts::PI / 4.0;
             let f_mag = (absorbed / C_LIGHT) * lag.sin() * 0.1;
 
@@ -36,7 +36,7 @@ pub fn apply_yarkovsky(
                 direction = -1.0;
             }
 
-            tan.scale(f_mag * direction);
+            tan.scale(f_mag * direction / (body.gm / crate::common::constants::G));
             return tan;
         }
     }

@@ -1,16 +1,13 @@
+use crate::common::load_body;
 use approx::assert_relative_eq;
 use physics_wasm::common::types::{PhysicsBody, Vector3, HarmonicsParams};
 use physics_wasm::forces::gravity::apply_zonal_harmonics;
-use physics_wasm::common::constants::G;
 
 /// Test J3 gravitational perturbation (pear-shaped Earth)
 #[test]
 fn test_j3_perturbation() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
-    earth.radius = 6378137.0;
-    earth.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
+    let mut earth = load_body("Earth");
+    earth.gravity_harmonics = Some(HarmonicsParams {
         zonal_coeffs: Some(vec![0.0, -2.53e-6]), // J2=0, J3=-2.53e-6
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
         ..Default::default()
@@ -18,8 +15,8 @@ fn test_j3_perturbation() {
     earth.pos = Vector3::zero();
 
     let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
-    satellite.pos = Vector3::new(7000000.0, 0.0, 0.0); // Low Earth orbit
+    satellite.gm = 1_000.0;
+    satellite.pos = Vector3::new(7_000_000.0, 0.0, 0.0); // Low Earth orbit
 
     let mut r_vec = satellite.pos;
     r_vec.sub(&earth.pos);
@@ -41,11 +38,8 @@ fn test_j3_perturbation() {
 /// Test J4 gravitational perturbation (higher-order oblateness)
 #[test]
 fn test_j4_perturbation() {
-    let mut jupiter = PhysicsBody::default();
-    jupiter.name = "Jupiter".to_string();
-    jupiter.mass = 1.8982e27;
-    jupiter.radius = 71492000.0;
-    jupiter.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
+    let mut jupiter = load_body("Jupiter");
+    jupiter.gravity_harmonics = Some(HarmonicsParams {
         zonal_coeffs: Some(vec![0.0, 0.0, -5.87e-4]), // J2=0, J3=0, J4=-5.87e-4
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
         ..Default::default()
@@ -53,8 +47,8 @@ fn test_j4_perturbation() {
     jupiter.pos = Vector3::zero();
 
     let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
-    satellite.pos = Vector3::new(200000000.0, 0.0, 0.0); // 200,000 km orbit
+    satellite.gm = 1_000.0;
+    satellite.pos = Vector3::new(200_000_000.0, 0.0, 0.0); // 200,000 km orbit
 
     let mut r_vec = satellite.pos;
     r_vec.sub(&jupiter.pos);
@@ -78,11 +72,8 @@ fn test_j4_perturbation() {
 /// Test that J3 varies with latitude
 #[test]
 fn test_j3_latitude_variation() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
-    earth.radius = 6378137.0;
-    earth.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
+    let mut earth = load_body("Earth");
+    earth.gravity_harmonics = Some(HarmonicsParams {
         zonal_coeffs: Some(vec![0.0, -2.53e-6]),
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
         ..Default::default()
@@ -90,7 +81,7 @@ fn test_j3_latitude_variation() {
     earth.pos = Vector3::zero();
 
     let mut sat = PhysicsBody::default();
-    sat.mass = 1000.0;
+    sat.gm = 1_000.0;
 
     // Test at equator
     sat.pos = Vector3::new(7000000.0, 0.0, 0.0);
@@ -120,11 +111,8 @@ fn test_j3_latitude_variation() {
 /// Test J4 symmetry (even zonal harmonic)
 #[test]
 fn test_j4_symmetry() {
-    let mut jupiter = PhysicsBody::default();
-    jupiter.name = "Jupiter".to_string();
-    jupiter.mass = 1.8982e27;
-    jupiter.radius = 71492000.0;
-    jupiter.gravity_harmonics = Some(physics_wasm::common::types::HarmonicsParams {
+    let mut jupiter = load_body("Jupiter");
+    jupiter.gravity_harmonics = Some(HarmonicsParams {
         zonal_coeffs: Some(vec![0.0, 0.0, -5.87e-4]),
         pole_vector: Some(Vector3::new(0.0, 0.0, 1.0)),
         ..Default::default()
@@ -132,7 +120,7 @@ fn test_j4_symmetry() {
     jupiter.pos = Vector3::zero();
 
     let mut sat = PhysicsBody::default();
-    sat.mass = 1000.0;
+    sat.gm = 1_000.0;
 
     // Test at +Z
     sat.pos = Vector3::new(0.0, 0.0, 200000000.0);
@@ -154,31 +142,24 @@ fn test_j4_symmetry() {
     println!("J4 south pole: {:.6e} m/s^2", acc_south.len());
 }
 
-fn create_body(name: &str, mass: f64, radius: f64, j2: f64) -> PhysicsBody {
-    let mut body = PhysicsBody::default();
-    body.name = name.to_string();
-    body.mass = mass;
-    body.radius = radius;
-    
+fn make_test_body(name: &str, zonal_coeffs: Vec<f64>) -> PhysicsBody {
+    let mut body = load_body(name);
     let mut harmonics = HarmonicsParams::default();
-    harmonics.zonal_coeffs = Some(vec![j2]); // J2 only
-    harmonics.pole_vector = Some(Vector3::new(0.0, 0.0, 1.0)); // Pole along Z
+    harmonics.zonal_coeffs = Some(zonal_coeffs);
+    harmonics.pole_vector = Some(Vector3::new(0.0, 0.0, 1.0));
     body.gravity_harmonics = Some(harmonics);
-    
     body
 }
 
 #[test]
 fn test_j2_acceleration_at_equator() {
-    // Setup: Earth-like body
-    let mass = 5.972e24;
-    let radius = 6371000.0;
+    // Setup: Earth-like body with real fixture GM and radius
+    let primary = make_test_body("Earth", vec![0.0010826]);
+    let radius = primary.equatorial_radius;
     let j2 = 0.0010826;
-    let primary = create_body("Earth", mass, radius, j2);
-    
-    let sat_mass = 1000.0;
+
     let mut satellite = PhysicsBody::default();
-    satellite.mass = sat_mass;
+    satellite.gm = 1_000.0;
     
     // Position: On Equator (x-axis), distance 2*R
     let dist = 2.0 * radius;
@@ -194,7 +175,7 @@ fn test_j2_acceleration_at_equator() {
     // a_theta = 0 (since c=0)
     // Result should be purely radial (along x-axis) and attractive (negative x).
     
-    let k = G * mass * j2 * radius * radius / (dist.powi(4));
+    let k = primary.gm * j2 * radius * radius / (dist.powi(4));
     let expected_ax = -1.5 * k;
     
     println!("Expected ax: {}, Got: {}", expected_ax, acc.x);
@@ -206,13 +187,12 @@ fn test_j2_acceleration_at_equator() {
 
 #[test]
 fn test_j2_acceleration_at_pole() {
-    let mass = 5.972e24;
-    let radius = 6371000.0;
+    let primary = make_test_body("Earth", vec![0.0010826]);
+    let radius = primary.equatorial_radius;
     let j2 = 0.0010826;
-    let primary = create_body("Earth", mass, radius, j2);
-    
+
     let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
+    satellite.gm = 1_000.0;
     
     // Position: On Pole (z-axis), distance 2*R
     let dist = 2.0 * radius;
@@ -227,7 +207,7 @@ fn test_j2_acceleration_at_pole() {
     // a_theta = 0
     // Result should be purely radial (along z-axis) and repulsive (positive z).
     
-    let k = G * mass * j2 * radius * radius / (dist.powi(4));
+    let k = primary.gm * j2 * radius * radius / (dist.powi(4));
     let expected_az = 3.0 * k;
     
     println!("Expected az: {}, Got: {}", expected_az, acc.z);
@@ -239,16 +219,14 @@ fn test_j2_acceleration_at_pole() {
 
 #[test]
 fn test_mass_independence() {
-    let mass = 5.972e24;
-    let radius = 6371000.0;
-    let j2 = 0.0010826;
-    let primary = create_body("Earth", mass, radius, j2);
-    
+    let primary = make_test_body("Earth", vec![0.0010826]);
+    let radius = primary.equatorial_radius;
+
     let mut sat1 = PhysicsBody::default();
-    sat1.mass = 1000.0;
+    sat1.gm = 1_000.0;
     
     let mut sat2 = PhysicsBody::default();
-    sat2.mass = 2000.0; // Double mass
+    sat2.gm = 2_000.0; // Double gm
     
     let dist = 2.0 * radius;
     let r_vec = Vector3::new(dist, 0.0, 0.0);
@@ -263,24 +241,19 @@ fn test_mass_independence() {
 
 #[test]
 fn test_j3_acceleration_at_equator_precise() {
-    // Setup: Body with J3 only
-    let mass = 5.972e24;
-    let radius = 6371000.0;
+    // Setup: Body with J3 only, using fixture GM and radius
+    let mut body = load_body("Earth");
+    let radius = body.equatorial_radius;
     let j3 = 0.001; // Arbitrary J3
-    let mut body = PhysicsBody::default();
     body.name = "PearPlanet".to_string();
-    body.mass = mass;
-    body.radius = radius;
     
     let mut harmonics = HarmonicsParams::default();
-    // J array: [J2, J3, J4...]
-    // We want J3. J2=0.
-    harmonics.zonal_coeffs = Some(vec![0.0, j3]); 
+    harmonics.zonal_coeffs = Some(vec![0.0, j3]);
     harmonics.pole_vector = Some(Vector3::new(0.0, 0.0, 1.0));
     body.gravity_harmonics = Some(harmonics);
     
     let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
+    satellite.gm = 1_000.0;
     
     // Position: On Equator (x-axis), distance 2*R
     let dist = 2.0 * radius;
@@ -320,8 +293,8 @@ fn test_j3_acceleration_at_equator_precise() {
     // Force should point North?
     // Yes.
     
-    let k3 = G * mass * j3 * radius.powi(3) / dist.powi(5);
-    let expected_az = 1.5 * k3;
+    let factor = body.gm * j3 * radius.powi(3) / dist.powi(5);
+    let expected_az = 3.0 * factor / (2.0 * dist);
     
     println!("Expected az: {}, Got: {}", expected_az, acc.z);
     
@@ -332,23 +305,19 @@ fn test_j3_acceleration_at_equator_precise() {
 
 #[test]
 fn test_j4_acceleration_at_equator_precise() {
-    // Setup: Body with J4 only
-    let mass = 5.972e24;
-    let radius = 6371000.0;
+    // Setup: Body with J4 only, using fixture GM and radius
+    let mut body = load_body("Earth");
+    let radius = body.equatorial_radius;
     let j4 = 0.001; // Arbitrary J4
-    let mut body = PhysicsBody::default();
     body.name = "SquarePlanet".to_string();
-    body.mass = mass;
-    body.radius = radius;
     
     let mut harmonics = HarmonicsParams::default();
-    // J array: [J2, J3, J4]
-    harmonics.zonal_coeffs = Some(vec![0.0, 0.0, j4]); 
+    harmonics.zonal_coeffs = Some(vec![0.0, 0.0, j4]);
     harmonics.pole_vector = Some(Vector3::new(0.0, 0.0, 1.0));
     body.gravity_harmonics = Some(harmonics);
     
     let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
+    satellite.gm = 1_000.0;
     
     // Position: On Equator (x-axis), distance 2*R
     let dist = 2.0 * radius;
@@ -368,8 +337,8 @@ fn test_j4_acceleration_at_equator_precise() {
     
     // Result should be purely radial (along x-axis) and repulsive (positive x).
     
-    let k4 = G * mass * j4 * radius.powi(4) / dist.powi(6);
-    let expected_ax = 1.875 * k4;
+    let factor = (-15.0 * body.gm * j4 * radius.powi(4)) / (8.0 * dist.powi(6));
+    let expected_ax = 3.0 * factor;
     
     println!("Expected ax: {}, Got: {}", expected_ax, acc.x);
     

@@ -36,8 +36,8 @@ pub fn apply_relativity_eih(
     // --- Force on Body 1 ---
     // A_scalar represents the scaling of the position vector n_12
     // Correction: Added (5.0 * G * b1.mass / dist)
-    let a_scalar = (4.0 * G * b2.mass / dist) 
-                 + (5.0 * G * b1.mass / dist) 
+    let a_scalar = (4.0 * G * (b2.gm / G) / dist) 
+                 + (5.0 * G * (b1.gm / G) / dist) 
                  - v1_sq 
                  - 2.0 * v2_sq
                  + 4.0 * v1_dot_v2
@@ -58,10 +58,9 @@ pub fn apply_relativity_eih(
     
     // Scale by Common Factor: G * m2 / (c^2 * r^3)
     // Note: We divide by dist^3 because term1/term2 use the full vector r, not unit vector n.
-    acc_rel.scale(G * b2.mass / (c_sq * dist * dist_sq));
+    acc_rel.scale(G * (b2.gm / G) / (c_sq * dist * dist_sq));
 
-    let mut f1 = acc_rel;
-    f1.scale(b1.mass);
+    let f1 = acc_rel;
 
     // --- Force on Body 2 (Symmetric Calculation) ---
     
@@ -73,8 +72,8 @@ pub fn apply_relativity_eih(
     let r_dot_v2_b = r21.dot(&b2.vel);
 
     // Correction: Added (5.0 * G * b2.mass / dist)
-    let a_scalar_b = (4.0 * G * b1.mass / dist) 
-                   + (5.0 * G * b2.mass / dist)
+    let a_scalar_b = (4.0 * G * (b1.gm / G) / dist) 
+                   + (5.0 * G * (b2.gm / G) / dist)
                    - v2_sq 
                    - 2.0 * v1_sq
                    + 4.0 * v1_dot_v2
@@ -92,10 +91,9 @@ pub fn apply_relativity_eih(
     acc_rel_b.add(&term1_b);
     acc_rel_b.add(&term2_b);
     
-    acc_rel_b.scale(G * b1.mass / (c_sq * dist * dist_sq));
+    acc_rel_b.scale(G * (b1.gm / G) / (c_sq * dist * dist_sq));
 
-    let mut f2 = acc_rel_b;
-    f2.scale(b2.mass);
+    let f2 = acc_rel_b;
 
     (f1, f2)
 }

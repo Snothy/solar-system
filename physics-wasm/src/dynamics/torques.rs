@@ -80,7 +80,8 @@ pub fn apply_yorp_torque(bodies: &mut Vec<PhysicsBody>, dt: Seconds) {
     for b in bodies.iter_mut() {
         // Optimization: YORP is negligible for massive bodies (Planets/Moons).
         // Only apply to small bodies (e.g. Mass < 1e16 kg) to save CPU.
-        if b.mass > 1e16 { continue; }
+        let mass = b.gm / crate::common::constants::G;
+        if mass > 1e16 { continue; }
 
         let yorp_factor = b.comet.as_ref().and_then(|c| c.yorp_factor);
         let pole_vector = b.gravity_harmonics.as_ref().and_then(|h| h.pole_vector);

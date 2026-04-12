@@ -56,7 +56,6 @@ pub fn apply_cometary_forces(
             // Convert AU/day^2 to m/s^2 if needed, or assume SI.
             // Assuming SI for now as per previous logic.
             
-            f.scale(body.mass);
             return f;
         }
     }

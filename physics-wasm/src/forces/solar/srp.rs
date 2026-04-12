@@ -3,12 +3,12 @@ use crate::common::types::{PhysicsBody, Vector3};
 
 /// Calculate solar radiation pressure (SRP) force.
 pub fn apply_srp(_sun: &PhysicsBody, body: &PhysicsBody, r_vec: &Vector3, dist: f64) -> Vector3 {
-    let area = std::f64::consts::PI * body.radius * body.radius;
+    let area = std::f64::consts::PI * body.equatorial_radius * body.equatorial_radius;
     let cr = 1.3;
     let f_mag =
         (SOLAR_LUMINOSITY * cr * area) / (4.0 * std::f64::consts::PI * C_LIGHT * dist * dist);
-    let mut f = *r_vec;
-    f.normalize();
-    f.scale(f_mag);
-    f
+    let mut a = *r_vec;
+    a.normalize();
+    a.scale(f_mag / (body.gm / crate::common::constants::G));
+    a
 }

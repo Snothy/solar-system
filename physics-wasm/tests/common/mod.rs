@@ -23,6 +23,13 @@ pub fn load_bodies() -> Vec<PhysicsBody> {
         .collect()
 }
 
+pub fn load_body(name: &str) -> PhysicsBody {
+    load_bodies()
+        .into_iter()
+        .find(|b| b.name == name)
+        .unwrap_or_else(|| panic!("body '{}' not found in fixtures", name))
+}
+
 /// Get initial Julian Date from JPL vector data.
 /// Returns the JD from the first data point, or J2000.0 if parsing fails.
 pub fn get_initial_jd(jpl_data: &[JPLVector]) -> f64 {
@@ -79,8 +86,10 @@ struct TidalData {
 #[serde(rename_all = "camelCase")]
 struct SimplifiedBody {
     name: String,
-    mass: f64,
-    radius: f64,
+    mass: Option<f64>,
+    #[serde(default)]
+    gm: Option<f64>,    // This is our primary high-precision target
+    equatorial_radius: f64,
     #[serde(default)]
     pos: [f64; 3],
     #[serde(default)]
@@ -119,6 +128,7 @@ struct SimplifiedBody {
 
 impl SimplifiedBody {
     fn to_physics_body(self) -> PhysicsBody {
+        let g_constant: f64 = 6.67430e-11;
         let mut harmonics = HarmonicsParams::default();
         
         // Handle generic zonal coefficients
@@ -184,8 +194,14 @@ impl SimplifiedBody {
 
         PhysicsBody {
             name: self.name,
-            mass: self.mass,
-            radius: self.radius,
+            // 1. Try to use gm.
+            // 2. If no gm, try to map mass * G.
+            // 3. If neither exists, default to 0.0.
+            gm: self.gm
+                .or_else(|| self.mass.map(|m| m * g_constant))
+                .unwrap_or(0.0),
+
+            equatorial_radius: self.equatorial_radius,
             pos: Vector3::new(self.pos[0], self.pos[1], self.pos[2]),
             vel: Vector3::new(self.vel[0], self.vel[1], self.vel[2]),
             gravity_harmonics: Some(harmonics),

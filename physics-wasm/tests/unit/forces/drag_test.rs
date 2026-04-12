@@ -1,13 +1,12 @@
+use crate::common::load_body;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::forces::drag::apply_drag;
 
 /// Test atmospheric drag in low Earth orbit
 #[test]
 fn test_leo_atmospheric_drag() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
-    earth.radius = 6371e3;
+    let mut earth = load_body("Earth");
+    earth.pos = Vector3::zero();
     earth.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         has_atmosphere: Some(true),
         surface_pressure: Some(101325.0), // Pa at sea level
@@ -19,8 +18,8 @@ fn test_leo_atmospheric_drag() {
 
     let mut satellite = PhysicsBody::default();
     satellite.name = "Satellite".to_string();
-    satellite.mass = 1000.0;
-    satellite.radius = 1.0; // 1m radius (for cross-section)
+    satellite.gm = 1_000.0;
+    satellite.equatorial_radius = 1.0; // 1m radius (for cross-section)
     satellite.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         drag_coefficient: Some(2.2), // Typical for satellite
         ..Default::default()
@@ -53,10 +52,8 @@ fn test_leo_atmospheric_drag() {
 /// Test that drag decreases with altitude
 #[test]
 fn test_drag_altitude_dependence() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
-    earth.radius = 6371e3;
+    let mut earth = load_body("Earth");
+    earth.pos = Vector3::zero();
     earth.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         has_atmosphere: Some(true),
         surface_pressure: Some(101325.0),
@@ -64,11 +61,10 @@ fn test_drag_altitude_dependence() {
         mean_temperature: Some(288.0),
         ..Default::default()
     });
-    earth.pos = Vector3::zero();
 
     let mut satellite = PhysicsBody::default();
-    satellite.mass = 1000.0;
-    satellite.radius = 1.0;
+    satellite.gm = 1000.0;
+    satellite.equatorial_radius = 1.0;
     satellite.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         drag_coefficient: Some(2.2),
         ..Default::default()
@@ -100,10 +96,8 @@ fn test_drag_altitude_dependence() {
 /// Test Mars atmosphere effects
 #[test]
 fn test_mars_atmosphere() {
-    let mut mars = PhysicsBody::default();
-    mars.name = "Mars".to_string();
-    mars.mass = 6.4171e23;
-    mars.radius = 3389.5e3;
+    let mut mars = load_body("Mars");
+    mars.pos = Vector3::zero();
     mars.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         has_atmosphere: Some(true),
         surface_pressure: Some(600.0), // Much thinner than Earth
@@ -115,8 +109,8 @@ fn test_mars_atmosphere() {
 
     let mut probe = PhysicsBody::default();
     probe.name = "Probe".to_string();
-    probe.mass = 500.0;
-    probe.radius = 0.5;
+    probe.gm = 500.0;
+    probe.equatorial_radius = 0.5;
     probe.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         drag_coefficient: Some(2.2),
         ..Default::default()
@@ -136,10 +130,8 @@ fn test_mars_atmosphere() {
 /// Test drag coefficient effect
 #[test]
 fn test_drag_coefficient_effect() {
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
-    earth.radius = 6371e3;
+    let mut earth = load_body("Earth");
+    earth.pos = Vector3::zero();
     earth.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         has_atmosphere: Some(true),
         surface_pressure: Some(101325.0),
@@ -147,11 +139,10 @@ fn test_drag_coefficient_effect() {
         mean_temperature: Some(288.0),
         ..Default::default()
     });
-    earth.pos = Vector3::zero();
 
     let mut body = PhysicsBody::default();
-    body.mass = 1000.0;
-    body.radius = 1.0;
+    body.gm = 1000.0;
+    body.equatorial_radius = 1.0;
     body.pos = Vector3::new(6671e3, 0.0, 0.0);
     body.vel = Vector3::new(0.0, 7500.0, 0.0);
 
@@ -185,10 +176,8 @@ fn test_drag_coefficient_effect() {
 /// Test Venus thick atmosphere
 #[test]
 fn test_venus_thick_atmosphere() {
-    let mut venus = PhysicsBody::default();
-    venus.name = "Venus".to_string();
-    venus.mass = 4.8675e24;
-    venus.radius = 6051.8e3;
+    let mut venus = load_body("Venus");
+    venus.pos = Vector3::zero();
     venus.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         has_atmosphere: Some(true),
         surface_pressure: Some(9200000.0), // 92 bar!
@@ -199,8 +188,8 @@ fn test_venus_thick_atmosphere() {
     venus.pos = Vector3::zero();
 
     let mut probe = PhysicsBody::default();
-    probe.mass = 100.0;
-    probe.radius = 0.3;
+    probe.gm = 100.0;
+    probe.equatorial_radius = 0.3;
     probe.atmosphere = Some(physics_wasm::common::types::AtmosphereParams {
         drag_coefficient: Some(2.0),
         ..Default::default()

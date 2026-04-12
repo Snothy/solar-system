@@ -1,3 +1,4 @@
+use crate::common::load_body;
 use approx::assert_relative_eq;
 use physics_wasm::common::constants::G;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
@@ -6,19 +7,13 @@ use physics_wasm::common::config::PhysicsConfig;
 use physics_wasm::common::indices::BodyIndex;
 
 fn create_test_system() -> (Vec<PhysicsBody>, Vec<Option<BodyIndex>>) {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
 
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
+    let mut earth = load_body("Earth");
     earth.pos = Vector3::new(1.496e11, 0.0, 0.0);
 
-    let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
+    let mut moon = load_body("Moon");
     moon.pos = Vector3::new(1.496e11 + 3.844e8, 0.0, 0.0);
 
     let bodies = vec![sun, earth, moon];
@@ -50,7 +45,7 @@ fn test_newtonian_gravity_full() {
 
     // Earth should feel Sun's gravity
     let r_se = 1.496e11;
-    let expected_acc_earth = G * bodies[0].mass / (r_se * r_se);
+    let expected_acc_earth = G * (bodies[0].gm / physics_wasm::common::constants::G) / (r_se * r_se);
 
     // Accel is towards Sun (-X)
     assert_relative_eq!(accs[1].x, -expected_acc_earth, epsilon = 1e-3);
@@ -58,11 +53,11 @@ fn test_newtonian_gravity_full() {
     // Moon should feel Earth's gravity AND Sun's gravity
     // Earth->Moon
     let r_em = 3.844e8;
-    let acc_from_earth = G * bodies[1].mass / (r_em * r_em);
+    let acc_from_earth = G * (bodies[1].gm / physics_wasm::common::constants::G) / (r_em * r_em);
 
     // Sun->Moon
     let r_sm = 1.496e11 + 3.844e8;
-    let acc_from_sun = G * bodies[0].mass / (r_sm * r_sm);
+    let acc_from_sun = G * (bodies[0].gm / physics_wasm::common::constants::G) / (r_sm * r_sm);
 
     let total_moon_acc = acc_from_earth + acc_from_sun;
     assert_relative_eq!(accs[2].x, -total_moon_acc, epsilon = 1e-3);
@@ -122,11 +117,11 @@ fn test_wisdom_holman_mode() {
 
     // Sun->Moon acc
     let r_sm = 1.496e11 + 3.844e8;
-    let a_sm = G * bodies[0].mass / (r_sm * r_sm);
+    let a_sm = G * (bodies[0].gm / physics_wasm::common::constants::G) / (r_sm * r_sm);
 
     // Sun->Earth acc
     let r_se = 1.496e11;
-    let a_se = G * bodies[0].mass / (r_se * r_se);
+    let a_se = G * (bodies[0].gm / physics_wasm::common::constants::G) / (r_se * r_se);
 
     let expected_tidal = -(a_sm - a_se); // Both are towards Sun (-X), so difference.
                                          // Wait, a_sm is smaller than a_se. So (a_sm - a_se) is negative.
@@ -172,11 +167,11 @@ fn test_j2_enable() {
 
     // Newtonian Earth->Moon
     let r_em = 3.844e8;
-    let acc_newtonian = G * bodies[1].mass / (r_em * r_em);
+    let acc_newtonian = G * (bodies[1].gm / physics_wasm::common::constants::G) / (r_em * r_em);
 
     // Sun->Moon
     let r_sm = 1.496e11 + 3.844e8;
-    let acc_sun = G * bodies[0].mass / (r_sm * r_sm);
+    let acc_sun = G * (bodies[0].gm / physics_wasm::common::constants::G) / (r_sm * r_sm);
 
     let total_newtonian = acc_newtonian + acc_sun;
 

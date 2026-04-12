@@ -1,19 +1,17 @@
+use crate::common::load_body;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::dynamics::torques::{apply_tidal_torque, apply_yorp_torque};
 
 /// Test tidal torque application on Moon
 #[test]
 fn test_tidal_torque_moon() {
-    let mut moon = PhysicsBody::default();
-    moon.name = "Moon".to_string();
-    moon.mass = 7.342e22;
-    moon.radius = 1737.4e3;
+    let mut moon = load_body("Moon");
     moon.tidal = Some(physics_wasm::common::types::TidalParams {
         k2: Some(0.0266),
         tidal_q: Some(30.0),
     });
     moon.rotation = Some(physics_wasm::common::types::RotationalParams {
-        moment_of_inertia: Some(0.4 * moon.mass * moon.radius * moon.radius),
+        moment_of_inertia: Some(0.4 * moon.gm / physics_wasm::common::constants::G * moon.equatorial_radius * moon.equatorial_radius),
         angular_velocity: Some(Vector3::new(0.0, 0.0, 2.66e-6)), // ~27.3 day period
         torque: Some(Vector3::zero()),
         ..Default::default()
@@ -34,14 +32,14 @@ fn test_tidal_torque_moon() {
 fn test_yorp_torque_asteroid() {
     let mut asteroid = PhysicsBody::default();
     asteroid.name = "Asteroid".to_string();
-    asteroid.mass = 1.0e12;
-    asteroid.radius = 500.0;
+    asteroid.gm = (1.0e12) * physics_wasm::common::constants::G;
+    asteroid.equatorial_radius = 500.0;
     asteroid.comet = Some(physics_wasm::common::types::CometParams {
         yorp_factor: Some(1.0e-10), // Typical YORP coefficient
         ..Default::default()
     });
     asteroid.rotation = Some(physics_wasm::common::types::RotationalParams {
-        moment_of_inertia: Some(0.4 * asteroid.mass * asteroid.radius * asteroid.radius),
+        moment_of_inertia: Some(0.4 * asteroid.gm / physics_wasm::common::constants::G * asteroid.equatorial_radius * asteroid.equatorial_radius),
         angular_velocity: Some(Vector3::new(0.0, 0.0, 1.0e-4)), // Slow rotation
         torque: Some(Vector3::zero()),
         ..Default::default()
@@ -66,8 +64,8 @@ fn test_yorp_torque_asteroid() {
 #[test]
 fn test_tidal_despinning() {
     let mut body = PhysicsBody::default();
-    body.mass = 1.0e20;
-    body.radius = 100e3;
+    body.gm = (1.0e20) * physics_wasm::common::constants::G;
+    body.equatorial_radius = 100e3;
     body.tidal = Some(physics_wasm::common::types::TidalParams {
         k2: Some(0.1),
         tidal_q: Some(10.0),
@@ -76,7 +74,7 @@ fn test_tidal_despinning() {
     // Start with fast rotation
     let initial_omega = 1.0e-3; // rad/s
     body.rotation = Some(physics_wasm::common::types::RotationalParams {
-        moment_of_inertia: Some(0.4 * body.mass * body.radius * body.radius),
+        moment_of_inertia: Some(0.4 * body.gm / physics_wasm::common::constants::G * body.equatorial_radius * body.equatorial_radius),
         angular_velocity: Some(Vector3::new(0.0, 0.0, initial_omega)),
         torque: Some(Vector3::zero()),
         ..Default::default()

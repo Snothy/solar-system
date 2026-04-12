@@ -1,19 +1,17 @@
+use crate::common::load_body;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::forces::solar::{apply_pr_drag, apply_srp, apply_yarkovsky};
 
 /// Test Solar Radiation Pressure on small body
 #[test]
 fn test_solar_radiation_pressure() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
 
     let mut asteroid = PhysicsBody::default();
     asteroid.name = "Asteroid".to_string();
-    asteroid.mass = 1.0e12; // Small asteroid
-    asteroid.radius = 500.0; // 500m radius
+    asteroid.gm = (1.0e12) * physics_wasm::common::constants::G; // Small asteroid
+    asteroid.equatorial_radius = 500.0; // 500m radius
     asteroid.thermal = Some(physics_wasm::common::types::ThermalParams {
         albedo: Some(0.15), // Typical albedo
         ..Default::default()
@@ -43,16 +41,13 @@ fn test_solar_radiation_pressure() {
 /// Test SRP scales with 1/r²
 #[test]
 fn test_srp_distance_scaling() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
 
     let mut body = PhysicsBody::default();
     body.name = "Test".to_string();
-    body.mass = 1.0e12;
-    body.radius = 500.0;
+    body.gm = (1.0e12) * physics_wasm::common::constants::G;
+    body.equatorial_radius = 500.0;
     body.thermal = Some(physics_wasm::common::types::ThermalParams {
         albedo: Some(0.15),
         ..Default::default()
@@ -86,16 +81,13 @@ fn test_srp_distance_scaling() {
 /// Test Poynting-Robertson drag
 #[test]
 fn test_poynting_robertson_drag() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
 
     let mut grain = PhysicsBody::default();
     grain.name = "Dust".to_string();
-    grain.mass = 1.0e-10; // Tiny grain
-    grain.radius = 0.001; // 1 mm
+    grain.gm = (1.0e-10) * physics_wasm::common::constants::G; // Tiny grain
+    grain.equatorial_radius = 0.001; // 1 mm
     grain.thermal = Some(physics_wasm::common::types::ThermalParams {
         albedo: Some(0.1),
         ..Default::default()
@@ -123,16 +115,13 @@ fn test_poynting_robertson_drag() {
 /// Test SRP depends on albedo
 #[test]
 fn test_srp_albedo_dependence() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
 
     let mut body = PhysicsBody::default();
     body.name = "Test".to_string();
-    body.mass = 1.0e12;
-    body.radius = 500.0;
+    body.gm = (1.0e12) * physics_wasm::common::constants::G;
+    body.equatorial_radius = 500.0;
     body.pos = Vector3::new(1.496e11, 0.0, 0.0);
 
     let mut r_vec = body.pos;
@@ -162,10 +151,7 @@ fn test_srp_albedo_dependence() {
 /// Test SRP on different body sizes
 #[test]
 fn test_srp_size_dependence() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
 
     let mut r_vec = Vector3::new(1.496e11, 0.0, 0.0);
@@ -173,8 +159,8 @@ fn test_srp_size_dependence() {
 
     // Small grain
     let mut grain = PhysicsBody::default();
-    grain.mass = 1.0e-10;
-    grain.radius = 0.001; // 1mm
+    grain.gm = (1.0e-10) * physics_wasm::common::constants::G;
+    grain.equatorial_radius = 0.001; // 1mm
     grain.thermal = Some(physics_wasm::common::types::ThermalParams {
         albedo: Some(0.15),
         ..Default::default()
@@ -183,8 +169,8 @@ fn test_srp_size_dependence() {
 
     // Large asteroid
     let mut asteroid = PhysicsBody::default();
-    asteroid.mass = 1.0e15;
-    asteroid.radius = 1000.0; // 1km
+    asteroid.gm = (1.0e15) * physics_wasm::common::constants::G;
+    asteroid.equatorial_radius = 1000.0; // 1km
     asteroid.thermal = Some(physics_wasm::common::types::ThermalParams {
         albedo: Some(0.15),
         ..Default::default()
@@ -192,7 +178,7 @@ fn test_srp_size_dependence() {
     let force_large = apply_srp(&sun, &asteroid, &r_vec, dist);
 
     // SRP force scales with cross-sectional area (r²)
-    let area_ratio = (asteroid.radius / grain.radius).powi(2);
+    let area_ratio = (asteroid.equatorial_radius / grain.equatorial_radius).powi(2);
     let force_ratio = force_large.len() / force_small.len();
 
     println!("SRP on 1mm grain: {:.6e} N", force_small.len());

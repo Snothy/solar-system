@@ -5,12 +5,12 @@ use physics_wasm::common::utils::{recenter_system, update_positions, update_velo
 #[test]
 fn test_recenter_system() {
     let mut b1 = PhysicsBody::default();
-    b1.mass = 100.0;
+    b1.gm = (100.0) * physics_wasm::common::constants::G;
     b1.pos = Vector3::new(10.0, 0.0, 0.0);
     b1.vel = Vector3::new(0.0, 1.0, 0.0);
 
     let mut b2 = PhysicsBody::default();
-    b2.mass = 100.0;
+    b2.gm = (100.0) * physics_wasm::common::constants::G;
     b2.pos = Vector3::new(-10.0, 0.0, 0.0);
     b2.vel = Vector3::new(0.0, -1.0, 0.0);
 
@@ -32,7 +32,7 @@ fn test_recenter_system() {
     assert_relative_eq!(bodies[1].vel.y, -1.5);
 
     // Verify total momentum is now zero
-    let p_total = bodies[0].vel.y * bodies[0].mass + bodies[1].vel.y * bodies[1].mass;
+    let p_total = bodies[0].vel.y * (bodies[0].gm / physics_wasm::common::constants::G) + bodies[1].vel.y * (bodies[1].gm / physics_wasm::common::constants::G);
     assert_relative_eq!(p_total, 0.0);
 }
 

@@ -91,14 +91,15 @@ pub fn recenter_system(bodies: &mut Vec<PhysicsBody>) {
     let mut linear_momentum = Vector3::zero();
 
     for body in bodies.iter() {
-        total_mass += body.mass;
+        let mass = body.gm / crate::common::constants::G;
+        total_mass += mass;
 
         let mut mass_pos = body.pos;
-        mass_pos.scale(body.mass);
+        mass_pos.scale(mass);
         center_of_mass.add(&mass_pos);
 
         let mut momentum = body.vel;
-        momentum.scale(body.mass);
+        momentum.scale(mass);
         linear_momentum.add(&momentum);
     }
 

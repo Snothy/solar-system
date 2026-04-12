@@ -7,7 +7,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import init, { FrontendSimulation } from "../../physics-wasm/pkg/physics_wasm";
-import { SOLAR_SYSTEM_DATA } from "../data/solarSystem";
+
 import type { CelestialBodyData } from "../types";
 import type { IntegratorMode } from "../components/UI/PhysicsSettings";
 import type { ArchiveRecord } from "../services/snapshotStorage";
@@ -17,6 +17,7 @@ import type {
   TestBodySummary,
 } from "../services/testStorage";
 import { celBodyToWasm } from "../physics/wasmInterface";
+import { SOLAR_SYSTEM_DATA } from "../data/solarSystem";
 
 const ALL_BODIES: CelestialBodyData[] = SOLAR_SYSTEM_DATA;
 
@@ -228,6 +229,7 @@ export function useTestRunner() {
         for (const name of Object.keys(errAcc)) {
           const errs = errAcc[name];
           if (!errs.length) continue;
+
           bodySummaries[name] = {
             meanErrorKm: errs.reduce((a, b) => a + b, 0) / errs.length,
             maxErrorKm: Math.max(...errs),

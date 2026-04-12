@@ -121,19 +121,23 @@ fn test_all_four_integrators_solar_system() {
     println!("✓ All 4 integrators tested with full solar system");
 }
 
-fn calculate_total_energy(bodies: &Vec<PhysicsBody>) -> f64 {
+fn calculate_total_energy(bodies: &[PhysicsBody]) -> f64 {
     let mut ke = 0.0;
     let mut pe = 0.0;
+    let g = physics_wasm::common::constants::G;
 
     for body in bodies {
-        ke += 0.5 * body.mass * body.vel.len_sq();
+        // KE = 1/2 * m * v^2  =>  0.5 * (GM / G) * v^2
+        ke += 0.5 * (body.gm / g) * body.vel.len_sq();
     }
 
     for i in 0..bodies.len() {
         for j in (i + 1)..bodies.len() {
             let dist = bodies[i].pos.distance_to(&bodies[j].pos);
             if dist > 0.0 {
-                pe -= G * bodies[i].mass * bodies[j].mass / dist;
+                // Simplified from: -G * (gm1/G) * (gm2/G) / dist
+                // Becomes: -(gm1 * gm2) / (G * dist)
+                pe -= (bodies[i].gm * bodies[j].gm) / (g * dist);
             }
         }
     }

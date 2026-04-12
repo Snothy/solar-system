@@ -1,5 +1,5 @@
+use crate::common::load_body;
 use approx::assert_relative_eq;
-use physics_wasm::common::constants::G;
 use physics_wasm::common::types::{PhysicsBody, Vector3};
 use physics_wasm::forces::relativity::{apply_relativity_eih, apply_relativity_ppn};
 
@@ -7,20 +7,12 @@ use physics_wasm::forces::relativity::{apply_relativity_eih, apply_relativity_pp
 /// Mercury's orbit is the classic test case
 #[test]
 fn test_ppn_mercury_perihelion_precession() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
     sun.vel = Vector3::zero();
 
-    let mut mercury = PhysicsBody::default();
-    mercury.name = "Mercury".to_string();
-    mercury.mass = 3.3011e23;
-    mercury.radius = 2439700.0;
-    // Mercury at perihelion (~46 million km)
+    let mut mercury = load_body("Mercury");
     mercury.pos = Vector3::new(46e9, 0.0, 0.0);
-    // Orbital velocity at perihelion (~58.98 km/s)
     mercury.vel = Vector3::new(0.0, 58980.0, 0.0);
 
     let mut r_vec = mercury.pos;
@@ -37,11 +29,11 @@ fn test_ppn_mercury_perihelion_precession() {
     // For Mercury at perihelion, relativistic correction causes perihelion advance
     // Expected: ~43 arcseconds per century
     // This is a TINY effect: GM/rc² ≈ 1e-8
-    let newtonian_force = G * sun.mass * mercury.mass / dist_sq;
-    let relativistic_ratio = force_on_mercury.len() / newtonian_force;
+    let newtonian_acc = sun.gm / dist_sq;
+    let relativistic_ratio = force_on_mercury.len() / newtonian_acc;
 
     println!("PPN force: {:.6e} N", force_on_mercury.len());
-    println!("Newtonian force: {:.6e} N", newtonian_force);
+    println!("Newtonian acceleration: {:.6e} m/s^2", newtonian_acc);
     println!("Relativistic correction ratio: {:.6e}", relativistic_ratio);
 
     // Relativistic correction should be small but measurable
@@ -59,17 +51,11 @@ fn test_ppn_mercury_perihelion_precession() {
 /// Should be more accurate than PPN
 #[test]
 fn test_eih_mercury() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
-    sun.radius = 696340e3;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
     sun.vel = Vector3::zero();
 
-    let mut mercury = PhysicsBody::default();
-    mercury.name = "Mercury".to_string();
-    mercury.mass = 3.3011e23;
-    mercury.radius = 2439700.0;
+    let mut mercury = load_body("Mercury");
     mercury.pos = Vector3::new(46e9, 0.0, 0.0);
     mercury.vel = Vector3::new(0.0, 58980.0, 0.0);
 
@@ -89,15 +75,11 @@ fn test_eih_mercury() {
 /// Compare PPN vs EIH for Mercury
 #[test]
 fn test_ppn_vs_eih_comparison() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
     sun.vel = Vector3::zero();
 
-    let mut mercury = PhysicsBody::default();
-    mercury.name = "Mercury".to_string();
-    mercury.mass = 3.3011e23;
+    let mut mercury = load_body("Mercury");
     mercury.pos = Vector3::new(46e9, 0.0, 0.0);
     mercury.vel = Vector3::new(0.0, 58980.0, 0.0);
 
@@ -131,15 +113,13 @@ fn test_ppn_vs_eih_comparison() {
 /// Test relativistic effects scale with velocity
 #[test]
 fn test_relativity_velocity_dependence() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
     sun.vel = Vector3::zero();
 
     let mut body = PhysicsBody::default();
     body.name = "Test".to_string();
-    body.mass = 1.0e20;
+    body.gm = 1.0e20;
     body.pos = Vector3::new(1e11, 0.0, 0.0);
 
     let mut r_vec = body.pos;
@@ -172,15 +152,11 @@ fn test_relativity_velocity_dependence() {
 /// Test that relativistic forces are small compared to Newtonian
 #[test]
 fn test_relativity_is_small_correction() {
-    let mut sun = PhysicsBody::default();
-    sun.name = "Sun".to_string();
-    sun.mass = 1.989e30;
+    let mut sun = load_body("Sun");
     sun.pos = Vector3::zero();
     sun.vel = Vector3::zero();
 
-    let mut earth = PhysicsBody::default();
-    earth.name = "Earth".to_string();
-    earth.mass = 5.972e24;
+    let mut earth = load_body("Earth");
     earth.pos = Vector3::new(1.496e11, 0.0, 0.0); // 1 AU
     earth.vel = Vector3::new(0.0, 29780.0, 0.0); // Earth's orbital velocity
 
@@ -189,7 +165,7 @@ fn test_relativity_is_small_correction() {
     let dist_sq = dist * dist;
 
     let (_, rel_force) = apply_relativity_ppn(&sun, &earth, &r_vec, dist, dist_sq);
-    let newtonian = G * sun.mass * earth.mass / dist_sq;
+    let newtonian = sun.gm / dist_sq;
 
     let ratio = rel_force.len() / newtonian;
 

@@ -9,13 +9,13 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
             orb_vel.sub(&b1.vel);
             
             // Safety check: if inside Roche limit or radius, clamp or return zero
-            if dist < b1.radius {
+            if dist < b1.equatorial_radius {
                 return Vector3::zero();
             }
 
             // Tidal force formula: a_tidal = (3/2) * k2/Q * (GM_sat/r²) * (R_pri/r)⁵
-            let gm_over_r2 = G * b2.mass / (dist * dist);
-            let r_ratio_5 = (b1.radius / dist).powi(5);
+            let gm_over_r2 = b2.gm / (dist * dist);
+            let r_ratio_5 = (b1.equatorial_radius / dist).powi(5);
 
             // 1. Dissipative Term (Lag)
             let acc_dissipative = 1.5 * (k2 / q) * gm_over_r2 * r_ratio_5;
@@ -37,7 +37,7 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
 
             if dir.len_sq() > 1e-16 {
                 dir.normalize();
-                dir.scale(acc_dissipative * b2.mass);
+                dir.scale(acc_dissipative);
                 total_force.add(&dir);
             }
 
@@ -48,7 +48,7 @@ pub fn apply_tidal(b1: &PhysicsBody, b2: &PhysicsBody, r_vec: &Vector3, dist: f6
             let acc_conservative = 3.0 * k2 * gm_over_r2 * r_ratio_5;
             let mut radial_dir = *r_vec;
             radial_dir.normalize();
-            radial_dir.scale(-acc_conservative * b2.mass); // Negative = Attractive (towards primary)
+            radial_dir.scale(-acc_conservative); // Negative = Attractive (towards primary)
 
 
 

@@ -1,19 +1,18 @@
-use crate::common::constants::G;
 use crate::common::types::{PhysicsBody, Vector3};
 
-/// Calculate Newtonian gravitational force between two bodies.
-///
-/// # Formula
-/// F = G * m1 * m2 / r²
+/// Calculate Newtonian gravitational acceleration of b1 due to b2.
+/// This returns the acceleration vector to be added to b1.velocity.
 pub fn apply_newtonian(
-    b1: &PhysicsBody,
+    _b1: &PhysicsBody, // Prefixed with _ if unused to silence compiler warnings
     b2: &PhysicsBody,
     r_vec: &Vector3,
     dist_sq: f64,
 ) -> Vector3 {
-    let f_mag = (G * b1.mass * b2.mass) / dist_sq;
-    let mut f = *r_vec;
-    f.normalize();
-    f.scale(f_mag);
-    f
+    // a = GM_source / r^2
+    let a_mag = b2.gm / dist_sq;
+    
+    let mut a = *r_vec;
+    a.normalize();
+    a.scale(a_mag);
+    a
 }

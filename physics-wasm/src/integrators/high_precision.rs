@@ -86,11 +86,8 @@ fn step_high_precision_internal(
                 bodies_ref[i].pos.x = y[i*6 + 0];
                 bodies_ref[i].pos.y = y[i*6 + 1];
                 bodies_ref[i].pos.z = y[i*6 + 2];
-                bodies_ref[i].vel.x = y[i*6 + 3];
-                bodies_ref[i].vel.y = y[i*6 + 4];
-                bodies_ref[i].vel.z = y[i*6 + 5];
             }
-            
+                        
             // Calculate accelerations using the scratch buffer
             let force_config = ForceConfig {
                 physics: self.config,
@@ -102,10 +99,10 @@ fn step_high_precision_internal(
             
             // Fill derivative vector dy
             for i in 0..n {
-                // dy/dt (pos) = vel
-                dy[i*6 + 0] = bodies_ref[i].vel.x;
-                dy[i*6 + 1] = bodies_ref[i].vel.y;
-                dy[i*6 + 2] = bodies_ref[i].vel.z;
+                // dy/dt (pos) = vel — read from y, not the scratch buffer
+                dy[i*6 + 0] = y[i*6 + 3];
+                dy[i*6 + 1] = y[i*6 + 4];
+                dy[i*6 + 2] = y[i*6 + 5];
                 // dv/dt (vel) = acc
                 dy[i*6 + 3] = accs[i].x;
                 dy[i*6 + 4] = accs[i].y;
@@ -134,7 +131,7 @@ fn step_high_precision_internal(
     // 5. Integrate
     // Initial step size guess (dx)
     // Cap initial step at 1 day (86400s) or dt if smaller.
-    let dx = if dt > 86400.0 { 86400.0 } else { dt };
+    let dx = (dt / 100.0).min(86400.0 * 30.0);
     
     let mut stepper = Dop853::new(system, 0.0, dt, dx, state, rtol, atol);
     let res = stepper.integrate();
@@ -153,9 +150,11 @@ fn step_high_precision_internal(
                 }
             }
         }
-        Err(_e) => {
-            // Log error if needed, but for now we just fail silently or could log to console
-            // web_sys::console::error_1(&format!("Integrator failed: {:?}", e).into());
+        Err(e) => {
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::warn_1(&format!("DOP853 integrator failed: {:?}", e).into());
+            #[cfg(not(target_arch = "wasm32"))]
+            eprintln!("DOP853 integrator failed: {:?}", e);
         }
     }
 }

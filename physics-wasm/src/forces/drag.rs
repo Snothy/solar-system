@@ -1,7 +1,7 @@
 use crate::common::types::{PhysicsBody, Vector3};
 
 pub fn apply_drag(atmo: &PhysicsBody, body: &PhysicsBody, _r_vec: &Vector3, dist: f64) -> Vector3 {
-    let altitude = dist - atmo.radius;
+    let altitude = dist - atmo.equatorial_radius;
     
     if let Some(atmosphere) = &atmo.atmosphere {
         if let (Some(scale_h), Some(press), Some(temp)) = (
@@ -21,11 +21,11 @@ pub fn apply_drag(atmo: &PhysicsBody, body: &PhysicsBody, _r_vec: &Vector3, dist
                 if v_mag > 1.0 {
                     // Use drag coefficient from body's atmosphere params if available, else default
                     let cd = body.atmosphere.as_ref().and_then(|a| a.drag_coefficient).unwrap_or(2.2);
-                    let area = std::f64::consts::PI * body.radius * body.radius;
+                    let area = std::f64::consts::PI * body.equatorial_radius * body.equatorial_radius;
                     let drag = 0.5 * rho * v_mag * v_mag * cd * area;
                     let mut f = rel_vel;
                     f.normalize();
-                    f.scale(-drag);
+                    f.scale(-drag / body.gm * crate::common::constants::G);
                     return f;
                 }
             }

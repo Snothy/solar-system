@@ -179,19 +179,22 @@ fn test_high_precision_large_timestep() {
     );
 }
 
-fn calculate_energy(bodies: &Vec<PhysicsBody>) -> f64 {
+fn calculate_energy(bodies: &Vec<physics_wasm::common::types::PhysicsBody>) -> f64 {
     let mut ke = 0.0;
     let mut pe = 0.0;
+    let g_constant = physics_wasm::common::constants::G;
 
     for body in bodies {
-        ke += 0.5 * body.mass * body.vel.len_sq();
+        // KE = 1/2 * (GM/G) * v^2
+        ke += 0.5 * (body.gm / g_constant) * body.vel.len_sq();
     }
 
     for i in 0..bodies.len() {
         for j in (i + 1)..bodies.len() {
             let dist = bodies[i].pos.distance_to(&bodies[j].pos);
             if dist > 0.0 {
-                pe -= G * bodies[i].mass * bodies[j].mass / dist;
+                // PE = -(GM1 * GM2) / (G * dist)
+                pe -= (bodies[i].gm * bodies[j].gm) / (g_constant * dist);
             }
         }
     }
