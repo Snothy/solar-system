@@ -150,12 +150,12 @@ async function fetchLocalData(
       vel: sceneVel,
 
       // Physical Properties
-      // gm: props["gm_km3_s2"],
+      gm: props["gm_km3_s2"],
       // Use mean radius for generic radius, convert km -> m
-      // equatorialRadius:
-      //   (props["mean_radius_km"] ||
-      //     props["vol_mean_radius_km"] ||
-      //     props["equatorial_radius_km"]) * 1000,
+      equatorialRadius:
+        (props["mean_radius_km"] ||
+          props["vol_mean_radius_km"] ||
+          props["equatorial_radius_km"]) * 1000,
 
       meanTemperature: props["mean_temperature_k"],
       surfaceGravity: props["surface_gravity_m_s2"],

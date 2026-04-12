@@ -35,7 +35,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated: GM / R_mean^2
     surfaceGravity: 0.27,
 
-    jplId: "1",
+    jplId: "1;",
     type: "dwarf planet",
 
     // Zonal Harmonics (Dawn Mission data: Konopliv et al. 2018)
@@ -85,7 +85,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated average surface gravity
     surfaceGravity: 0.22,
 
-    jplId: "4",
+    jplId: "4;",
     type: "asteroid",
 
     // Zonal & Sectorial Harmonics (Park et al. 2014)
@@ -138,7 +138,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated average surface gravity
     surfaceGravity: 0.18,
 
-    jplId: "2",
+    jplId: "2;",
     type: "asteroid",
 
     // Estimated Harmonics (Pallas is not in hydrostatic equilibrium)
@@ -187,7 +187,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Average surface gravity
     surfaceGravity: 0.091,
 
-    jplId: "10",
+    jplId: "10;",
     type: "asteroid",
 
     // Zonal Harmonics (Theoretical based on high sphericity)
@@ -233,7 +233,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Extremely low gravity (~1/10000th of Earth)
     surfaceGravity: 0.001,
 
-    jplId: "90000030",
+    jplId: "90000030;",
     type: "comet",
 
     // Halley's pole is not well-defined but often estimated near:
@@ -363,7 +363,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated: GM / r^2 ≈ 0.81 m/s²
     surfaceGravity: 0.82,
 
-    jplId: "136199",
+    jplId: "136199;",
     type: "dwarf planet",
 
     // Eris is highly reflective due to frozen nitrogen/methane (Albedo 0.97)
@@ -410,7 +410,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated average surface gravity
     surfaceGravity: 0.401,
 
-    jplId: "136108",
+    jplId: "136108;",
     type: "dwarf planet",
 
     // Haumea's J2 is enormous due to its extreme elongation
@@ -459,7 +459,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated: GM / r_mean²
     surfaceGravity: 0.404,
 
-    jplId: "136472",
+    jplId: "136472;",
     type: "dwarf planet",
 
     // Highly reflective methane ice (Albedo ~0.77 - 0.81)
@@ -502,7 +502,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated: GM / R_eff² ≈ 0.31 m/s²
     surfaceGravity: 0.31,
 
-    jplId: "50000",
+    jplId: "50000;",
     type: "dwarf planet", // Often classified as candidate dwarf planet
 
     // Low albedo (0.109) makes it much darker than Pluto or Eris
@@ -546,7 +546,7 @@ export const EXTENDED_BODIES: CelestialBodyData[] = [
     // Calculated: GM / r² ≈ 0.27 m/s²
     surfaceGravity: 0.27,
 
-    jplId: "90377",
+    jplId: "90377;",
     type: "dwarf planet", // Candidate dwarf planet
 
     // Albedo estimate (Herschel/Spitzer): ~0.32
