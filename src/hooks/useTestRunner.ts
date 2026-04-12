@@ -1,13 +1,6 @@
-/**
- * Standalone WASM integration test runner.
- * Initialises a fresh FrontendSimulation from an archive's start positions,
- * steps it through every hourly timestamp in the archive, and compares the
- * simulated positions against the JPL Horizons reference trajectory.
- */
-
 import { useState, useRef, useCallback } from "react";
 import init, { FrontendSimulation } from "../../physics-wasm/pkg/physics_wasm";
-
+import { SOLAR_SYSTEM_DATA } from "../data/solarSystem";
 import type { CelestialBodyData } from "../types";
 import type { IntegratorMode } from "../components/UI/PhysicsSettings";
 import type { ArchiveRecord } from "../services/snapshotStorage";
@@ -17,24 +10,21 @@ import type {
   TestBodySummary,
 } from "../services/testStorage";
 import { celBodyToWasm } from "../physics/wasmInterface";
-import { SOLAR_SYSTEM_DATA } from "../data/solarSystem";
 
 const ALL_BODIES: CelestialBodyData[] = SOLAR_SYSTEM_DATA;
+const MS_PER_DAY = 86400000;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Map or plain-object accessor for WASM return values */
-function gv(obj: any, key: string): any {
-  if (!obj) return undefined;
-  if (typeof obj.get === "function") return obj.get(key);
-  return obj[key];
-}
-
-function integToType(mode: IntegratorMode): number {
-  if (mode === "wisdom-holman") return 1;
-  if (mode === "saba4") return 2;
-  if (mode === "high-precision") return 3;
-  return 0; // adaptive / standard
+function getIntegratorType(mode: IntegratorMode): number {
+  switch (mode) {
+    case "wisdom-holman":
+      return 1;
+    case "saba4":
+      return 2;
+    case "high-precision":
+      return 3; // DOP853
+    default:
+      return 0;
+  }
 }
 
 export const DEFAULT_CONFIG = {
@@ -54,8 +44,6 @@ export const DEFAULT_CONFIG = {
   collisions: true,
 };
 
-// ─── State types ─────────────────────────────────────────────────────────────
-
 export type RunnerState =
   | { kind: "idle" }
   | {
@@ -66,8 +54,6 @@ export type RunnerState =
     }
   | { kind: "done"; testRun: TestRun }
   | { kind: "error"; message: string };
-
-// ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useTestRunner() {
   const [state, setState] = useState<RunnerState>({ kind: "idle" });
@@ -95,141 +81,105 @@ export function useTestRunner() {
 
       try {
         await init();
-        const mergedConfig = { ...DEFAULT_CONFIG, ...physicsConfig };
-
-        // ── Build reference timeline ───────────────────────────────────────
+        const config = { ...DEFAULT_CONFIG, ...physicsConfig };
         const bodyNames = Object.keys(archive.bodies);
-        if (bodyNames.length === 0) throw new Error("No bodies in archive");
-
-        const firstBodyName = bodyNames[0];
-        const refTimeline = archive.bodies[firstBodyName];
-
-        if (refTimeline.length < 2) {
-          throw new Error("Archive has fewer than 2 timesteps");
-        }
-
+        const refTimeline = archive.bodies[bodyNames[0]];
+        const startMs = refTimeline[0].unix_ms;
         const totalDays =
-          (refTimeline[refTimeline.length - 1].unix_ms -
-            refTimeline[0].unix_ms) /
-          86400000;
+          (refTimeline[refTimeline.length - 1].unix_ms - startMs) / MS_PER_DAY;
+
         setState((s) => (s.kind === "running" ? { ...s, totalDays } : s));
 
-        // ── Prepare WASM bodies ───────────────────────────────────────────
-        const frame0ByName: Record<string, any> = {};
-        for (const name of bodyNames) {
-          if (archive.bodies[name][0])
-            frame0ByName[name] = archive.bodies[name][0];
-        }
+        // 1. Initialize bodies from frame 0
+        const wasmBodies = ALL_BODIES.filter(
+          (b) => archive.bodies[b.name]?.[0],
+        ).map((b) => {
+          const e = archive.bodies[b.name][0];
+          return celBodyToWasm(b, e.pos, e.vel);
+        });
 
-        const wasmBodies = ALL_BODIES.filter((b) => frame0ByName[b.name]).map(
-          (b) => {
-            const e = frame0ByName[b.name];
-            return celBodyToWasm(b, e.pos, e.vel);
-          },
-        );
-
-        // CRITICAL: Initialize using the archive's specific Start JD (TDB/JPL Epoch)
+        // Use JD from archive for exact TDB alignment
         const initialJd = archive.startEpoch.jd || 2451545.0;
         const sim = new FrontendSimulation(wasmBodies, initialJd);
-        sim.set_config(mergedConfig);
-        const intType = integToType(integrator);
+        sim.set_config(config);
+        const intType = getIntegratorType(integrator);
 
-        // ── Main stepping loop ─────────────────────────────────────────────
         const frames: TestFrame[] = [];
-        const liveErrors: Record<string, number> = {};
-        const errAcc: Record<string, number[]> = {};
-        for (const n of bodyNames) errAcc[n] = [];
+        const errAcc: Record<string, number[]> = Object.fromEntries(
+          bodyNames.map((n) => [n, []]),
+        );
 
-        let crashedAtFrame: number | undefined;
-        let currentSimTimeSec = 0.0;
-        const OUTER_DT_SEC = 60.0;
-
+        // --- THE INTEGRATION LOOP ---
         for (let i = 1; i < refTimeline.length; i++) {
           if (cancelRef.current) break;
 
-          const targetSimTimeSec =
-            (refTimeline[i].unix_ms - refTimeline[0].unix_ms) / 1000;
+          // Goal: Reach the exact timestamp of the JPL reference entry
+          // We calculate the delta (dt) between this frame and the previous frame
+          const currentUnix = refTimeline[i].unix_ms;
+          const prevUnix = refTimeline[i - 1].unix_ms;
+          const dt = (currentUnix - prevUnix) / 1000;
 
-          // Sync with Rust Logic: Step until target is reached
-          while (currentSimTimeSec < targetSimTimeSec - 1e-6) {
-            if (cancelRef.current) break;
+          // The current simulation time relative to start (used for some internal force calcs)
+          const simTimeSec = (currentUnix - startMs) / 1000;
 
-            let dt = Math.min(
-              OUTER_DT_SEC,
-              targetSimTimeSec - currentSimTimeSec,
-            );
-
-            try {
-              // Pass relative sim time to match Rust's loop behavior
-              sim.step(dt, currentSimTimeSec, intType, quality);
-              currentSimTimeSec += dt;
-            } catch (err) {
-              console.warn(`WASM crashed at hour ${i}:`, err);
-              crashedAtFrame = i;
-              break;
-            }
+          try {
+            // Because you updated Rust to store 'last_hp_step_size',
+            // calling this in a loop is now as accurate as a single long call.
+            sim.step(dt, simTimeSec, intType, quality);
+          } catch (err) {
+            throw new Error(`Integrator diverged at step ${i}`);
           }
-          if (crashedAtFrame !== undefined) break;
 
-          // Read back positions and compare
           const simStates = sim.get_bodies();
-          const currMs = refTimeline[i].unix_ms;
-
+          const liveErrors: Record<string, number> = {};
           const frame: TestFrame = {
-            simTimeMs: currMs - archive.startEpoch.unix_ms,
-            epochMs: currMs,
+            simTimeMs: currentUnix - startMs,
+            epochMs: currentUnix,
             bodies: {},
           };
 
-          for (const stateRaw of simStates) {
-            const name: string = gv(stateRaw, "name");
-            const posObj = gv(stateRaw, "pos");
-            const sx = gv(posObj, "x"),
-              sy = gv(posObj, "y"),
-              sz = gv(posObj, "z");
+          for (const s of simStates) {
+            const name = s.name;
+            const ref = archive.bodies[name]?.[i];
+            if (!ref) continue;
 
-            const refEntry = archive.bodies[name]?.[i];
-            if (!refEntry) continue;
+            const dx = s.pos.x - ref.pos[0];
+            const dy = s.pos.y - ref.pos[1];
+            const dz = s.pos.z - ref.pos[2];
 
-            const dx = sx - refEntry.pos[0],
-              dy = sy - refEntry.pos[1],
-              dz = sz - refEntry.pos[2];
             const errorKm = Math.sqrt(dx * dx + dy * dy + dz * dz) / 1000;
 
             frame.bodies[name] = {
-              simPos: [sx, sy, sz],
-              refPos: refEntry.pos,
+              simPos: [s.pos.x, s.pos.y, s.pos.z],
+              refPos: ref.pos,
               errorKm,
             };
             liveErrors[name] = errorKm;
-            errAcc[name]?.push(errorKm);
+            errAcc[name].push(errorKm);
           }
 
           frames.push(frame);
 
-          // Update UI every 24 steps (simulated days)
+          // Update UI every simulated day
           if (i % 24 === 0 || i === refTimeline.length - 1) {
             setState((s) =>
               s.kind === "running"
                 ? {
                     ...s,
-                    currentDay: (currMs - refTimeline[0].unix_ms) / 86400000,
-                    liveErrors: { ...liveErrors },
+                    currentDay: (currentUnix - startMs) / MS_PER_DAY,
+                    liveErrors,
                   }
                 : s,
             );
+            // Yield to main thread
             await new Promise((r) => setTimeout(r, 0));
           }
         }
 
-        if (cancelRef.current) return;
-
-        // ── Compute summary ─────────────────────────────────────────────────
+        // --- FINAL SUMMARY ---
         const bodySummaries: Record<string, TestBodySummary> = {};
-        for (const name of Object.keys(errAcc)) {
-          const errs = errAcc[name];
-          if (!errs.length) continue;
-
+        Object.entries(errAcc).forEach(([name, errs]) => {
+          if (!errs.length) return;
           bodySummaries[name] = {
             meanErrorKm: errs.reduce((a, b) => a + b, 0) / errs.length,
             maxErrorKm: Math.max(...errs),
@@ -238,37 +188,37 @@ export function useTestRunner() {
               errs.reduce((a, b) => a + b * b, 0) / errs.length,
             ),
           };
-        }
+        });
 
-        const allSummaries = Object.values(bodySummaries);
-        const testRun: TestRun = {
-          id: new Date().toISOString(),
-          createdAt: Date.now(),
-          archiveId: archive.id,
-          integrator,
-          quality,
-          physicsConfig: mergedConfig,
-          startEpoch: archive.startEpoch,
-          endEpoch: archive.endEpoch,
-          frames,
-          summary: {
-            bodies: bodySummaries,
-            overallMeanErrorKm: allSummaries.length
-              ? allSummaries.reduce((a, b) => a + b.meanErrorKm, 0) /
-                allSummaries.length
-              : 0,
-            overallMaxErrorKm: allSummaries.length
-              ? Math.max(...allSummaries.map((b) => b.maxErrorKm))
-              : 0,
-            frameCount: frames.length,
-            crashed: crashedAtFrame !== undefined,
-            crashedAtFrame,
+        const summaries = Object.values(bodySummaries);
+        setState({
+          kind: "done",
+          testRun: {
+            id: new Date().toISOString(),
+            createdAt: Date.now(),
+            archiveId: archive.id,
+            integrator,
+            quality,
+            physicsConfig: config,
+            startEpoch: archive.startEpoch,
+            endEpoch: archive.endEpoch,
+            frames,
+            summary: {
+              bodies: bodySummaries,
+              overallMeanErrorKm:
+                summaries.reduce((a, b) => a + b.meanErrorKm, 0) /
+                (summaries.length || 1),
+              overallMaxErrorKm: Math.max(
+                ...summaries.map((s) => s.maxErrorKm),
+                0,
+              ),
+              frameCount: frames.length,
+              crashed: false,
+            },
           },
-        };
-
-        setState({ kind: "done", testRun });
+        });
       } catch (err: any) {
-        setState({ kind: "error", message: err?.message ?? "Unknown error" });
+        setState({ kind: "error", message: err?.message || "Unknown Error" });
       }
     },
     [],
