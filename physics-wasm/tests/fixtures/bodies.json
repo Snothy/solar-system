@@ -173,8 +173,8 @@
       0.00003145,
       -0.0000154477
     ],
-    "c22": -0.00006316,
-    "s22": -0.000015,
+    "c22": -0.000063,
+    "s22": 0.00003,
     "tidal": {
       "k2": 0.148,
       "tidalQ": 92
@@ -185,12 +185,12 @@
     "meanTemperature": 210,
     "dragCoefficient": 2.2,
     "albedo": 0.15,
-    "poleRA": 317.68,
-    "poleDec": 52.89,
-    "poleRA_rate": -0.108,
-    "poleDec_rate": -0.061,
-    "W0": 176.63,
-    "Wdot": 350.892015
+    "poleRA": 317.68143,
+    "poleDec": 52.88627,
+    "poleRA_rate": -0.10844326,
+    "poleDec_rate": -0.06134706,
+    "W0": 176.049863,
+    "Wdot": 350.891983
   },
   {
     "name": "Phobos",
@@ -218,8 +218,12 @@
     "meanTemperature": 233,
     "albedo": 0.071,
     "thermalInertia": 25,
-    "poleRA": 317.68,
-    "poleDec": 52.9
+    "poleRA": 317.67071657,
+    "poleDec": 52.88627266,
+    "poleRA_rate": -0.10844326,
+    "poleDec_rate": -0.06134706,
+    "W0": 35.1877444,
+    "Wdot": 1128.84475928
   },
   {
     "name": "Deimos",
@@ -236,8 +240,10 @@
       0
     ],
     "J": [
-      0.08
+      0.1079
     ],
+    "c22": 0.03081,
+    "s22": 0,
     "tidal": {
       "k2": 0.02,
       "tidalQ": 100
@@ -245,8 +251,12 @@
     "meanTemperature": 233,
     "albedo": 0.06,
     "thermalInertia": 25,
-    "poleRA": 316.65,
-    "poleDec": 53.52
+    "poleRA": 316.65705808,
+    "poleDec": 53.50992033,
+    "poleRA_rate": -0.10518014,
+    "poleDec_rate": -0.05979094,
+    "W0": 79.39932954,
+    "Wdot": 285.16188899
   },
   {
     "name": "Jupiter",
@@ -416,6 +426,8 @@
     "albedo": 0.47,
     "poleRA": 40.589,
     "poleDec": 83.537,
+    "poleRA_rate": -0.036,
+    "poleDec_rate": -0.004,
     "W0": 38.9,
     "Wdot": 810.7939024
   },

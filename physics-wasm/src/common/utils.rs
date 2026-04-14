@@ -25,10 +25,8 @@ pub fn update_pole_orientation(
     enable_precession: bool,
     enable_nutation: bool,
 ) {
-    // Time in Julian Centuries since J2000
     let t = (time - 2451545.0) / 36525.0;
 
-    // Obliquity of the Ecliptic (J2000)
     let epsilon_deg = 23.43928_f64; 
     let epsilon_rad = epsilon_deg.to_radians();
     let cos_eps = epsilon_rad.cos();
@@ -38,21 +36,18 @@ pub fn update_pole_orientation(
         if let Some(precession) = &b.precession {
             if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
                 
-                // 1. Convert Base Degrees to Radians
-                let mut ra_rad = ra0.to_radians(); 
-                let mut dec_rad = dec0.to_radians();
+                // 1. Start in degrees, apply rates in degrees, convert once at end
+                let mut ra_deg = ra0;
+                let mut dec_deg = dec0;
 
                 // 2. Apply Precession
                 if enable_precession {
-                    // Check for specific pole rates first (Standard for Mars, Jupiter, Saturn)
-                    // These are typically in Degrees/Century
                     if let (Some(ra_rate), Some(dec_rate)) = (precession.pole_ra_rate, precession.pole_dec_rate) {
-                        ra_rad += ra_rate.to_radians() * t;
-                        dec_rad += dec_rate.to_radians() * t;
-                    } 
-                    // Fallback to generic precession rate
-                    else if let Some(rate) = precession.precession_rate {
-                        ra_rad += rate.to_radians() * t;
+                        // ra_rate is degrees/century, t is centuries -> result is degrees
+                        ra_deg += ra_rate * t;
+                        dec_deg += dec_rate * t;
+                    } else if let Some(rate) = precession.precession_rate {
+                        ra_deg += rate * t;
                     }
                 }
 
@@ -61,18 +56,20 @@ pub fn update_pole_orientation(
                     if let Some(amp) = precession.nutation_amplitude {
                         let omega_deg = 125.04 - 1934.136 * t;
                         let omega_rad = omega_deg.to_radians();
-                        
-                        let d_psi_deg = amp * omega_rad.sin();
-                        ra_rad += d_psi_deg.to_radians();
+                        ra_deg += amp * omega_rad.sin();
                     }
                 }
 
-                // 4. Calculate Vector in Equatorial Frame (ICRF)
+                // 4. Convert to radians once for trig
+                let ra_rad = ra_deg.to_radians();
+                let dec_rad = dec_deg.to_radians();
+
+                // 5. Calculate Vector in Equatorial Frame (ICRF)
                 let x_eq = dec_rad.cos() * ra_rad.cos();
                 let y_eq = dec_rad.cos() * ra_rad.sin();
                 let z_eq = dec_rad.sin();
 
-                // 5. Rotate to Ecliptic Frame
+                // 6. Rotate to Ecliptic Frame
                 let x_ecl = x_eq;
                 let y_ecl = y_eq * cos_eps + z_eq * sin_eps;
                 let z_ecl = -y_eq * sin_eps + z_eq * cos_eps;

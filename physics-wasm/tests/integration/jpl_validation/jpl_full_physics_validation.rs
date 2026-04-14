@@ -163,8 +163,15 @@ fn run_jpl_validation(
         config.solar_radiation_pressure = true;
         config.yarkovsky_effect = true;
         config.atmospheric_drag = true;
+        config.use_eih = true;
         config.poynting_robertson_drag = true;
+        config.yorp_effect = true;
         config.comet_forces = true;
+        config.precession = true;
+        config.nutation = true;
+        config.solar_mass_loss = true;
+        config.collisions = true;
+        
     }
 
     for hour in 1..=duration_hours {

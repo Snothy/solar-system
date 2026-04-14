@@ -17,10 +17,12 @@ pub fn apply_zonal_harmonics(
         None => return acc_total,
     };
 
-    let pole = match pole_override.or(harmonics.pole_vector) {
+    // --- ADDED/MODIFIED SECTION ---
+    let mut pole = match pole_override.or(harmonics.pole_vector) {
         Some(p) => p,
         None => return acc_total, 
     };
+    pole.normalize(); // <--- Ensure unit length for dot products!
 
     let coeffs = harmonics.get_zonal_coeffs();
     if coeffs.is_empty() {
@@ -50,69 +52,83 @@ pub fn apply_zonal_harmonics(
 
     acc_total
 }
-
+ 
 /// Apply Sectorial Harmonics (C22/S22).
 /// Signature restored to accept f64 angles to match your existing contract.
 pub fn apply_sectorial_harmonics(
     primary: &PhysicsBody,
-    r_inertial: &Vector3,
+    r_inertial: &Vector3,     // Heliocentric Ecliptic J2000
     dist_sq: f64,
-    body_rotation_angle: f64,
-    pole_ra: f64,
-    pole_dec: f64,
+    body_rotation_angle: f64, // W
+    pole_ra: f64,             // Degrees
+    pole_dec: f64,            // Degrees
 ) -> Vector3 {
     let harmonics = match &primary.gravity_harmonics {
         Some(h) => h,
         None => return Vector3::zero(),
     };
 
-    let (c22, s22) = match (harmonics.c22, harmonics.s22) {
-        (Some(c), Some(s)) => (c, s),
-        _ => return Vector3::zero(),
-    };
+    let c22 = harmonics.c22.unwrap_or(0.0);
+    let s22 = harmonics.s22.unwrap_or(0.0);
+    if c22 == 0.0 && s22 == 0.0 { return Vector3::zero(); }
 
-    // --- 1. Construct Basis Vectors from Angles ---
-    // Z-axis (Spin Axis)
+    // --- 1. Construct Pole Vector in Equatorial Frame ---
+    let ra_rad = pole_ra.to_radians();
+    let dec_rad = pole_dec.to_radians();
+
+    let x_eq = dec_rad.cos() * ra_rad.cos();
+    let y_eq = dec_rad.cos() * ra_rad.sin();
+    let z_eq = dec_rad.sin();
+
+    // --- 2. Rotate Pole Vector to Ecliptic Frame ---
+    // Using the same epsilon (23.43928) used in your update_pole_orientation
+    let epsilon_rad = 23.43928_f64.to_radians();
+    let cos_eps = epsilon_rad.cos();
+    let sin_eps = epsilon_rad.sin();
+
     let bz = Vector3::new(
-        pole_dec.cos() * pole_ra.cos(),
-        pole_dec.cos() * pole_ra.sin(),
-        pole_dec.sin()
+        x_eq,
+        y_eq * cos_eps + z_eq * sin_eps,
+        -y_eq * sin_eps + z_eq * cos_eps
     );
 
-    // Prime Meridian direction at J2000 (X-axis)
-    // We rotate around the pole by the body's rotation angle
-    let (sin_w, cos_w) = body_rotation_angle.sin_cos();
-    
-    // Create an arbitrary orthogonal vector to start (reference longitude)
-    let ref_vec = if bz.z.abs() < 0.9 {
-        Vector3::new(0.0, 0.0, 1.0)  // pole not near Z, safe to use Z as reference
+    // --- 3. Construct Basis Vectors (Aligning with W) ---
+    let ecliptic_z = Vector3::new(0.0, 0.0, 1.0);
+    // If bz is pointing nearly straight up, cross it with X instead to avoid math errors
+    let mut bx_base = if bz.dot(&ecliptic_z).abs() > 0.99 {
+        Vector3::new(1.0, 0.0, 0.0).cross(&bz)
     } else {
-        Vector3::new(1.0, 0.0, 0.0)  // pole near Z, use X instead
+        ecliptic_z.cross(&bz)
     };
-    
-    let mut bx_base = bz.cross(&ref_vec);
-    let len = bx_base.len();
-    if len < 1e-10 { return Vector3::zero(); } // degenerate pole, skip
-    bx_base.scale(1.0 / len); // manual normalize with guard
+    bx_base.normalize();
+        
+    let base_len_sq = bx_base.len_sq();
+    if base_len_sq < 1e-12 {
+        bx_base = Vector3::new(1.0, 0.0, 0.0);
+    } else {
+        bx_base.scale(1.0 / base_len_sq.sqrt());
+    }
     let by_base = bz.cross(&bx_base);
 
-    // Final Body-Fixed Basis X and Y
+    // Apply rotation W to find Prime Meridian
+    let (sin_w, cos_w) = body_rotation_angle.sin_cos();
     let mut bx = bx_base;
     bx.scale(cos_w);
-    let mut bx_y = by_base;
-    bx_y.scale(sin_w);
-    bx.add(&bx_y);
+    let mut bx_rot_part = by_base;
+    bx_rot_part.scale(sin_w);
+    bx.add(&bx_rot_part);
 
     let mut by = bz.cross(&bx);
     by.normalize();
 
-    // --- 2. Transform to Body-Fixed Frame ---
+    // --- 4. Transform to Body-Fixed Frame ---
     let r_bf = Vector3::new(
         r_inertial.dot(&bx),
         r_inertial.dot(&by),
         r_inertial.dot(&bz)
     );
     
+    // --- 5. Physics Math ---
     let mu = primary.gm;
     let ref_radius = harmonics.j_ref_radius.unwrap_or(primary.equatorial_radius);
     let r_ref_sq = ref_radius.powi(2);
@@ -132,13 +148,11 @@ pub fn apply_sectorial_harmonics(
     let ay_bf = radial_decay * r_bf.y + factor * inv_r5 * d_bracket_dy;
     let az_bf = radial_decay * r_bf.z;
 
-    // --- 3. Transform Back to Inertial ---
+    // --- 6. Transform back to Ecliptic Inertial ---
     let mut acc_inertial = bx;
     acc_inertial.scale(ax_bf);
-
     let mut ay_part = by;
     ay_part.scale(ay_bf);
-    
     let mut az_part = bz;
     az_part.scale(az_bf);
 

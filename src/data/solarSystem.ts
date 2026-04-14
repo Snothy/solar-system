@@ -250,17 +250,17 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     J: [1.960454e-3, 3.145e-5, -1.54477e-5],
 
     // Sectorial/Tesseral Harmonics
-    c22: -6.316e-5,
-    s22: -1.5e-5,
+    c22: -6.3e-5,
+    s22: 3e-5,
 
     tidal: { k2: 0.148, tidalQ: 92 },
 
-    poleRA: 317.68,
-    poleDec: 52.89,
-    poleRA_rate: -0.108,
-    poleDec_rate: -0.061,
-    W0: 176.63,
-    Wdot: 350.892015,
+    poleRA: 317.68143,
+    poleDec: 52.88627,
+    poleRA_rate: -0.10844326,
+    poleDec_rate: -0.06134706,
+    W0: 176.049863,
+    Wdot: 350.891983,
 
     hasAtmosphere: true,
     surfacePressure: 560, // 0.0056 bar
@@ -313,8 +313,13 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     tidal: { k2: 0.04, tidalQ: 100 },
 
     // Pole follows Mars' orientation closely
-    poleRA: 317.68,
-    poleDec: 52.9,
+    poleRA: 317.67071657,
+    poleDec: 52.88627266,
+    poleRA_rate: -0.10844326,
+    poleDec_rate: -0.06134706,
+
+    W0: 35.1877444,
+    Wdot: 1128.84475928,
 
     albedo: 0.071,
     thermalInertia: 25,
@@ -358,13 +363,20 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
     type: "moon",
 
     // Gravitational Harmonics (J2)
-    J: [0.08],
+    J: [0.1079],
+    c22: 0.03081,
+    s22: 0.0,
 
     tidal: { k2: 0.02, tidalQ: 100 },
 
     // Pole position
-    poleRA: 316.65,
-    poleDec: 53.52,
+    poleRA: 316.65705808,
+    poleDec: 53.50992033,
+    poleRA_rate: -0.10518014,
+    poleDec_rate: -0.05979094,
+
+    W0: 79.39932954,
+    Wdot: 285.16188899,
 
     albedo: 0.06,
     thermalInertia: 25,
@@ -670,6 +682,8 @@ export const SOLAR_SYSTEM_DATA: CelestialBodyData[] = [
 
     poleRA: 40.589,
     poleDec: 83.537,
+    poleRA_rate: -0.036,
+    poleDec_rate: -0.004,
     W0: 38.9,
     Wdot: 810.7939024,
     albedo: 0.47,

@@ -166,8 +166,9 @@ impl SimplifiedBody {
         
         let mut precession = PrecessionParams::default();
         if let (Some(ra), Some(dec)) = (self.pole_ra, self.pole_dec) {
-            precession.pole_ra0 = Some(ra.to_radians());
-            precession.pole_dec0 = Some(dec.to_radians());
+            precession.pole_ra0 = Some(ra);
+            precession.pole_dec0 = Some(dec);
+            
         }
         if let Some(rate) = self.precession_rate {
             // Rate is in arcseconds/year (e.g. 50.29)

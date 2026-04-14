@@ -42,7 +42,7 @@ pub fn apply_body_interactions(
         // A. Calculate Pole Orientation (RA/Dec & Vector)
         let mut calculated_pole = None;
         let mut calculated_ra = 0.0;
-        let mut calculated_dec = std::f64::consts::FRAC_PI_2;
+        let mut calculated_dec = 90.0_f64;
         let mut has_dynamic_orientation = false;
         let t_centuries = (current_jd - 2451545.0) / 36525.0;
 
@@ -52,12 +52,9 @@ pub fn apply_body_interactions(
                 precession.pole_ra0, precession.pole_dec0, 
                 precession.pole_ra_rate, precession.pole_dec_rate
             ) { 
-                // Rates: degrees/century -> radians/century
-                let ra_rate_rad = ra_rate.to_radians();
-                let dec_rate_rad = dec_rate.to_radians();
-
-                calculated_ra = ra0 + ra_rate_rad * t_centuries;
-                calculated_dec = dec0 + dec_rate_rad * t_centuries;
+                // All in degrees — rate is degrees/century, t_centuries is centuries
+                calculated_ra = ra0 + ra_rate * t_centuries;
+                calculated_dec = dec0 + dec_rate * t_centuries;
                 has_dynamic_orientation = true;
 
             } else if let (Some(ra0), Some(dec0)) = (precession.pole_ra0, precession.pole_dec0) {
@@ -68,10 +65,14 @@ pub fn apply_body_interactions(
             }
 
             if has_dynamic_orientation {
+                // Convert degrees -> radians for trig
+                let ra_rad = calculated_ra.to_radians();
+                let dec_rad = calculated_dec.to_radians();
+
                 // Convert Equatorial (RA/Dec) -> Cartesian (Equatorial)
-                let x_eq = calculated_dec.cos() * calculated_ra.cos();
-                let y_eq = calculated_dec.cos() * calculated_ra.sin();
-                let z_eq = calculated_dec.sin();
+                let x_eq = dec_rad.cos() * ra_rad.cos();
+                let y_eq = dec_rad.cos() * ra_rad.sin();
+                let z_eq = dec_rad.sin();
 
                 // Rotate Equatorial -> Ecliptic
                 let x_ecl = x_eq;
@@ -97,8 +98,8 @@ pub fn apply_body_interactions(
                         let y_eq = p.y * cos_eps - p.z * sin_eps; 
                         let z_eq = p.y * sin_eps + p.z * cos_eps;
                         
-                        calculated_ra = y_eq.atan2(x_eq);
-                        calculated_dec = z_eq.asin();
+                        calculated_ra = y_eq.atan2(x_eq).to_degrees();
+                        calculated_dec = z_eq.asin().to_degrees();
                     }
                 }
             }

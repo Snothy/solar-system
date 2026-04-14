@@ -252,8 +252,8 @@ export function celBodyToWasm(
 
   // 3. PrecessionParams (Units matching Rust's SimplifiedBody)
   if (data.poleRA != null && data.poleDec != null) {
-    body.poleRa0 = degToRad(data.poleRA); // Rust: self.pole_ra.to_radians()
-    body.poleDec0 = degToRad(data.poleDec); // Rust: self.pole_dec.to_radians()
+    body.poleRa0 = data.poleRA;
+    body.poleDec0 = data.poleDec;
   }
 
   if (data.precessionRate != null) {
