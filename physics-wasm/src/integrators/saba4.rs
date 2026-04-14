@@ -104,41 +104,45 @@ fn step_saba4_internal(
 
 fn drift_system_kepler(bodies: &mut Vec<PhysicsBody>, dt: f64) {
     let sun_idx = bodies.iter().position(|b| b.name == "Sun");
+    
     if let Some(s_idx) = sun_idx {
+        // We capture the Sun's state at the START of the drift
         let sun_gm = bodies[s_idx].gm;
         let sun_pos_old = bodies[s_idx].pos;
-        let sun_vel_old = bodies[s_idx].vel;
+        let sun_vel = bodies[s_idx].vel; // Sun velocity is constant during Drift (A)
         
-        // Sun Linear Drift
-        let mut sun_delta = sun_vel_old;
-        sun_delta.scale(dt);
-        bodies[s_idx].pos.add(&sun_delta);
-        
+        // 1. Move the Sun linearly (The "Barycentric Drift" component)
+        let mut sun_displacement = sun_vel;
+        sun_displacement.scale(dt);
+        bodies[s_idx].pos.add(&sun_displacement);
         let sun_pos_new = bodies[s_idx].pos;
-        let sun_vel_new = bodies[s_idx].vel; // Constant
         
         for i in 0..bodies.len() {
             if i == s_idx { continue; }
             
-            // Convert to heliocentric coordinates
+            // 2. Convert to Heliocentric RELATIVE coordinates
             let mut rel_pos = bodies[i].pos;
             rel_pos.sub(&sun_pos_old);
-            let mut rel_vel = bodies[i].vel;
-            rel_vel.sub(&sun_vel_old);
             
-            // Drift in heliocentric frame using Kepler solver
-            let mu = sun_gm + bodies[i].gm;
+            let mut rel_vel = bodies[i].vel;
+            rel_vel.sub(&sun_vel);
+            
+            // 3. Kepler Drift: Only use Sun's GM. 
+            // Including the planet's GM here usually leads to energy error 
+            // because the 'Kick' step also accounts for the planet's mass.
+            let mu = sun_gm; 
             use crate::dynamics::kepler::solve_kepler_drift;
             solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt, mu);
             
-            // Convert back to absolute coordinates using NEW sun position
+            // 4. Map back to Absolute coordinates using the updated Sun position
             bodies[i].pos = rel_pos;
             bodies[i].pos.add(&sun_pos_new);
+            
             bodies[i].vel = rel_vel;
-            bodies[i].vel.add(&sun_vel_new);
+            bodies[i].vel.add(&sun_vel);
         }
     } else {
-        // Fallback to linear drift if no Sun found
+        // Fallback to linear drift
         for body in bodies.iter_mut() {
             let mut delta = body.vel;
             delta.scale(dt);
@@ -146,7 +150,6 @@ fn drift_system_kepler(bodies: &mut Vec<PhysicsBody>, dt: f64) {
         }
     }
 }
-
 fn kick_system_interaction(
     bodies: &mut Vec<PhysicsBody>, 
     parent_indices: &[ParentIndex],

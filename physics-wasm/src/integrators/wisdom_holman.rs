@@ -1,14 +1,13 @@
-use crate::common::types::PhysicsBody;
+use crate::common::types::{PhysicsBody, Vector3};
 use crate::common::config::PhysicsConfig;
 use crate::common::indices::ParentIndex;
 use crate::forces::{calculate_accelerations, ForceConfig, GravityMode};
-
 use crate::integrators::traits::Integrator;
 use crate::integrators::types::IntegratorQuality;
+use crate::common::units::Seconds;
+use crate::dynamics::kepler::solve_kepler_drift;
 
 pub struct WisdomHolmanIntegrator;
-
-use crate::common::units::Seconds;
 
 impl Integrator for WisdomHolmanIntegrator {
     fn step(
@@ -20,16 +19,18 @@ impl Integrator for WisdomHolmanIntegrator {
         quality: IntegratorQuality,
         current_jd: f64,
     ) {
-        // Handle substeps based on quality
+        // Wisdom-Holman requires more frequent updates than SABA4 
+        // to handle the Jovian moons accurately.
         let max_substep = match quality {
-            IntegratorQuality::Low => 432000.0,  // 5 days
-            IntegratorQuality::Medium => 86400.0,// 1 day
-            IntegratorQuality::High => 8640.0,   // 0.1 day
-            IntegratorQuality::Ultra => 864.0,   // 0.01 day
+            IntegratorQuality::Low => 86400.0,   // 1 day
+            IntegratorQuality::Medium => 3600.0,  // 1 hour
+            IntegratorQuality::High => 600.0,    // 10 minutes
+            IntegratorQuality::Ultra => 60.0,    // 1 minute
         };
 
         let mut time_remaining = dt;
         let mut current_time = current_jd;
+        
         while time_remaining > 0.0 {
             let sub_dt = if time_remaining > max_substep { max_substep } else { time_remaining };
             step_wisdom_holman_internal(bodies, parent_indices, sub_dt, config, current_time);
@@ -49,7 +50,6 @@ pub fn step_wisdom_holman(
     dt: Seconds,
     config: &PhysicsConfig,
 ) {
-    // Legacy wrapper
     let integrator = WisdomHolmanIntegrator;
     integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::Medium, 2451545.0);
 }
@@ -62,147 +62,72 @@ fn step_wisdom_holman_internal(
     current_jd: f64,
 ) {
     let sun_idx = bodies.iter().position(|b| b.name == "Sun");
-    
+
     if let Some(s_idx) = sun_idx {
-        // Store Sun's state at t
-        let sun_gm = bodies[s_idx].gm;
-        let sun_pos_t = bodies[s_idx].pos;
-        let sun_vel_t = bodies[s_idx].vel;
-        
-        // 1. DRIFT (dt/2) - Heliocentric Keplerian motion
-        
-        // Sun: Linear drift
-        let mut sun_delta = sun_vel_t;
-        sun_delta.scale(dt / 2.0);
-        bodies[s_idx].pos.add(&sun_delta);
-        
-        let sun_pos_half = bodies[s_idx].pos;
-        let sun_vel_half = bodies[s_idx].vel;
-        
-        // All other bodies: Kepler drift around Sun
-        for i in 0..bodies.len() {
-            if i == s_idx { continue; }
-            
-            // Convert to heliocentric coordinates
-            let mut rel_pos = bodies[i].pos;
-            rel_pos.sub(&sun_pos_t);
-            let mut rel_vel = bodies[i].vel;
-            rel_vel.sub(&sun_vel_t);
-            
-            // Drift in heliocentric frame using Kepler solver
-            let mu = sun_gm + bodies[i].gm;
-            use crate::dynamics::kepler::solve_kepler_drift;
-            solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt / 2.0, mu);
-            
-            // Convert back to absolute coordinates using NEW sun position
-            bodies[i].pos = rel_pos;
-            bodies[i].pos.add(&sun_pos_half);
-            bodies[i].vel = rel_vel;
-            bodies[i].vel.add(&sun_vel_half);
-        }
-        
-        // 2. KICK (dt) - Perturbations only (Keplerian term handled by drift)
-        
-        // Compute accelerations with Sun's Keplerian term subtracted
+        // --- 1. DRIFT A (dt/2) ---
+        // Advance the system using purely Keplerian motion around the Sun.
+        drift_system_kepler_wh(bodies, s_idx, dt / 2.0);
+
+        // --- 2. KICK B (dt) ---
+        // Calculate perturbations (Planet-Planet, J2, etc.) 
+        // CRITICAL: GravityMode::SplitDriftKick MUST ignore Sun's primary GM/r^2
         let force_config = ForceConfig {
             physics: config,
             parent_indices,
             gravity_mode: GravityMode::SplitDriftKick,
         };
-        let accs = calculate_accelerations(bodies, &force_config, current_jd);
         
+        let accs = calculate_accelerations(bodies, &force_config, current_jd);
         for (i, acc) in accs.iter().enumerate() {
             let mut dv = *acc;
             dv.scale(dt);
             bodies[i].vel.add(&dv);
         }
-        
-        // 3. DRIFT (dt/2) - Second half-step
-        
-        // Sun's position/velocity after first drift and kick
-        let sun_pos_t_plus = bodies[s_idx].pos;
-        let sun_vel_t_plus = bodies[s_idx].vel;
-        
-        // Sun: Linear drift
-        let mut sun_delta = sun_vel_t_plus;
-        sun_delta.scale(dt / 2.0);
-        bodies[s_idx].pos.add(&sun_delta);
-        
-        let sun_pos_final = bodies[s_idx].pos;
-        let sun_vel_final = bodies[s_idx].vel;
-        
-        // All other bodies: Kepler drift around Sun
-        for i in 0..bodies.len() {
-            if i == s_idx { continue; }
-            
-            // Convert to heliocentric coordinates
-            let mut rel_pos = bodies[i].pos;
-            rel_pos.sub(&sun_pos_t_plus);
-            let mut rel_vel = bodies[i].vel;
-            rel_vel.sub(&sun_vel_t_plus);
-            
-            // Drift in heliocentric frame using Kepler solver
-            let mu = sun_gm + bodies[i].gm;
-            use crate::dynamics::kepler::solve_kepler_drift;
-            solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt / 2.0, mu);
-            
-            // Convert back to absolute coordinates using final sun position
-            bodies[i].pos = rel_pos;
-            bodies[i].pos.add(&sun_pos_final);
-            bodies[i].vel = rel_vel;
-            bodies[i].vel.add(&sun_vel_final);
-        }
+
+        // --- 3. DRIFT A (dt/2) ---
+        // Final Keplerian drift with updated velocities.
+        drift_system_kepler_wh(bodies, s_idx, dt / 2.0);
+
     } else {
-        // Fallback if no Sun - use hierarchical drift
-        apply_hierarchical_drift(bodies, parent_indices, dt / 2.0);
-        
-        let force_config = ForceConfig {
-            physics: config,
-            parent_indices,
-            gravity_mode: GravityMode::HierarchicalSubtraction,
-        };
-        let accs = calculate_accelerations(bodies, &force_config, current_jd);
-        
-        for (i, acc) in accs.iter().enumerate() {
-            let mut dv = *acc;
-            dv.scale(dt);
-            bodies[i].vel.add(&dv);
+        // Fallback for systems without a "Sun" (Linear Drift)
+        for body in bodies.iter_mut() {
+            let mut displacement = body.vel;
+            displacement.scale(dt);
+            body.pos.add(&displacement);
         }
-        
-        apply_hierarchical_drift(bodies, parent_indices, dt / 2.0);
     }
 }
 
-fn apply_hierarchical_drift(bodies: &mut [PhysicsBody], parent_indices: &[ParentIndex], dt: f64) {
-    use crate::dynamics::kepler::solve_kepler_drift;
-    
-    let n = bodies.len();
-    for i in 0..n {
-        if let Some(p_idx) = parent_indices[i] {
-            let parent_idx = p_idx.as_usize();
-            let mu = bodies[parent_idx].gm + bodies[i].gm;
-            
-            // Relative state
-            let mut rel_pos = bodies[i].pos;
-            rel_pos.sub(&bodies[parent_idx].pos);
-            let mut rel_vel = bodies[i].vel;
-            rel_vel.sub(&bodies[parent_idx].vel);
-            
-            solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt, mu);
-            
-            // Reconstruct absolute state
-            let mut new_pos = bodies[parent_idx].pos;
-            new_pos.add(&rel_pos);
-            let mut new_vel = bodies[parent_idx].vel;
-            new_vel.add(&rel_vel);
-            bodies[i].pos = new_pos;
-            bodies[i].vel = new_vel;
-        } else {
-            // No parent, linear drift
-            let v = bodies[i].vel;
-            let mut dr = v;
-            dr.scale(dt);
-            bodies[i].pos.add(&dr);
-        }
+/// Specialized Heliocentric Drift for Wisdom-Holman
+fn drift_system_kepler_wh(bodies: &mut Vec<PhysicsBody>, sun_idx: usize, dt: f64) {
+    let sun_gm = bodies[sun_idx].gm;
+    let sun_pos_start = bodies[sun_idx].pos;
+    let sun_vel = bodies[sun_idx].vel;
+
+    // Move the Sun linearly (The drift of the coordinate origin)
+    let mut sun_displacement = sun_vel;
+    sun_displacement.scale(dt);
+    bodies[sun_idx].pos.add(&sun_displacement);
+    let sun_pos_end = bodies[sun_idx].pos;
+
+    for i in 0..bodies.len() {
+        if i == sun_idx { continue; }
+
+        // Convert to Heliocentric Relative state
+        let mut rel_pos = bodies[i].pos;
+        rel_pos.sub(&sun_pos_start);
+        let mut rel_vel = bodies[i].vel;
+        rel_vel.sub(&sun_vel);
+
+        // Drift using Universal Variables Kepler solver
+        // Use ONLY sun_gm to stay consistent with the Force Split
+        solve_kepler_drift(&mut rel_pos, &mut rel_vel, dt, sun_gm);
+
+        // Convert back to Absolute coordinates using the updated Sun position
+        bodies[i].pos = rel_pos;
+        bodies[i].pos.add(&sun_pos_end);
+        
+        bodies[i].vel = rel_vel;
+        bodies[i].vel.add(&sun_vel);
     }
 }
