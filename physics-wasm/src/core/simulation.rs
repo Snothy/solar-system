@@ -1,11 +1,11 @@
-use crate::common::types::{PhysicsBody, Vector3};
 use crate::common::config::PhysicsConfig;
-use crate::common::indices::ParentIndex;
-use crate::common::utils::update_pole_orientation;
 use crate::common::constants::SOLAR_MASS_LOSS;
-use crate::common::units::{Seconds, Meters};
-use crate::dynamics::hierarchy::update_hierarchy;
+use crate::common::indices::ParentIndex;
+use crate::common::types::{PhysicsBody, Vector3};
+use crate::common::units::{Meters, Seconds};
+use crate::common::utils::update_pole_orientation;
 use crate::dynamics::apply_all_torques;
+use crate::dynamics::hierarchy::update_hierarchy;
 use crate::integrators;
 
 /// Pure Rust implementation of the physics simulation.
@@ -32,12 +32,12 @@ impl Simulation {
     }
 
     pub fn step(
-        &mut self, 
-        dt: Seconds, 
-        sim_time: Seconds,
+        &mut self,
+        dt: Seconds,
+        _sim_time: Seconds,
         config: &PhysicsConfig,
         integrator_type: u8, // 0=Adaptive, 1=Wisdom-Holman, 2=SABA4, 3=HighPrecision
-        quality: u8 // 0=Low, 1=Medium, 2=High, 3=Ultra
+        quality: u8,         // 0=Low, 1=Medium, 2=High, 3=Ultra
     ) -> Seconds {
         // Update Pole Orientation
         update_pole_orientation(
@@ -57,9 +57,6 @@ impl Simulation {
                 self.bodies[sun_idx].gm = new_mass * crate::common::constants::G;
             }
         }
-
-        // Force Hierarchy Update
-        self.update_hierarchy_internal();
 
         let quality_enum = crate::integrators::types::IntegratorQuality::from(quality);
 
@@ -111,7 +108,7 @@ impl Simulation {
             self.update_hierarchy_internal();
         }
     }
-    
+
     pub fn get_barycenter(&self) -> Vector3 {
         let mut bary = Vector3::zero();
         let mut total_mass = 0.0;

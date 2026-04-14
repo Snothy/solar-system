@@ -55,6 +55,14 @@ impl Vector3 {
         self.z *= s;
     }
 
+    pub fn scaled(&self, factor: f64) -> Self {
+        Self {
+            x: self.x * factor,
+            y: self.y * factor,
+            z: self.z * factor,
+        }
+    }
+
     pub fn len_sq(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }

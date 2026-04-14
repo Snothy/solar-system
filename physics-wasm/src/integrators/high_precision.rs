@@ -1,6 +1,6 @@
-use crate::common::types::PhysicsBody;
 use crate::common::config::PhysicsConfig;
 use crate::common::indices::ParentIndex;
+use crate::common::types::PhysicsBody;
 use crate::forces::{calculate_accelerations, ForceConfig, GravityMode};
 use ode_solvers::{DVector, Dop853, System};
 use std::cell::RefCell;
@@ -41,7 +41,14 @@ pub fn step_high_precision(
 ) {
     // Legacy wrapper - default to High quality
     let integrator = HighPrecisionIntegrator;
-    integrator.step(bodies, parent_indices, dt, config, IntegratorQuality::High, 2451545.0);
+    integrator.step(
+        bodies,
+        parent_indices,
+        dt,
+        config,
+        IntegratorQuality::High,
+        2451545.0,
+    );
 }
 
 fn step_high_precision_internal(
@@ -53,18 +60,18 @@ fn step_high_precision_internal(
     current_jd: f64,
 ) {
     let n = bodies.len();
-    
+
     // 1. Setup initial state vector y
     let mut state = DVector::from_element(n * 6, 0.0);
     for (i, b) in bodies.iter().enumerate() {
-        state[i*6 + 0] = b.pos.x;
-        state[i*6 + 1] = b.pos.y;
-        state[i*6 + 2] = b.pos.z;
-        state[i*6 + 3] = b.vel.x;
-        state[i*6 + 4] = b.vel.y;
-        state[i*6 + 5] = b.vel.z;
+        state[i * 6 + 0] = b.pos.x;
+        state[i * 6 + 1] = b.pos.y;
+        state[i * 6 + 2] = b.pos.z;
+        state[i * 6 + 3] = b.vel.x;
+        state[i * 6 + 4] = b.vel.y;
+        state[i * 6 + 5] = b.vel.z;
     }
-    
+
     // 2. Define System with Interior Mutability
     struct SolarSystem<'a> {
         // Use RefCell so we can mutate positions inside the immutable 'system' call
@@ -80,33 +87,38 @@ fn step_high_precision_internal(
             // Borrow the scratch buffer mutably
             let mut bodies_ref = self.bodies.borrow_mut();
             let n = bodies_ref.len();
-            
+
             // Update the scratch buffer from the solver's current state 'y'
             for i in 0..n {
-                bodies_ref[i].pos.x = y[i*6 + 0];
-                bodies_ref[i].pos.y = y[i*6 + 1];
-                bodies_ref[i].pos.z = y[i*6 + 2];
+                bodies_ref[i].pos.x = y[i * 6 + 0];
+                bodies_ref[i].pos.y = y[i * 6 + 1];
+                bodies_ref[i].pos.z = y[i * 6 + 2];
+                bodies_ref[i].vel.x = y[i * 6 + 3];
+                bodies_ref[i].vel.y = y[i * 6 + 4];
+                bodies_ref[i].vel.z = y[i * 6 + 5];
             }
-                        
+
             // Calculate accelerations using the scratch buffer
+            // Note: We use static JD for performance - rotation angles are updated at the
+            // start of each major step in simulation.rs, so this is sufficient accuracy.
             let force_config = ForceConfig {
                 physics: self.config,
                 parent_indices: self.parent_indices,
                 gravity_mode: GravityMode::FullNBody,
             };
-            
+
             let accs = calculate_accelerations(&bodies_ref, &force_config, self.current_jd);
-            
+
             // Fill derivative vector dy
             for i in 0..n {
                 // dy/dt (pos) = vel — read from y, not the scratch buffer
-                dy[i*6 + 0] = y[i*6 + 3];
-                dy[i*6 + 1] = y[i*6 + 4];
-                dy[i*6 + 2] = y[i*6 + 5];
+                dy[i * 6 + 0] = y[i * 6 + 3];
+                dy[i * 6 + 1] = y[i * 6 + 4];
+                dy[i * 6 + 2] = y[i * 6 + 5];
                 // dv/dt (vel) = acc
-                dy[i*6 + 3] = accs[i].x;
-                dy[i*6 + 4] = accs[i].y;
-                dy[i*6 + 5] = accs[i].z;
+                dy[i * 6 + 3] = accs[i].x;
+                dy[i * 6 + 4] = accs[i].y;
+                dy[i * 6 + 5] = accs[i].z;
             }
         }
     }
@@ -132,7 +144,7 @@ fn step_high_precision_internal(
     // Initial step size guess (dx)
     // Cap initial step at 1 day (86400s) or dt if smaller.
     let dx = (dt / 100.0).min(86400.0 * 30.0);
-    
+
     let mut stepper = Dop853::new(system, 0.0, dt, dx, state, rtol, atol);
     let res = stepper.integrate();
 
